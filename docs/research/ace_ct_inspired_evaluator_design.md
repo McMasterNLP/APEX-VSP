@@ -335,6 +335,16 @@ must not load model settings. Fake-adapter tests require no credentials. A seede
 requires explicit `--allow-live-llm`; no live call is authorized during implementation or
 automated testing.
 
+## Implemented prompt contract
+
+Checkpoint 5 implements an original provider-neutral two-message prompt in
+`services.ace_ct_prompt`. The system message defines scope, missing modalities, fixed speaker
+roles, evidence rules, null handling, output length limits, and the experimental/non-reproduction
+boundary. The user message contains safe rubric metadata, each stable dimension identifier once
+in an ordered schema section, the provisional generic scale, a strict JSON shape, and the
+interleaved transcript. It excludes source provenance, identity, database metadata,
+configuration, credentials, raw prompts from other work, and requests for chain-of-thought.
+
 ## Privacy behavior
 
 - Projected transcripts contain only source turn number, mapped role, and text.
