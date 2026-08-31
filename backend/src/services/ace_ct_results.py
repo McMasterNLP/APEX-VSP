@@ -26,6 +26,46 @@ FRAMEWORK_EQUIVALENCE_WARNING = (
 )
 
 
+def _redact_exact_turn_text(value: str, raw_turn_texts: set[str]) -> str:
+    redacted = value
+    for text in sorted(raw_turn_texts, key=len, reverse=True):
+        if text:
+            redacted = redacted.replace(text, "[TRANSCRIPT_TEXT_REDACTED]")
+    return redacted
+
+
+def sanitize_ace_ct_framework_results(
+    framework_results: EvaluatorFrameworkResults,
+    *,
+    raw_turn_texts: set[str],
+) -> EvaluatorFrameworkResults:
+    """Remove exact transcript text from narrative framework fields."""
+
+    return framework_results.model_copy(
+        update={
+            "dimension_results": tuple(
+                dimension.model_copy(
+                    update={
+                        "reasoning": _redact_exact_turn_text(dimension.reasoning, raw_turn_texts),
+                        "improvement_recommendation": _redact_exact_turn_text(
+                            dimension.improvement_recommendation, raw_turn_texts
+                        ),
+                    }
+                )
+                for dimension in framework_results.dimension_results
+            ),
+            "limitations": framework_results.limitations.model_copy(
+                update={
+                    "notes": tuple(
+                        _redact_exact_turn_text(note, raw_turn_texts)
+                        for note in framework_results.limitations.notes
+                    )
+                }
+            ),
+        }
+    )
+
+
 def normalize_ace_ct_score(score: int | None) -> float | None:
     """Map a native integer 1-5 score to 0-100 without imputation."""
 

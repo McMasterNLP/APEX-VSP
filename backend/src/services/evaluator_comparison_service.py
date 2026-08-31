@@ -39,6 +39,7 @@ from plugins.evaluators.apex_hybrid_v2_evaluator import ApexHybridV2Evaluator
 from repositories.session_repo import SessionRepository
 from repositories.turn_repo import TurnRepository
 from services.scoring_service import ScoringService
+from services.ace_ct_results import sanitize_ace_ct_framework_results
 
 
 @dataclass(frozen=True)
@@ -517,21 +518,9 @@ def sanitize_evaluator_result(
         )
     safe_framework: EvaluatorFrameworkResults | None = None
     if result.status == "success" and result.framework_results is not None:
-        private_text = raw_turn_texts or set()
-        safe_framework = result.framework_results.model_copy(
-            update={
-                "dimension_results": tuple(
-                    dimension.model_copy(
-                        update={
-                            "reasoning": _redact_full_turn_text(dimension.reasoning, private_text),
-                            "improvement_recommendation": _redact_full_turn_text(
-                                dimension.improvement_recommendation, private_text
-                            ),
-                        }
-                    )
-                    for dimension in result.framework_results.dimension_results
-                )
-            }
+        safe_framework = sanitize_ace_ct_framework_results(
+            result.framework_results,
+            raw_turn_texts=raw_turn_texts or set(),
         )
 
     return EvaluatorArtifactResult(

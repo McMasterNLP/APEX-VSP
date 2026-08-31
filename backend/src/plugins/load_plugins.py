@@ -14,6 +14,7 @@ PLUGIN_MODULES = [
     "plugins.evaluators.apex_baseline_evaluator",
     "plugins.evaluators.apex_hybrid_evaluator",
     "plugins.evaluators.apex_hybrid_v2_evaluator",
+    "plugins.evaluators.ace_ct_inspired_evaluator",
     "plugins.metrics.apex_metrics",
 ]
 

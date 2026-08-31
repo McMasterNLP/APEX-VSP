@@ -1284,6 +1284,11 @@ class ScoringService:
             }
         )
 
+    async def persist_computed_feedback(self, result: ComputedFeedback) -> FeedbackResponse:
+        """Persist an explicitly selected plugin's already-computed feedback."""
+
+        return await self._persist_computed_feedback(result)
+
     async def generate_feedback_rule_only(self, session_id: int) -> FeedbackResponse:
         """100% rule-based feedback (baseline evaluator path). No LLM."""
         result = await self.compute_baseline_feedback(session_id)

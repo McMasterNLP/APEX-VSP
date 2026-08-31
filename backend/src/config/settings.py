@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     default_llm_provider: str = Field(default="openai")
+    ace_ct_allow_experimental_rubric: bool = Field(default=False)
     
     # TTS/ASR Configuration
     tts_provider: str = Field(default="openai")

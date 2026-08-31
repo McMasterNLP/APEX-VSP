@@ -395,6 +395,15 @@ The same computation core serves both paths.
 - ACE-CT-inspired output is not added to the default evaluator list selected by `all`; it must be
   explicitly named. A future `all_experimental` alias may be considered separately.
 
+Checkpoint 10 registers `ACECTInspiredRubricEvaluator` as version
+`0.1.0-experimental` without changing the default. Its `compute` method and comparison callers
+share `compute_ace_ct_evaluation`, which performs no writes. `evaluate` verifies that the session
+is explicitly frozen to the plugin and persists only a complete compatibility projection through
+the existing scoring persistence service. Framework results are stored as bounded sanitized
+metadata on a normal plugin run and remain first-class on comparison runs. Provider failure,
+rubric gating, or insufficient required compatibility scores raise a sanitized error before any
+feedback row is created or overwritten.
+
 ## Failure behavior
 
 - Invalid transcript structure fails before a provider call.
