@@ -385,6 +385,17 @@ The same computation core serves both paths.
   valid partial-failure artifact.
 - Logs contain category-level diagnostics only.
 
+### Implemented evaluator service contract
+
+Checkpoint 6 implements `ACECTEvaluatorService(llm_adapter)` without a database or provider
+constructor. Approval is checked before prompt construction and adapter invocation. The adapter
+is called once at temperature zero. Optional plain or JSON markdown fences are removed before a
+single JSON parse, after which the strict result and transcript evidence coordinates are
+validated. Success and failure are typed. Failures expose only fixed, bounded diagnostics for
+approval denial, adapter errors, invalid JSON, invalid schema output, unknown evidence turns, or
+excess output. Raw response text, exception text, prompts, transcripts, and credentials are
+neither logged nor returned.
+
 ## Questions requiring Dr. Lahnala’s review
 
 1. Is the complete ACE-CT rubric public and authorized for implementation?

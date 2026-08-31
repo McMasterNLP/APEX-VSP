@@ -520,3 +520,32 @@ class ACECTEvaluationResult(BaseModel):
             ):
                 raise ValueError(f"Mean score for domain '{domain_score.domain.value}' is invalid.")
         return self
+
+
+class ACECTEvaluationSuccess(BaseModel):
+    """Typed successful service result."""
+
+    status: Literal["success"] = "success"
+    evaluation: ACECTEvaluationResult
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ACECTEvaluationFailure(BaseModel):
+    """Typed allowlisted failure without raw provider data."""
+
+    status: Literal["failed"] = "failed"
+    category: Literal[
+        "rubric_not_approved",
+        "adapter_error",
+        "invalid_json",
+        "invalid_output",
+        "invalid_evidence_turn",
+        "excess_output",
+    ]
+    diagnostic: str = Field(min_length=1, max_length=200)
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+ACECTEvaluationServiceResult = ACECTEvaluationSuccess | ACECTEvaluationFailure
