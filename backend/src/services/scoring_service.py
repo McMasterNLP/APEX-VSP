@@ -1061,10 +1061,18 @@ class ScoringService:
         spikes_score: float,
         overall_score: float,
         evaluator_meta: dict[str, Any] | None,
+        evaluator_plugin_override: tuple[str, str] | None = None,
     ) -> ComputedFeedback:
         """Build the complete rule-core result shared by memory-only and persisted paths."""
         meta_out: dict[str, Any] = dict(evaluator_meta) if evaluator_meta else {}
         meta_out["session_plugins"] = _session_plugin_context_for_evaluator_meta(state.session)
+        if evaluator_plugin_override is not None:
+            plugin_identifier, plugin_version = evaluator_plugin_override
+            meta_out["session_plugins"] = {
+                **meta_out["session_plugins"],
+                "evaluator_plugin": plugin_identifier,
+                "evaluator_version": plugin_version,
+            }
 
         # Preserve the existing production policy: final SPIKES and overall scores are
         # derived from canonical coverage, including hybrid mapping behavior.
@@ -1126,7 +1134,12 @@ class ScoringService:
             suggested_responses=state.suggested_responses or None,
         )
 
-    async def compute_baseline_feedback(self, session_id: int) -> ComputedFeedback:
+    async def compute_baseline_feedback(
+        self,
+        session_id: int,
+        *,
+        evaluator_plugin_override: tuple[str, str] | None = None,
+    ) -> ComputedFeedback:
         """Calculate deterministic baseline feedback without writing any database row."""
         state = await self._compute_rule_feedback_state(session_id)
         return self._build_computed_feedback(
@@ -1136,6 +1149,45 @@ class ScoringService:
             spikes_score=state.spikes_score,
             overall_score=state.overall_score,
             evaluator_meta={"phase": "baseline_rule_v1"},
+            evaluator_plugin_override=evaluator_plugin_override,
+        )
+
+    async def compute_hybrid_feedback(self, session_id: int) -> ComputedFeedback:
+        """Calculate hybrid-v1 feedback in memory without feedback or metrics persistence."""
+        state = await self._compute_rule_feedback_state(session_id)
+        empathy, communication, spikes, overall, meta = await self._hybrid_llm_merge_scores(
+            state, session_id
+        )
+        return self._build_computed_feedback(
+            state,
+            empathy_score=empathy,
+            communication_score=communication,
+            spikes_score=spikes,
+            overall_score=overall,
+            evaluator_meta=meta,
+            evaluator_plugin_override=(
+                "plugins.evaluators.apex_hybrid_evaluator:ApexHybridEvaluator",
+                "1.0",
+            ),
+        )
+
+    async def compute_hybrid_v2_feedback(self, session_id: int) -> ComputedFeedback:
+        """Calculate hybrid-v2 feedback in memory without feedback or metrics persistence."""
+        state = await self._compute_rule_feedback_state(session_id)
+        empathy, communication, spikes, overall, meta = await self._hybrid_v2_llm_merge_scores(
+            state, session_id
+        )
+        return self._build_computed_feedback(
+            state,
+            empathy_score=empathy,
+            communication_score=communication,
+            spikes_score=spikes,
+            overall_score=overall,
+            evaluator_meta=meta,
+            evaluator_plugin_override=(
+                "plugins.evaluators.apex_hybrid_v2_evaluator:ApexHybridV2Evaluator",
+                "2.0",
+            ),
         )
 
     async def _persist_feedback_from_rule_state(

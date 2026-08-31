@@ -18,7 +18,13 @@ from domain.models.cases import (
     CaseResponse,
     CaseUpdate,
 )
-from domain.models.evaluator_comparison import CanonicalTranscriptTurn, EvaluatorProvenance
+from domain.models.evaluator_comparison import (
+    CanonicalTranscriptTurn,
+    EvaluatorProvenance,
+    EvaluatorRunResult,
+    EvaluatorScores,
+    SanitizedEvaluatorError,
+)
 from domain.models.scoring import ComputedFeedback
 from domain.models.sessions import (
     FeedbackResponse,
@@ -53,6 +59,9 @@ __all__ = [
     "ComputedFeedback",
     "CanonicalTranscriptTurn",
     "EvaluatorProvenance",
+    "EvaluatorRunResult",
+    "EvaluatorScores",
+    "SanitizedEvaluatorError",
     "WebSocketMessage",
     # Admin
     "UserStats",
