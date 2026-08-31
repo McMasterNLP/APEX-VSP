@@ -48,8 +48,10 @@ class EvaluatorDefinition:
     plugin_identifier: str
     class_name: str
     version: str
-    evaluator_type: Literal["rule_based", "hybrid_llm"]
-    llm_provider: str | None = None
+    evaluator_type: Literal["rule_based", "hybrid_llm", "experimental_rubric_llm"]
+    requires_llm: bool = False
+    supported_providers: tuple[Literal["openai", "gemini"], ...] = ()
+    default_llm_provider: Literal["openai", "gemini"] | None = None
     reviewer_version: str | None = None
     prompt_version: str | None = None
 
@@ -68,7 +70,9 @@ EVALUATOR_DEFINITIONS: dict[str, EvaluatorDefinition] = {
         class_name=ApexHybridEvaluator.__name__,
         version=ApexHybridEvaluator.version,
         evaluator_type="hybrid_llm",
-        llm_provider="openai",
+        requires_llm=True,
+        supported_providers=("openai",),
+        default_llm_provider="openai",
         reviewer_version="v1",
         prompt_version="v1",
     ),
@@ -78,11 +82,30 @@ EVALUATOR_DEFINITIONS: dict[str, EvaluatorDefinition] = {
         class_name=ApexHybridV2Evaluator.__name__,
         version=ApexHybridV2Evaluator.version,
         evaluator_type="hybrid_llm",
-        llm_provider="openai",
+        requires_llm=True,
+        supported_providers=("openai",),
+        default_llm_provider="openai",
         reviewer_version="v2",
         prompt_version="v2",
     ),
+    "ace_ct_inspired": EvaluatorDefinition(
+        identifier="ace_ct_inspired",
+        plugin_identifier=(
+            "plugins.evaluators.ace_ct_inspired_evaluator:ACECTInspiredRubricEvaluator"
+        ),
+        class_name="ACECTInspiredRubricEvaluator",
+        version="0.1.0-experimental",
+        evaluator_type="experimental_rubric_llm",
+        requires_llm=True,
+        supported_providers=("openai", "gemini"),
+        default_llm_provider="openai",
+        reviewer_version="ace-ct-inspired-v1",
+        prompt_version="ace-ct-inspired-prompt-v1",
+    ),
 }
+
+# Preserve the historical meaning of ``all`` so it never adds a paid experimental call.
+DEFAULT_EVALUATOR_IDENTIFIERS = ("baseline", "hybrid_v1", "hybrid_v2")
 
 SCORE_METRICS = (
     "empathy_score",
@@ -147,6 +170,7 @@ def hash_transcript(turns: Iterable[Any]) -> str:
 def build_evaluator_provenance(
     evaluator_identifier: str,
     *,
+    llm_provider: str | None = None,
     model_identifier: str | None = None,
 ) -> EvaluatorProvenance:
     """Build allowlisted provenance without inspecting environment or adapter state."""
@@ -158,17 +182,71 @@ def build_evaluator_provenance(
             f"Unknown evaluator identifier '{evaluator_identifier}'. Expected one of: {allowed}."
         ) from exc
 
+    resolved_provider: str | None = None
+    if definition.requires_llm:
+        resolved_provider = llm_provider or definition.default_llm_provider
+        if resolved_provider not in definition.supported_providers:
+            supported = ", ".join(definition.supported_providers)
+            raise ValueError(
+                f"Evaluator '{evaluator_identifier}' does not support provider "
+                f"'{resolved_provider}'. Expected one of: {supported}."
+            )
+
     return EvaluatorProvenance(
         evaluator_identifier=definition.identifier,
         plugin_identifier=definition.plugin_identifier,
         class_name=definition.class_name,
         version=definition.version,
         evaluator_type=definition.evaluator_type,
-        llm_provider=definition.llm_provider,
-        model_identifier=model_identifier if definition.llm_provider else None,
+        llm_provider=resolved_provider,
+        model_identifier=model_identifier if definition.requires_llm else None,
         reviewer_version=definition.reviewer_version,
         prompt_version=definition.prompt_version,
     )
+
+
+def evaluators_require_llm(evaluator_identifiers: Iterable[str]) -> bool:
+    """Return whether any validated evaluator needs a model adapter."""
+
+    return any(
+        EVALUATOR_DEFINITIONS[identifier].requires_llm
+        for identifier in validate_evaluator_identifiers(evaluator_identifiers)
+    )
+
+
+def resolve_evaluator_llm_provider(
+    evaluator_identifiers: Iterable[str],
+    requested_provider: str | None = None,
+) -> str | None:
+    """Resolve one provider supported by every selected LLM evaluator."""
+
+    requested = validate_evaluator_identifiers(evaluator_identifiers)
+    llm_definitions = [
+        EVALUATOR_DEFINITIONS[identifier]
+        for identifier in requested
+        if EVALUATOR_DEFINITIONS[identifier].requires_llm
+    ]
+    if not llm_definitions:
+        return None
+
+    provider = requested_provider.strip().lower() if requested_provider else None
+    if provider is None:
+        defaults = {definition.default_llm_provider for definition in llm_definitions}
+        if len(defaults) != 1:
+            raise ValueError("Selected evaluators do not share one default LLM provider.")
+        provider = defaults.pop()
+
+    unsupported = [
+        definition.identifier
+        for definition in llm_definitions
+        if provider not in definition.supported_providers
+    ]
+    if unsupported:
+        raise ValueError(
+            f"LLM provider '{provider}' is not supported by evaluator(s): "
+            f"{', '.join(unsupported)}."
+        )
+    return provider
 
 
 def _normalize_number(value: Any) -> float | None:
@@ -555,8 +633,15 @@ def validate_evaluator_identifiers(evaluator_identifiers: Iterable[str]) -> list
 class EvaluatorComparisonService:
     """Run supported evaluators independently without invoking persistence entrypoints."""
 
-    def __init__(self, db: Session, *, model_identifier: str | None = None):
+    def __init__(
+        self,
+        db: Session,
+        *,
+        llm_provider: str | None = None,
+        model_identifier: str | None = None,
+    ):
         self.db = db
+        self.llm_provider = llm_provider
         self.model_identifier = model_identifier
         self.session_repo = SessionRepository(db)
         self.turn_repo = TurnRepository(db)
@@ -565,7 +650,7 @@ class EvaluatorComparisonService:
     async def run_evaluators(
         self,
         session_id: int,
-        evaluator_identifiers: Iterable[str] = tuple(EVALUATOR_DEFINITIONS),
+        evaluator_identifiers: Iterable[str] = DEFAULT_EVALUATOR_IDENTIFIERS,
         *,
         require_completed: bool = True,
     ) -> list[EvaluatorRunResult]:
@@ -604,6 +689,7 @@ class EvaluatorComparisonService:
         definition = EVALUATOR_DEFINITIONS[evaluator_identifier]
         provenance = build_evaluator_provenance(
             evaluator_identifier,
+            llm_provider=self.llm_provider,
             model_identifier=self.model_identifier,
         )
         started = time.perf_counter()

@@ -335,6 +335,14 @@ must not load model settings. Fake-adapter tests require no credentials. A seede
 requires explicit `--allow-live-llm`; no live call is authorized during implementation or
 automated testing.
 
+Checkpoint 7 implements an evaluator-only adapter resolver for `openai` and `gemini`, including
+safe optional model identifiers and fake-adapter injection that does not load credentials.
+Evaluator definitions now declare `requires_llm`, `supported_providers`, and a default provider;
+new comparison logic no longer infers requirements from identifier prefixes. Existing hybrid
+evaluators remain OpenAI-only. `ace_ct_inspired` supports both providers, is excluded from the
+backward-compatible `all` selection, and is rejected by the seeded workflow before settings load
+unless `--allow-live-llm` is explicit.
+
 ## Implemented prompt contract
 
 Checkpoint 5 implements an original provider-neutral two-message prompt in

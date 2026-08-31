@@ -24,7 +24,7 @@ class EvaluatorProvenance(BaseModel):
     plugin_identifier: str
     class_name: str
     version: str
-    evaluator_type: Literal["rule_based", "hybrid_llm"]
+    evaluator_type: Literal["rule_based", "hybrid_llm", "experimental_rubric_llm"]
     llm_provider: str | None = None
     model_identifier: str | None = None
     reviewer_version: str | None = None

@@ -20,6 +20,7 @@ from scripts.compare_session_evaluators import (
     EXIT_SUCCESS,
     build_parser,
     execute_command,
+    parse_evaluator_selection,
 )
 from services.scoring_service import ScoringService
 from tests.utils.transcript_runner import create_all_for_test_engine
@@ -117,6 +118,8 @@ def _args(session_id: int, output, **updates) -> Namespace:
         "include_transcript": False,
         "allow_active_session": False,
         "csv_summary": None,
+        "llm_provider": None,
+        "model_identifier": None,
     }
     values.update(updates)
     return Namespace(**values)
@@ -179,6 +182,54 @@ def _patch_hybrids(monkeypatch, *, fail_v1: bool = False) -> None:
 def test_argument_validation_requires_session_and_output() -> None:
     with pytest.raises(SystemExit):
         build_parser().parse_args([])
+
+
+def test_all_remains_backward_compatible_and_ace_ct_is_explicit() -> None:
+    assert parse_evaluator_selection("all") == ["baseline", "hybrid_v1", "hybrid_v2"]
+    assert parse_evaluator_selection("baseline,ace_ct_inspired") == [
+        "baseline",
+        "ace_ct_inspired",
+    ]
+
+
+def test_parser_accepts_provider_and_safe_model_override(tmp_path) -> None:
+    args = build_parser().parse_args(
+        [
+            "--session-id",
+            "1",
+            "--evaluators",
+            "ace_ct_inspired",
+            "--llm-provider",
+            "gemini",
+            "--model-identifier",
+            "gemini-test",
+            "--output",
+            str(tmp_path / "out.json"),
+        ]
+    )
+
+    assert args.llm_provider == "gemini"
+    assert args.model_identifier == "gemini-test"
+
+
+@pytest.mark.asyncio
+async def test_baseline_comparison_does_not_load_model_settings(
+    test_db, completed_session, tmp_path, monkeypatch
+) -> None:
+    def forbidden(*args, **kwargs):
+        raise AssertionError("baseline comparison must not load model settings")
+
+    monkeypatch.setattr(
+        "scripts.compare_session_evaluators.get_configured_model_identifier",
+        forbidden,
+    )
+
+    code = await execute_command(
+        _args(completed_session.id, tmp_path / "baseline.json"),
+        test_db,
+    )
+
+    assert code == EXIT_SUCCESS
 
 
 @pytest.mark.asyncio

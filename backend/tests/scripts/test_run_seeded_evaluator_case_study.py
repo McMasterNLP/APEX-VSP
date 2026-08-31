@@ -146,6 +146,8 @@ async def test_cli_refuses_hybrid_calls_without_explicit_authorization(
         output=output,
         overwrite=False,
         allow_live_llm=False,
+        llm_provider=None,
+        model_identifier=None,
     )
 
     code = await execute_command(args)
@@ -162,6 +164,8 @@ async def test_baseline_only_case_study_runs_offline(tmp_path) -> None:
         output=output,
         overwrite=False,
         allow_live_llm=False,
+        llm_provider=None,
+        model_identifier=None,
     )
 
     code = await execute_command(args)
@@ -171,3 +175,30 @@ async def test_baseline_only_case_study_runs_offline(tmp_path) -> None:
     assert len(payload["condition_results"]) == 4
     assert len(payload["paper_table_rows"]) == 4
     assert all(row["evaluator_identifier"] == "baseline" for row in payload["paper_table_rows"])
+
+
+@pytest.mark.asyncio
+async def test_ace_ct_case_study_requires_explicit_live_authorization(
+    tmp_path, monkeypatch
+) -> None:
+    def forbidden_settings(*args, **kwargs):
+        raise AssertionError("authorization must be checked before model configuration")
+
+    monkeypatch.setattr(
+        "scripts.run_seeded_evaluator_case_study.get_configured_model_identifier",
+        forbidden_settings,
+    )
+    output = tmp_path / "ace-ct-forbidden.json"
+    args = Namespace(
+        evaluators="ace_ct_inspired",
+        output=output,
+        overwrite=False,
+        allow_live_llm=False,
+        llm_provider="gemini",
+        model_identifier="gemini-test",
+    )
+
+    code = await execute_command(args)
+
+    assert code == EXIT_INVALID_INPUT
+    assert not output.exists()

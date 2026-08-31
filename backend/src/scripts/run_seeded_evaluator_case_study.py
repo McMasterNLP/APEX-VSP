@@ -13,7 +13,6 @@ from pathlib import Path
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from config.settings import get_settings
 from domain.entities.case import Case
 from domain.entities.session import Session as SessionEntity
 from domain.entities.turn import Turn
@@ -30,7 +29,10 @@ from scripts.compare_session_evaluators import (
 from services.evaluator_comparison_service import (
     EvaluatorComparisonService,
     build_comparison_artifact,
+    evaluators_require_llm,
+    resolve_evaluator_llm_provider,
 )
+from services.evaluator_llm_adapter_factory import get_configured_model_identifier
 from tests.fixtures.generated_validation_cases import (
     TEST_DIFFICULT_DIAGNOSIS_DECENT,
     TEST_DIFFICULT_DIAGNOSIS_MIXED,
@@ -52,6 +54,15 @@ def build_parser() -> argparse.ArgumentParser:
         description="Run the four public seeded transcript conditions in a local database."
     )
     parser.add_argument("--evaluators", default="all")
+    parser.add_argument(
+        "--llm-provider",
+        choices=("openai", "gemini"),
+        help="Provider for explicitly selected LLM evaluators.",
+    )
+    parser.add_argument(
+        "--model-identifier",
+        help="Optional safe model override used for evaluator calls and provenance.",
+    )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument(
@@ -134,6 +145,7 @@ async def build_seeded_case_study(
     session_ids: dict[str, int],
     evaluator_identifiers: list[str],
     model_identifier: str | None,
+    llm_provider: str | None = None,
     generated_at: datetime | None = None,
     git_commit: str | None = None,
 ) -> SeededCaseStudyArtifact:
@@ -143,7 +155,11 @@ async def build_seeded_case_study(
     timestamp = generated_at or datetime.now(UTC)
     for condition in CASE_STUDY_FIXTURES:
         session_id = session_ids[condition]
-        service = EvaluatorComparisonService(db, model_identifier=model_identifier)
+        service = EvaluatorComparisonService(
+            db,
+            llm_provider=llm_provider,
+            model_identifier=model_identifier,
+        )
         results = await service.run_evaluators(session_id, evaluator_identifiers)
         turns = TurnRepository(db).get_by_session(session_id)
         artifact = build_comparison_artifact(
@@ -209,13 +225,22 @@ def _write_output(path: Path, artifact: SeededCaseStudyArtifact, *, overwrite: b
 async def execute_command(args: argparse.Namespace) -> int:
     try:
         evaluators = parse_evaluator_selection(args.evaluators)
-        includes_hybrid = any(identifier.startswith("hybrid_") for identifier in evaluators)
-        if includes_hybrid and not args.allow_live_llm:
-            raise ValueError(
-                "Hybrid case-study runs require explicit --allow-live-llm authorization."
-            )
+        requires_llm = evaluators_require_llm(evaluators)
+        if requires_llm and not args.allow_live_llm:
+            raise ValueError("LLM case-study runs require explicit --allow-live-llm authorization.")
         if args.output.exists() and not args.overwrite:
             raise FileExistsError("Output already exists; pass --overwrite to replace it.")
+
+        llm_provider = resolve_evaluator_llm_provider(
+            evaluators,
+            getattr(args, "llm_provider", None),
+        )
+        model_identifier = getattr(args, "model_identifier", None)
+        if requires_llm and llm_provider is not None:
+            model_identifier = get_configured_model_identifier(
+                llm_provider,
+                model_identifier=model_identifier,
+            )
 
         engine = create_engine("sqlite:///:memory:")
         create_all_for_test_engine(engine)
@@ -226,7 +251,8 @@ async def execute_command(args: argparse.Namespace) -> int:
                 db,
                 session_ids=session_ids,
                 evaluator_identifiers=evaluators,
-                model_identifier=(get_settings().openai_model_id if includes_hybrid else None),
+                llm_provider=llm_provider,
+                model_identifier=model_identifier,
                 git_commit=get_git_commit(),
             )
             _write_output(args.output, artifact, overwrite=args.overwrite)
