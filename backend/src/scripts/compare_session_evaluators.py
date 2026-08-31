@@ -19,6 +19,7 @@ from services.evaluator_comparison_service import (
     EVALUATOR_DEFINITIONS,
     EvaluatorComparisonService,
     build_comparison_artifact,
+    render_csv_summary,
     validate_evaluator_identifiers,
 )
 
@@ -41,6 +42,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--include-transcript", action="store_true")
     parser.add_argument("--allow-active-session", action="store_true")
+    parser.add_argument(
+        "--csv-summary",
+        type=Path,
+        help="Optional privacy-safe one-row-per-evaluator CSV summary path.",
+    )
     return parser
 
 
@@ -79,6 +85,13 @@ def _write_json(output: Path, content: str, *, overwrite: bool) -> None:
         handle.write("\n")
 
 
+def _write_csv(output: Path, content: str, *, overwrite: bool) -> None:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    mode = "w" if overwrite else "x"
+    with output.open(mode, encoding="utf-8", newline="") as handle:
+        handle.write(content)
+
+
 async def execute_command(args: argparse.Namespace, db: Session) -> int:
     """Execute an already-parsed command, returning a stable process-style exit code."""
     try:
@@ -87,6 +100,11 @@ async def execute_command(args: argparse.Namespace, db: Session) -> int:
         evaluators = parse_evaluator_selection(args.evaluators)
         if args.output.exists() and not args.overwrite:
             raise FileExistsError("Output already exists; pass --overwrite to replace it.")
+        if args.csv_summary is not None:
+            if args.csv_summary.resolve() == args.output.resolve():
+                raise ValueError("--csv-summary must use a different path from --output.")
+            if args.csv_summary.exists() and not args.overwrite:
+                raise FileExistsError("CSV summary already exists; pass --overwrite to replace it.")
 
         settings = get_settings()
         service = EvaluatorComparisonService(
@@ -112,6 +130,12 @@ async def execute_command(args: argparse.Namespace, db: Session) -> int:
             artifact.model_dump_json(indent=2, exclude_none=True),
             overwrite=args.overwrite,
         )
+        if args.csv_summary is not None:
+            _write_csv(
+                args.csv_summary,
+                render_csv_summary(artifact),
+                overwrite=args.overwrite,
+            )
         return (
             EXIT_SUCCESS
             if all(result.status == "success" for result in results)

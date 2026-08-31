@@ -116,6 +116,7 @@ def _args(session_id: int, output, **updates) -> Namespace:
         "overwrite": False,
         "include_transcript": False,
         "allow_active_session": False,
+        "csv_summary": None,
     }
     values.update(updates)
     return Namespace(**values)
@@ -279,3 +280,34 @@ async def test_partial_failure_writes_artifact_before_partial_exit(
         "success",
     ]
     assert "credential-like-private-detail" not in json.dumps(payload)
+
+
+@pytest.mark.asyncio
+async def test_optional_csv_summary_and_output_path_protection(
+    test_db, completed_session, tmp_path
+) -> None:
+    output = tmp_path / "comparison.json"
+    csv_output = tmp_path / "comparison.csv"
+
+    code = await execute_command(
+        _args(completed_session.id, output, csv_summary=csv_output),
+        test_db,
+    )
+
+    csv_text = csv_output.read_text(encoding="utf-8")
+    assert code == EXIT_SUCCESS
+    assert output.exists()
+    assert csv_text.splitlines()[0].startswith("schema_version,run_id,anonymized_session_id")
+    assert "This exact private" not in csv_text
+    assert "private-person@example.com" not in csv_text
+
+    protected_json = tmp_path / "protected.json"
+    protected_csv = tmp_path / "protected.csv"
+    protected_csv.write_text("keep", encoding="utf-8")
+    protected_code = await execute_command(
+        _args(completed_session.id, protected_json, csv_summary=protected_csv),
+        test_db,
+    )
+    assert protected_code == EXIT_INVALID_INPUT
+    assert not protected_json.exists()
+    assert protected_csv.read_text(encoding="utf-8") == "keep"

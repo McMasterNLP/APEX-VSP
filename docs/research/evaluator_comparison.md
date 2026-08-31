@@ -17,6 +17,9 @@ python -m src.scripts.compare_session_evaluators \
 Select evaluators with `--evaluators baseline,hybrid_v1`, and use `--overwrite` only when
 replacing an existing artifact intentionally. `--include-transcript` explicitly opts into raw
 transcript text. Active sessions are rejected unless `--allow-active-session` is supplied.
+Add `--csv-summary evaluation/session_123_comparison.csv` for a stable, privacy-safe table with
+one compact row per evaluator. JSON remains the canonical artifact; CSV excludes transcript,
+feedback, and evidence blobs.
 
 Exit code `0` means every requested evaluator succeeded, `2` means the request was invalid,
 and `3` means an artifact was written with one or more evaluator failures. Hybrid evaluators

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import math
 import time
@@ -90,6 +92,21 @@ SCORE_METRICS = (
 )
 NUMERIC_PRECISION = 4
 COMPARISON_SCHEMA_VERSION = "1.0"
+CSV_SUMMARY_COLUMNS = (
+    "schema_version",
+    "run_id",
+    "anonymized_session_id",
+    "transcript_hash",
+    "evaluator_name",
+    "evaluator_version",
+    "status",
+    "runtime_ms",
+    "empathy_score",
+    "communication_score",
+    "spikes_completion_score",
+    "overall_score",
+    "error_category",
+)
 
 
 def _turn_value(turn: Any, field: str) -> Any:
@@ -482,6 +499,38 @@ def build_comparison_artifact(
         ],
         canonical_transcript=canonical_turns if include_transcript else None,
     )
+
+
+def render_csv_summary(artifact: EvaluatorComparisonArtifact) -> str:
+    """Render one privacy-safe summary row per evaluator with stable columns."""
+    output = io.StringIO(newline="")
+    writer = csv.DictWriter(
+        output,
+        fieldnames=list(CSV_SUMMARY_COLUMNS),
+        extrasaction="ignore",
+        lineterminator="\n",
+    )
+    writer.writeheader()
+    for result in artifact.observed_results:
+        scores = result.scores
+        writer.writerow(
+            {
+                "schema_version": artifact.schema_version,
+                "run_id": artifact.run_id,
+                "anonymized_session_id": artifact.anonymized_session_id,
+                "transcript_hash": artifact.transcript_hash,
+                "evaluator_name": result.evaluator_name,
+                "evaluator_version": result.evaluator_version,
+                "status": result.status,
+                "runtime_ms": result.runtime_ms,
+                "empathy_score": scores.empathy_score if scores else "",
+                "communication_score": scores.communication_score if scores else "",
+                "spikes_completion_score": scores.spikes_completion_score if scores else "",
+                "overall_score": scores.overall_score if scores else "",
+                "error_category": result.error.category if result.error else "",
+            }
+        )
+    return output.getvalue()
 
 
 def validate_evaluator_identifiers(evaluator_identifiers: Iterable[str]) -> list[str]:
