@@ -22,7 +22,6 @@ from core.errors import (
     general_exception_handler,
     http_exception_handler,
 )
-from core.events import create_start_app_handler, create_stop_app_handler
 from core.security import (
     RoleScopes,
     decode_supabase_token,
@@ -38,6 +37,7 @@ _DEP_NAMES = frozenset(
         "verify_session_access",
     }
 )
+_EVENT_NAMES = frozenset({"create_start_app_handler", "create_stop_app_handler"})
 
 
 def __getattr__(name: str) -> Any:
@@ -45,6 +45,10 @@ def __getattr__(name: str) -> Any:
         import core.deps as _deps
 
         return getattr(_deps, name)
+    if name in _EVENT_NAMES:
+        import core.events as _events
+
+        return getattr(_events, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 

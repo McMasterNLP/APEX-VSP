@@ -12,11 +12,11 @@ it is not an LLM-to-LLM comparison with the panel.
 
 Usage (from ``backend/``)::
 
-    poetry run python -m src.scripts.compare_seeded_evaluators_to_external_panel
+    PYTHONPATH="$(pwd)/src" poetry run python -m scripts.compare_seeded_evaluators_to_external_panel
 
 Optional::
 
-    poetry run python -m src.scripts.compare_seeded_evaluators_to_external_panel \\
+    PYTHONPATH="$(pwd)/src" poetry run python -m scripts.compare_seeded_evaluators_to_external_panel \\
         --apex-output path/to/your_capture.txt
 """
 

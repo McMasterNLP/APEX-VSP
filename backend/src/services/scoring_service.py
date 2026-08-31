@@ -12,6 +12,7 @@ from core.errors import NotFoundError
 from core.plugin_manager import _load_class_from_path
 from core.time import serialize_utc_datetime
 from domain.entities.feedback import Feedback
+from domain.models.scoring import ComputedFeedback
 from domain.models.sessions import FeedbackResponse, SuggestedResponse, TimelineEvent
 from plugins.registry import PluginRegistry
 from repositories.feedback_repo import FeedbackRepository
@@ -1051,6 +1052,144 @@ class ScoringService:
                 },
             )
 
+    def _build_computed_feedback(
+        self,
+        state: _RuleFeedbackState,
+        *,
+        empathy_score: float,
+        communication_score: float,
+        spikes_score: float,
+        overall_score: float,
+        evaluator_meta: dict[str, Any] | None,
+        evaluator_plugin_override: tuple[str, str] | None = None,
+    ) -> ComputedFeedback:
+        """Build the complete rule-core result shared by memory-only and persisted paths."""
+        meta_out: dict[str, Any] = dict(evaluator_meta) if evaluator_meta else {}
+        meta_out["session_plugins"] = _session_plugin_context_for_evaluator_meta(state.session)
+        if evaluator_plugin_override is not None:
+            plugin_identifier, plugin_version = evaluator_plugin_override
+            meta_out["session_plugins"] = {
+                **meta_out["session_plugins"],
+                "evaluator_plugin": plugin_identifier,
+                "evaluator_version": plugin_version,
+            }
+
+        # Preserve the existing production policy: final SPIKES and overall scores are
+        # derived from canonical coverage, including hybrid mapping behavior.
+        valid_session_turn_numbers = frozenset(
+            int(t.turn_number)
+            for t in state.turns
+            if getattr(t, "turn_number", None) is not None
+            and isinstance(t.turn_number, int)
+            and not isinstance(t.turn_number, bool)
+        )
+        spikes_coverage = _compute_spikes_coverage_merge(
+            state.spikes_coverage,
+            meta_out,
+            valid_session_turn_numbers=valid_session_turn_numbers,
+        )
+        final_spikes_score = _calculate_spikes_completion_from_coverage(spikes_coverage)
+        final_overall_score = self._clamp_score(
+            round(
+                0.5 * float(empathy_score or 0.0)
+                + 0.2 * float(communication_score or 0.0)
+                + 0.3 * float(final_spikes_score or 0.0),
+                2,
+            )
+        )
+        # These inputs are intentionally superseded by the canonical persistence policy
+        # above. Keeping them in this shared builder avoids changing hybrid call semantics.
+        _ = spikes_score, overall_score
+
+        return ComputedFeedback(
+            session_id=state.session_id,
+            empathy_score=empathy_score,
+            communication_score=communication_score,
+            spikes_completion_score=final_spikes_score,
+            overall_score=final_overall_score,
+            eo_counts_by_dimension=state.eo_counts_by_dimension,
+            elicitation_counts_by_type=state.elicitation_counts_by_type,
+            response_counts_by_type=state.response_counts_by_type,
+            linkage_stats=state.linkage_stats,
+            missed_opportunities_by_dimension=state.missed_opportunities_by_dimension,
+            eo_to_elicitation_links=state.eo_to_elicitation_links,
+            eo_to_response_links=state.eo_to_response_links,
+            missed_opportunities=state.missed_opportunities,
+            eo_spans=state.eo_spans,
+            elicitation_spans=state.elicitation_spans,
+            response_spans=state.response_spans,
+            spikes_coverage=spikes_coverage,
+            spikes_timestamps=state.spikes_timestamps,
+            spikes_strategies=state.spikes_strategies,
+            question_breakdown=state.question_breakdown,
+            bias_probe_info=None,
+            evaluator_meta=meta_out,
+            latency_ms_avg=state.latency_ms_avg,
+            strengths=state.strengths if state.strengths and state.strengths.strip() else None,
+            areas_for_improvement=(
+                state.improvements if state.improvements and state.improvements.strip() else None
+            ),
+            detailed_feedback=f"Overall Score: {float(final_overall_score):.1f}/100",
+            timeline_events=state.timeline_events or None,
+            suggested_responses=state.suggested_responses or None,
+        )
+
+    async def compute_baseline_feedback(
+        self,
+        session_id: int,
+        *,
+        evaluator_plugin_override: tuple[str, str] | None = None,
+    ) -> ComputedFeedback:
+        """Calculate deterministic baseline feedback without writing any database row."""
+        state = await self._compute_rule_feedback_state(session_id)
+        return self._build_computed_feedback(
+            state,
+            empathy_score=state.empathy_score,
+            communication_score=state.communication_score,
+            spikes_score=state.spikes_score,
+            overall_score=state.overall_score,
+            evaluator_meta={"phase": "baseline_rule_v1"},
+            evaluator_plugin_override=evaluator_plugin_override,
+        )
+
+    async def compute_hybrid_feedback(self, session_id: int) -> ComputedFeedback:
+        """Calculate hybrid-v1 feedback in memory without feedback or metrics persistence."""
+        state = await self._compute_rule_feedback_state(session_id)
+        empathy, communication, spikes, overall, meta = await self._hybrid_llm_merge_scores(
+            state, session_id
+        )
+        return self._build_computed_feedback(
+            state,
+            empathy_score=empathy,
+            communication_score=communication,
+            spikes_score=spikes,
+            overall_score=overall,
+            evaluator_meta=meta,
+            evaluator_plugin_override=(
+                "plugins.evaluators.apex_hybrid_evaluator:ApexHybridEvaluator",
+                "1.0",
+            ),
+        )
+
+    async def compute_hybrid_v2_feedback(self, session_id: int) -> ComputedFeedback:
+        """Calculate hybrid-v2 feedback in memory without feedback or metrics persistence."""
+        state = await self._compute_rule_feedback_state(session_id)
+        empathy, communication, spikes, overall, meta = await self._hybrid_v2_llm_merge_scores(
+            state, session_id
+        )
+        return self._build_computed_feedback(
+            state,
+            empathy_score=empathy,
+            communication_score=communication,
+            spikes_score=spikes,
+            overall_score=overall,
+            evaluator_meta=meta,
+            evaluator_plugin_override=(
+                "plugins.evaluators.apex_hybrid_v2_evaluator:ApexHybridV2Evaluator",
+                "2.0",
+            ),
+        )
+
     async def _persist_feedback_from_rule_state(
         self,
         state: _RuleFeedbackState,
@@ -1062,69 +1201,46 @@ class ScoringService:
         evaluator_meta: dict[str, Any] | None,
     ) -> FeedbackResponse:
         """Persist feedback row and return FeedbackResponse (shared by baseline and hybrid)."""
-        session_id = state.session_id
-        bias_probe_info = None
+        result = self._build_computed_feedback(
+            state,
+            empathy_score=empathy_score,
+            communication_score=communication_score,
+            spikes_score=spikes_score,
+            overall_score=overall_score,
+            evaluator_meta=evaluator_meta,
+        )
+        return await self._persist_computed_feedback(result)
 
-        existing_feedback = self.feedback_repo.get_by_session(session_id)
-        if existing_feedback:
-            feedback = existing_feedback
-        else:
-            feedback = Feedback(session_id=session_id)
+    async def _persist_computed_feedback(self, result: ComputedFeedback) -> FeedbackResponse:
+        """Persist an already-computed result without recalculating it."""
 
-        feedback.empathy_score = empathy_score
-        feedback.communication_score = communication_score
+        existing_feedback = self.feedback_repo.get_by_session(result.session_id)
+        feedback = existing_feedback or Feedback(session_id=result.session_id)
+
+        feedback.empathy_score = result.empathy_score
+        feedback.communication_score = result.communication_score
         feedback.clinical_reasoning_score = None
         feedback.professionalism_score = None
-
-        # Native Python objects here; FeedbackRepository serializes before commit (SQLite-safe).
-        feedback.eo_counts_by_dimension = state.eo_counts_by_dimension
-        feedback.elicitation_counts_by_type = state.elicitation_counts_by_type
-        feedback.response_counts_by_type = state.response_counts_by_type
-        feedback.linkage_stats = state.linkage_stats
-        feedback.missed_opportunities_by_dimension = state.missed_opportunities_by_dimension
-        feedback.eo_to_elicitation_links = state.eo_to_elicitation_links
-        feedback.eo_to_response_links = state.eo_to_response_links
-        feedback.missed_opportunities = state.missed_opportunities
-        meta_out: dict[str, Any] = dict(evaluator_meta) if evaluator_meta else {}
-        meta_out["session_plugins"] = _session_plugin_context_for_evaluator_meta(state.session)
-
-        # Single source of truth: persisted SPIKES coverage and persisted SPIKES score are
-        # both derived from this same final canonical merged payload.
-        valid_session_turn_numbers = frozenset(
-            int(t.turn_number)
-            for t in state.turns
-            if getattr(t, "turn_number", None) is not None
-            and isinstance(t.turn_number, int)
-            and not isinstance(t.turn_number, bool)
-        )
-        feedback.spikes_coverage = _compute_spikes_coverage_merge(
-            state.spikes_coverage,
-            meta_out,
-            valid_session_turn_numbers=valid_session_turn_numbers,
-        )
-        feedback.spikes_completion_score = _calculate_spikes_completion_from_coverage(feedback.spikes_coverage)
-        feedback.overall_score = self._clamp_score(
-            round(
-                0.5 * float(feedback.empathy_score or 0.0)
-                + 0.2 * float(feedback.communication_score or 0.0)
-                + 0.3 * float(feedback.spikes_completion_score or 0.0),
-                2,
-            )
-        )
-        feedback.spikes_timestamps = state.spikes_timestamps
-        feedback.spikes_strategies = state.spikes_strategies
-        feedback.question_breakdown = state.question_breakdown
-        feedback.bias_probe_info = bias_probe_info
-        feedback.evaluator_meta = meta_out
-        feedback.latency_ms_avg = state.latency_ms_avg
-
-        feedback.strengths = state.strengths if state.strengths and state.strengths.strip() else None
-        feedback.areas_for_improvement = (
-            state.improvements if state.improvements and state.improvements.strip() else None
-        )
-        feedback.detailed_feedback = (
-            f"Overall Score: {float(feedback.overall_score):.1f}/100" if float(feedback.overall_score) >= 0 else None
-        )
+        feedback.eo_counts_by_dimension = result.eo_counts_by_dimension
+        feedback.elicitation_counts_by_type = result.elicitation_counts_by_type
+        feedback.response_counts_by_type = result.response_counts_by_type
+        feedback.linkage_stats = result.linkage_stats
+        feedback.missed_opportunities_by_dimension = result.missed_opportunities_by_dimension
+        feedback.eo_to_elicitation_links = result.eo_to_elicitation_links
+        feedback.eo_to_response_links = result.eo_to_response_links
+        feedback.missed_opportunities = result.missed_opportunities
+        feedback.spikes_coverage = result.spikes_coverage
+        feedback.spikes_completion_score = result.spikes_completion_score
+        feedback.overall_score = result.overall_score
+        feedback.spikes_timestamps = result.spikes_timestamps
+        feedback.spikes_strategies = result.spikes_strategies
+        feedback.question_breakdown = result.question_breakdown
+        feedback.bias_probe_info = result.bias_probe_info
+        feedback.evaluator_meta = result.evaluator_meta
+        feedback.latency_ms_avg = result.latency_ms_avg
+        feedback.strengths = result.strengths
+        feedback.areas_for_improvement = result.areas_for_improvement
+        feedback.detailed_feedback = result.detailed_feedback
 
         if existing_feedback:
             saved_feedback = self.feedback_repo.update(feedback)
@@ -1148,9 +1264,9 @@ class ScoringService:
         saved_feedback.bias_probe_info = self._deserialize_json_field(saved_feedback.bias_probe_info)
         saved_feedback.evaluator_meta = self._deserialize_json_field(saved_feedback.evaluator_meta)
 
-        saved_feedback.eo_spans = state.eo_spans
-        saved_feedback.elicitation_spans = state.elicitation_spans
-        saved_feedback.response_spans = state.response_spans
+        saved_feedback.eo_spans = result.eo_spans
+        saved_feedback.elicitation_spans = result.elicitation_spans
+        saved_feedback.response_spans = result.response_spans
 
         saved_feedback.relations = None
 
@@ -1163,22 +1279,15 @@ class ScoringService:
 
         return response.model_copy(
             update={
-                "timeline_events": state.timeline_events or None,
-                "suggested_responses": state.suggested_responses or None,
+                "timeline_events": result.timeline_events,
+                "suggested_responses": result.suggested_responses,
             }
         )
 
     async def generate_feedback_rule_only(self, session_id: int) -> FeedbackResponse:
         """100% rule-based feedback (baseline evaluator path). No LLM."""
-        state = await self._compute_rule_feedback_state(session_id)
-        return await self._persist_feedback_from_rule_state(
-            state,
-            empathy_score=state.empathy_score,
-            communication_score=state.communication_score,
-            spikes_score=state.spikes_score,
-            overall_score=state.overall_score,
-            evaluator_meta={"phase": "baseline_rule_v1"},
-        )
+        result = await self.compute_baseline_feedback(session_id)
+        return await self._persist_computed_feedback(result)
 
     async def generate_feedback_hybrid(self, session_id: int) -> FeedbackResponse:
         """Rule-based core then optional LLM merge + 70/30 (hybrid evaluator path)."""
@@ -1958,4 +2067,3 @@ class ScoringService:
                         latencies.append(float(latency))
         
         return sum(latencies) / len(latencies) if latencies else 0.0
-

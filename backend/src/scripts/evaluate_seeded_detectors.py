@@ -2,7 +2,7 @@
 
 Usage (from backend/):
 
-    poetry run python -m src.scripts.evaluate_seeded_detectors
+    PYTHONPATH="$(pwd)/src" poetry run python -m scripts.evaluate_seeded_detectors
 
 This evaluates ONLY the detector/preview layer, not scoring:
 - EO spans
@@ -561,4 +561,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

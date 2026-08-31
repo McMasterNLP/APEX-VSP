@@ -1,53 +1,28 @@
-"""SQLAlchemy base configuration and session management."""
+"""Declarative base plus lazy compatibility exports for database runtime objects.
 
-from typing import Generator
+ORM entities import :data:`Base` from this module. Keeping that import free of
+application settings allows domain models to be used by offline tooling. Existing
+runtime imports remain supported and initialize the configured engine on demand.
+"""
 
-from sqlalchemy import MetaData, create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from __future__ import annotations
 
-from config.settings import get_settings
+from typing import TYPE_CHECKING, Any
 
-settings = get_settings()
+from db.metadata import Base, metadata
 
-# All tables default to the "core" schema
-metadata = MetaData(schema="core")
-Base = declarative_base(metadata=metadata)
+if TYPE_CHECKING:
+    from db.runtime import SessionLocal, engine, get_db, init_db
 
-# Create database engine
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    pool_size=5,
-    max_overflow=0,
-    pool_timeout=30,
-)
-
-# Session factory
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-)
+_RUNTIME_NAMES = frozenset({"SessionLocal", "engine", "get_db", "init_db"})
 
 
-def init_db() -> None:
-    """Initialize database tables."""
-    # Import all models so they register with Base.metadata
-    from domain.entities import case, feedback, session, turn, user  # noqa: F401
+def __getattr__(name: str) -> Any:
+    if name in _RUNTIME_NAMES:
+        import db.runtime as _runtime
 
-    Base.metadata.create_all(bind=engine)
+        return getattr(_runtime, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-def get_db() -> Generator[Session, None, None]:
-    """
-    FastAPI dependency that provides a database session.
-
-    Usage:
-        def endpoint(db: Session = Depends(get_db)):
-            ...
-    """
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ["Base", "metadata", "SessionLocal", "engine", "get_db", "init_db"]
