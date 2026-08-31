@@ -250,6 +250,16 @@ These are original implementation placeholders, not quoted ACE-CT anchors. They 
 with `approval_status = "pending_expert_review"`. A score is null when the documented
 insufficient-evidence policy applies. Null is not converted to 3 or any other neutral value.
 
+### Implemented rubric contract
+
+Checkpoint 3 implements rubric version `0.1.0-experimental` as the immutable
+`ACE_CT_RUBRIC_V0_1` source of truth in `schemas.ace_ct`. It encodes all eleven stable
+identifiers, proposed domain assignments, text assessability, modality limits, publication and
+source provenance, and five original placeholder levels per dimension. Schema validation
+enforces ordering, uniqueness, domain membership, and complete 1-5 anchors. The rubric remains
+`pending_expert_review`; `require_ace_ct_rubric_approval` blocks evaluation unless an explicit
+experimental override is supplied.
+
 ### Insufficient-evidence policy
 
 A dimension score may be null only when at least one of these applies:
