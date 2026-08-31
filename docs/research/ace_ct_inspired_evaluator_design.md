@@ -166,6 +166,15 @@ Each projected turn is serialized on its own labeled block, for example:
 Empty text is serialized with an explicit non-content marker defined by the prompt builder. The
 marker is not treated as evidence from either speaker.
 
+### Implemented projection contract
+
+Checkpoint 2 implements this behavior in `schemas.ace_ct` and
+`services.ace_ct_transcript`. The typed representation uses frozen Pydantic models and tuples so
+callers cannot mutate projected turns or warnings after validation. Empty text is retained as an
+empty string in the model and rendered as `[[EMPTY TURN: NO TRANSCRIPT TEXT]]` only during
+model-input serialization. The projector rejects non-string and missing text rather than
+coercing it, and computes the canonical hash only from validated source fields.
+
 ### Why conversational interleaving is preserved
 
 Communication behavior depends on sequence: a clinician response can only be interpreted in
