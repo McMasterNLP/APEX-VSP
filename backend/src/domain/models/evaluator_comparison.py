@@ -189,3 +189,19 @@ class EvaluatorComparisonArtifact(BaseModel):
     canonical_transcript: list[CanonicalTranscriptTurn] | None = None
 
     model_config = ConfigDict(frozen=True)
+
+
+class SeededCaseStudyArtifact(BaseModel):
+    """Sanitized aggregate for the four public seeded transcript conditions."""
+
+    schema_version: str
+    generated_at: str
+    git_commit: str | None = None
+    study_type: Literal["technical_evaluator_case_study"]
+    requested_evaluators: list[str]
+    condition_results: dict[str, EvaluatorComparisonArtifact]
+    paper_table_rows: list[dict]
+    methodology_notes: list[str]
+    limitations: list[str]
+
+    model_config = ConfigDict(frozen=True)

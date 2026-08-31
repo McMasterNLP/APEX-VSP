@@ -32,6 +32,7 @@ from domain.models.evaluator_comparison import (
     SanitizedEvaluatorError,
     SanitizedEvidenceFinding,
     SanitizedFeedbackSummary,
+    SeededCaseStudyArtifact,
 )
 from domain.models.scoring import ComputedFeedback
 from domain.models.sessions import (
@@ -78,6 +79,7 @@ __all__ = [
     "SanitizedEvaluatorError",
     "SanitizedEvidenceFinding",
     "SanitizedFeedbackSummary",
+    "SeededCaseStudyArtifact",
     "WebSocketMessage",
     # Admin
     "UserStats",

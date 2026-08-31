@@ -27,3 +27,24 @@ can make paid model calls in a real run. Automated tests replace those calls wit
 
 The comparison is descriptive technical evidence. Agreement between evaluators is not clinical
 correctness, and no evaluator is identified as superior without external reference labels.
+
+## Four-condition seeded case study
+
+The repository's existing strong, decent, mixed, and weak difficult-diagnosis fixtures can be
+run through the same evaluator set in an ephemeral in-memory SQLite database:
+
+```bash
+python -m src.scripts.run_seeded_evaluator_case_study \
+  --evaluators all \
+  --allow-live-llm \
+  --output evaluation/seeded_evaluator_case_study.json
+```
+
+The explicit live-call flag is required because both hybrid evaluators use a paid model adapter.
+Automated tests use local fakes and never pass that flag to real adapters. The output contains
+sanitized per-condition artifacts and compact paper-table rows, but no raw transcript text.
+
+The existing external panel artifacts are outputs from **LLM judges**, not clinicians or clinical
+experts. The seeded study does not automatically compare merged evaluator results to those panel
+scores because the measurements are not directly equivalent. This case study is technical
+reproducibility evidence, not clinical validation.
