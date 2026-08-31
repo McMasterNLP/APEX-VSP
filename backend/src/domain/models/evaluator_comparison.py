@@ -50,6 +50,30 @@ class EvaluatorScores(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class ACECTCompatibilityScoreSources(BaseModel):
+    """Exact origins for APEX-shaped compatibility fields."""
+
+    empathy_score: Literal["ace_ct_inspired.dimension.respond_to_emotion.normalized_0_100"]
+    communication_score: Literal["ace_ct_inspired.mean_of_non_null_dimensions.normalized_0_100"]
+    overall_score: Literal["ace_ct_inspired.mean_of_non_null_dimensions.normalized_0_100"]
+    spikes_completion_score: Literal[
+        "apex_baseline.spikes_completion_score_not_ace_ct",
+        "unavailable_no_apex_baseline_spikes_score",
+    ]
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ACECTCompatibilityProjection(BaseModel):
+    """Explicitly labeled bridge to the existing comparison score shape."""
+
+    scores: EvaluatorScores
+    score_sources: ACECTCompatibilityScoreSources
+    warnings: tuple[str, ...] = Field(min_length=1)
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
 class SanitizedEvaluatorError(BaseModel):
     """Allowlisted failure detail that never contains a raw exception."""
 

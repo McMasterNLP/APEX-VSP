@@ -316,6 +316,14 @@ canonical APEX fields do not establish agreement or disagreement between equival
 If the stable APEX feedback contract cannot represent this mapping honestly, the compatibility
 fields remain null while framework-specific results are retained.
 
+Checkpoint 9 implements this policy in the named
+`project_ace_ct_compatibility_scores` function. `normalize_ace_ct_score` implements only the
+documented affine mapping, and `aggregate_ace_ct_domains` computes unweighted native-scale means
+over non-null members. The projection returns APEX-shaped scores together with exact per-field
+source labels and a mandatory non-equivalence warning. A SPIKES score is accepted only as a
+separately supplied, finite APEX baseline value and is labeled
+`apex_baseline.spikes_completion_score_not_ace_ct`; it is never claimed as framework output.
+
 ## Provider and model provenance
 
 The evaluator service accepts an injected adapter. The comparison/provider resolver may select
