@@ -9,6 +9,7 @@ import sys
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -146,6 +147,8 @@ async def build_seeded_case_study(
     evaluator_identifiers: list[str],
     model_identifier: str | None,
     llm_provider: str | None = None,
+    llm_adapter: Any | None = None,
+    allow_experimental_override: bool = False,
     generated_at: datetime | None = None,
     git_commit: str | None = None,
 ) -> SeededCaseStudyArtifact:
@@ -159,6 +162,8 @@ async def build_seeded_case_study(
             db,
             llm_provider=llm_provider,
             model_identifier=model_identifier,
+            llm_adapter=llm_adapter,
+            allow_experimental_override=allow_experimental_override,
         )
         results = await service.run_evaluators(session_id, evaluator_identifiers)
         turns = TurnRepository(db).get_by_session(session_id)
@@ -253,6 +258,8 @@ async def execute_command(args: argparse.Namespace) -> int:
                 evaluator_identifiers=evaluators,
                 llm_provider=llm_provider,
                 model_identifier=model_identifier,
+                llm_adapter=getattr(args, "llm_adapter", None),
+                allow_experimental_override="ace_ct_inspired" in evaluators,
                 git_commit=get_git_commit(),
             )
             _write_output(args.output, artifact, overwrite=args.overwrite)

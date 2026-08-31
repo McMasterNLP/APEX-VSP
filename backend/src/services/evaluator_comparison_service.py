@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import json
 import math
 import time
 import uuid
@@ -17,7 +16,6 @@ from typing import Any, Literal
 from sqlalchemy.orm import Session
 
 from domain.models.evaluator_comparison import (
-    CanonicalTranscriptTurn,
     EvaluatorArtifactResult,
     EvaluatorComparisonAnalysis,
     EvaluatorComparisonArtifact,
@@ -38,8 +36,14 @@ from plugins.evaluators.apex_hybrid_evaluator import ApexHybridEvaluator
 from plugins.evaluators.apex_hybrid_v2_evaluator import ApexHybridV2Evaluator
 from repositories.session_repo import SessionRepository
 from repositories.turn_repo import TurnRepository
-from services.scoring_service import ScoringService
+from services.ace_ct_computation_service import compute_ace_ct_evaluation
 from services.ace_ct_results import sanitize_ace_ct_framework_results
+from services.scoring_service import ScoringService
+from services.transcript_identity import (
+    canonicalize_transcript,
+    hash_transcript,
+    serialize_canonical_transcript,  # noqa: F401 - compatibility re-export
+)
 
 
 @dataclass(frozen=True)
@@ -132,41 +136,6 @@ CSV_SUMMARY_COLUMNS = (
     "overall_score",
     "error_category",
 )
-
-
-def _turn_value(turn: Any, field: str) -> Any:
-    if isinstance(turn, dict):
-        return turn.get(field)
-    return getattr(turn, field)
-
-
-def canonicalize_transcript(turns: Iterable[Any]) -> list[CanonicalTranscriptTurn]:
-    """Return the minimal transcript in stable turn-number order."""
-    canonical = [
-        CanonicalTranscriptTurn(
-            turn_number=int(_turn_value(turn, "turn_number")),
-            role=str(_turn_value(turn, "role")),
-            text=str(_turn_value(turn, "text") or ""),
-        )
-        for turn in turns
-    ]
-    return sorted(canonical, key=lambda turn: turn.turn_number)
-
-
-def serialize_canonical_transcript(turns: Iterable[Any]) -> bytes:
-    """Serialize canonical turns as deterministic, compact UTF-8 JSON."""
-    payload = [turn.model_dump(mode="json") for turn in canonicalize_transcript(turns)]
-    return json.dumps(
-        payload,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-
-
-def hash_transcript(turns: Iterable[Any]) -> str:
-    """Return a SHA-256 hex digest, including the explicit empty transcript ``[]``."""
-    return hashlib.sha256(serialize_canonical_transcript(turns)).hexdigest()
 
 
 def build_evaluator_provenance(
@@ -649,10 +618,14 @@ class EvaluatorComparisonService:
         *,
         llm_provider: str | None = None,
         model_identifier: str | None = None,
+        llm_adapter: Any | None = None,
+        allow_experimental_override: bool = False,
     ):
         self.db = db
         self.llm_provider = llm_provider
         self.model_identifier = model_identifier
+        self.llm_adapter = llm_adapter
+        self.allow_experimental_override = allow_experimental_override
         self.session_repo = SessionRepository(db)
         self.turn_repo = TurnRepository(db)
         self.scoring_service = ScoringService(db)
@@ -704,6 +677,38 @@ class EvaluatorComparisonService:
         )
         started = time.perf_counter()
         try:
+            if evaluator_identifier == "ace_ct_inspired":
+                computation = await compute_ace_ct_evaluation(
+                    self.db,
+                    session_id,
+                    llm_provider=(self.llm_provider or definition.default_llm_provider or "openai"),
+                    model_identifier=self.model_identifier,
+                    llm_adapter=self.llm_adapter,
+                    allow_experimental_override=self.allow_experimental_override,
+                )
+                if computation.transcript_hash != transcript_hash:
+                    raise RuntimeError(
+                        "ACE-CT-inspired transcript hash did not match comparison input."
+                    )
+                runtime_ms = max(0.0, round((time.perf_counter() - started) * 1000.0, 3))
+                provenance = build_evaluator_provenance(
+                    evaluator_identifier,
+                    llm_provider=computation.llm_provider,
+                    model_identifier=computation.model_identifier,
+                )
+                return EvaluatorRunResult(
+                    evaluator_identifier=evaluator_identifier,
+                    evaluator_name=definition.class_name,
+                    evaluator_version=definition.version,
+                    status="success",
+                    runtime_ms=runtime_ms,
+                    transcript_hash=transcript_hash,
+                    provenance=provenance,
+                    scores=computation.compatibility_projection.scores,
+                    structured_feedback=computation.computed_feedback,
+                    framework_results=computation.framework_results,
+                )
+
             feedback = await self._compute(evaluator_identifier, session_id)
             runtime_ms = max(0.0, round((time.perf_counter() - started) * 1000.0, 3))
             meta = feedback.evaluator_meta or {}

@@ -404,6 +404,14 @@ metadata on a normal plugin run and remain first-class on comparison runs. Provi
 rubric gating, or insufficient required compatibility scores raise a sanitized error before any
 feedback row is created or overwritten.
 
+Checkpoint 11 integrates `ace_ct_inspired` with both comparison CLIs. The runner invokes the
+same non-persisting computation core, verifies its hash against the shared comparison input,
+records resolved provider/model provenance, and promotes framework results into canonical JSON.
+Explicit ACE-CT selection records the pending-rubric experimental override. Seeded runs still
+require the independent `--allow-live-llm` authorization before model configuration or adapter
+execution. Baseline success is retained when ACE-CT fails, and partial artifacts contain only
+allowlisted errors.
+
 ## Failure behavior
 
 - Invalid transcript structure fails before a provider call.

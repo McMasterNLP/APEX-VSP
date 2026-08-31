@@ -23,6 +23,7 @@ from scripts.compare_session_evaluators import (
     parse_evaluator_selection,
 )
 from services.scoring_service import ScoringService
+from tests.utils.ace_ct import FakeACECTAdapter
 from tests.utils.transcript_runner import create_all_for_test_engine
 
 
@@ -120,6 +121,7 @@ def _args(session_id: int, output, **updates) -> Namespace:
         "csv_summary": None,
         "llm_provider": None,
         "model_identifier": None,
+        "llm_adapter": None,
     }
     values.update(updates)
     return Namespace(**values)
@@ -230,6 +232,69 @@ async def test_baseline_comparison_does_not_load_model_settings(
     )
 
     assert code == EXIT_SUCCESS
+
+
+@pytest.mark.asyncio
+async def test_cli_runs_explicit_ace_ct_with_fake_gemini_and_no_mutation(
+    test_db, completed_session, tmp_path
+) -> None:
+    output = tmp_path / "ace-ct-comparison.json"
+    before = _snapshot(test_db, completed_session.id)
+
+    code = await execute_command(
+        _args(
+            completed_session.id,
+            output,
+            evaluators="baseline,ace_ct_inspired",
+            llm_provider="gemini",
+            model_identifier="synthetic-fake-model",
+            llm_adapter=FakeACECTAdapter(),
+        ),
+        test_db,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    serialized = json.dumps(payload)
+    assert code == EXIT_SUCCESS
+    assert _snapshot(test_db, completed_session.id) == before
+    assert [result["status"] for result in payload["observed_results"]] == [
+        "success",
+        "success",
+    ]
+    ace_ct = payload["observed_results"][1]
+    assert ace_ct["provenance"]["llm_provider"] == "gemini"
+    assert ace_ct["provenance"]["model_identifier"] == "synthetic-fake-model"
+    assert len(ace_ct["framework_results"]["dimension_results"]) == 11
+    assert payload["observed_results"][0]["transcript_hash"] == ace_ct["transcript_hash"]
+    assert "This exact private clinician sentence" not in serialized
+    assert "This exact private patient sentence" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_cli_writes_valid_partial_artifact_when_ace_ct_fails(
+    test_db, completed_session, tmp_path
+) -> None:
+    output = tmp_path / "ace-ct-partial.json"
+
+    code = await execute_command(
+        _args(
+            completed_session.id,
+            output,
+            evaluators="baseline,ace_ct_inspired",
+            llm_provider="openai",
+            model_identifier="synthetic-fake-model",
+            llm_adapter=FakeACECTAdapter(raw_response="private-invalid-output"),
+        ),
+        test_db,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert code == EXIT_PARTIAL_FAILURE
+    assert [result["status"] for result in payload["observed_results"]] == [
+        "success",
+        "failed",
+    ]
+    assert "private-invalid-output" not in json.dumps(payload)
 
 
 @pytest.mark.asyncio

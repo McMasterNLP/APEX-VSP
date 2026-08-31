@@ -31,6 +31,16 @@ name so existing runs never gain a surprise paid call. It supports `--llm-provid
 not identifier prefixes, control whether model configuration is required. Baseline-only runs do
 not load model settings.
 
+Example explicit experimental comparison (this can make a paid call):
+
+```bash
+PYTHONPATH="$(pwd)/src" poetry run python -m scripts.compare_session_evaluators \
+  --session-id 123 \
+  --evaluators baseline,ace_ct_inspired \
+  --llm-provider gemini \
+  --output evaluation/ace_ct_comparison.json
+```
+
 The comparison is descriptive technical evidence. Agreement between evaluators is not clinical
 correctness, and no evaluator is identified as superior without external reference labels.
 
@@ -58,6 +68,16 @@ PYTHONPATH="$(pwd)/src" poetry run python -m scripts.run_seeded_evaluator_case_s
 ```
 
 The explicit live-call flag is required whenever any selected evaluator uses a model adapter.
+
+Example seeded ACE-CT-inspired run (also a paid call):
+
+```bash
+PYTHONPATH="$(pwd)/src" poetry run python -m scripts.run_seeded_evaluator_case_study \
+  --evaluators baseline,ace_ct_inspired \
+  --llm-provider gemini \
+  --allow-live-llm \
+  --output evaluation/seeded_ace_ct_gemini.json
+```
 Automated tests use local fakes and never pass that flag to real adapters. The output contains
 sanitized per-condition artifacts and compact paper-table rows, but no raw transcript text.
 

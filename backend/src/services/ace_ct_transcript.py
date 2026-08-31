@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 from schemas.ace_ct import ACECTTranscript, ACECTTranscriptTurn, ACECTTranscriptWarning
-from services.evaluator_comparison_service import hash_transcript
+from services.transcript_identity import hash_transcript
 
 ROLE_MAPPING = {
     "user": "clinician",

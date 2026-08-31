@@ -17,6 +17,7 @@ from domain.entities.turn import Turn
 from domain.entities.user import User
 from services.evaluator_comparison_service import EvaluatorComparisonService
 from services.scoring_service import ScoringService
+from tests.utils.ace_ct import FakeACECTAdapter
 from tests.utils.transcript_runner import create_all_for_test_engine
 
 
@@ -288,3 +289,49 @@ async def test_existing_production_baseline_persistence_still_works(
     assert response.session_id == stored_session.id
     assert stored.overall_score == response.overall_score
     assert json.loads(stored.evaluator_meta)["phase"] == "baseline_rule_v1"
+
+
+@pytest.mark.asyncio
+async def test_ace_ct_comparison_reuses_transcript_without_persistence(
+    test_db, stored_session
+) -> None:
+    before = _database_snapshot(test_db, stored_session.id)
+
+    results = await EvaluatorComparisonService(
+        test_db,
+        llm_provider="gemini",
+        model_identifier="synthetic-fake-model",
+        llm_adapter=FakeACECTAdapter(),
+        allow_experimental_override=True,
+    ).run_evaluators(stored_session.id, ["baseline", "ace_ct_inspired"])
+
+    after = _database_snapshot(test_db, stored_session.id)
+    assert after == before
+    assert [result.status for result in results] == ["success", "success"]
+    assert len({result.transcript_hash for result in results}) == 1
+    assert results[1].provenance.llm_provider == "gemini"
+    assert results[1].provenance.model_identifier == "synthetic-fake-model"
+    assert results[1].framework_results is not None
+    assert len(results[1].framework_results.dimension_results) == 11
+    assert results[1].structured_feedback is not None
+
+
+@pytest.mark.asyncio
+async def test_ace_ct_failure_preserves_successful_baseline(test_db, stored_session) -> None:
+    before = _database_snapshot(test_db, stored_session.id)
+
+    results = await EvaluatorComparisonService(
+        test_db,
+        llm_provider="openai",
+        model_identifier="synthetic-fake-model",
+        llm_adapter=FakeACECTAdapter(raw_response="not-json"),
+        allow_experimental_override=True,
+    ).run_evaluators(stored_session.id, ["baseline", "ace_ct_inspired"])
+
+    assert _database_snapshot(test_db, stored_session.id) == before
+    assert [result.status for result in results] == ["success", "failed"]
+    assert results[0].structured_feedback is not None
+    assert results[1].structured_feedback is None
+    assert results[1].framework_results is None
+    assert results[1].error is not None
+    assert "not-json" not in results[1].model_dump_json()

@@ -24,6 +24,7 @@ from scripts.run_seeded_evaluator_case_study import (
 )
 from services.scoring_service import ScoringService
 from tests.utils.transcript_runner import create_all_for_test_engine
+from tests.utils.ace_ct import FakeACECTAdapter
 
 
 @pytest.fixture
@@ -202,3 +203,34 @@ async def test_ace_ct_case_study_requires_explicit_live_authorization(
 
     assert code == EXIT_INVALID_INPUT
     assert not output.exists()
+
+
+@pytest.mark.asyncio
+async def test_seeded_ace_ct_fake_run_records_provider_and_stays_non_persisting(
+    tmp_path,
+) -> None:
+    output = tmp_path / "seeded-ace-ct.json"
+    args = Namespace(
+        evaluators="baseline,ace_ct_inspired",
+        output=output,
+        overwrite=False,
+        allow_live_llm=True,
+        llm_provider="gemini",
+        model_identifier="synthetic-fake-model",
+        llm_adapter=FakeACECTAdapter(),
+    )
+
+    code = await execute_command(args)
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert code == EXIT_SUCCESS
+    assert payload["requested_evaluators"] == ["baseline", "ace_ct_inspired"]
+    assert len(payload["paper_table_rows"]) == 8
+    for condition in payload["condition_results"].values():
+        results = condition["observed_results"]
+        assert len({result["transcript_hash"] for result in results}) == 1
+        ace_ct = next(
+            result for result in results if result["evaluator_identifier"] == "ace_ct_inspired"
+        )
+        assert ace_ct["provenance"]["llm_provider"] == "gemini"
+        assert len(ace_ct["framework_results"]["dimension_results"]) == 11

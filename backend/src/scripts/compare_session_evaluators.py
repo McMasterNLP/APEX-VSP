@@ -136,6 +136,8 @@ async def execute_command(args: argparse.Namespace, db: Session) -> int:
             db,
             llm_provider=llm_provider,
             model_identifier=model_identifier,
+            llm_adapter=getattr(args, "llm_adapter", None),
+            allow_experimental_override="ace_ct_inspired" in evaluators,
         )
         results = await service.run_evaluators(
             args.session_id,
