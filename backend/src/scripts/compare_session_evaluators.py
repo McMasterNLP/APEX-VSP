@@ -13,7 +13,6 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from config.settings import get_settings
-from db.base import SessionLocal
 from repositories.turn_repo import TurnRepository
 from services.evaluator_comparison_service import (
     EVALUATOR_DEFINITIONS,
@@ -106,10 +105,12 @@ async def execute_command(args: argparse.Namespace, db: Session) -> int:
             if args.csv_summary.exists() and not args.overwrite:
                 raise FileExistsError("CSV summary already exists; pass --overwrite to replace it.")
 
-        settings = get_settings()
+        model_identifier = None
+        if any(identifier.startswith("hybrid_") for identifier in evaluators):
+            model_identifier = get_settings().openai_model_id
         service = EvaluatorComparisonService(
             db,
-            model_identifier=settings.openai_model_id,
+            model_identifier=model_identifier,
         )
         results = await service.run_evaluators(
             args.session_id,
@@ -147,6 +148,8 @@ async def execute_command(args: argparse.Namespace, db: Session) -> int:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    from db.base import SessionLocal
+
     args = build_parser().parse_args(argv)
     db = SessionLocal()
     try:

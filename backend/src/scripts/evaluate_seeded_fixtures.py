@@ -1,7 +1,7 @@
 """Quick offline evaluation for seeded BAD / MEDIUM / GOOD transcripts.
 
 Usage (from backend/):
-    poetry run python -m src.scripts.evaluate_seeded_fixtures
+    PYTHONPATH="$(pwd)/src" poetry run python -m scripts.evaluate_seeded_fixtures
 """
 
 from __future__ import annotations
@@ -117,4 +117,3 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-

@@ -209,9 +209,8 @@ def _write_output(path: Path, artifact: SeededCaseStudyArtifact, *, overwrite: b
 async def execute_command(args: argparse.Namespace) -> int:
     try:
         evaluators = parse_evaluator_selection(args.evaluators)
-        if any(identifier.startswith("hybrid_") for identifier in evaluators) and not (
-            args.allow_live_llm
-        ):
+        includes_hybrid = any(identifier.startswith("hybrid_") for identifier in evaluators)
+        if includes_hybrid and not args.allow_live_llm:
             raise ValueError(
                 "Hybrid case-study runs require explicit --allow-live-llm authorization."
             )
@@ -227,7 +226,7 @@ async def execute_command(args: argparse.Namespace) -> int:
                 db,
                 session_ids=session_ids,
                 evaluator_identifiers=evaluators,
-                model_identifier=get_settings().openai_model_id,
+                model_identifier=(get_settings().openai_model_id if includes_hybrid else None),
                 git_commit=get_git_commit(),
             )
             _write_output(args.output, artifact, overwrite=args.overwrite)

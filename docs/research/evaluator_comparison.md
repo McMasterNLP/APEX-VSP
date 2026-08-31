@@ -8,7 +8,7 @@ turn-linked evidence metadata but no transcript text or user identity.
 From `backend/`:
 
 ```bash
-python -m src.scripts.compare_session_evaluators \
+PYTHONPATH="$(pwd)/src" poetry run python -m scripts.compare_session_evaluators \
   --session-id 123 \
   --evaluators all \
   --output evaluation/session_123_comparison.json
@@ -31,10 +31,21 @@ correctness, and no evaluator is identified as superior without external referen
 ## Four-condition seeded case study
 
 The repository's existing strong, decent, mixed, and weak difficult-diagnosis fixtures can be
-run through the same evaluator set in an ephemeral in-memory SQLite database:
+run through the baseline evaluator in an ephemeral in-memory SQLite database. From the
+repository root, use the canonical offline command:
 
 ```bash
-python -m src.scripts.run_seeded_evaluator_case_study \
+make evaluator-case-study-baseline
+```
+
+This writes `backend/evaluation/seeded_baseline_case_study.json`. It does not load application
+settings, initialize the configured production database, make network calls, or invoke a model.
+
+Hybrid runs are intentionally not a Makefile default. To authorize their paid model calls
+explicitly, run this from `backend/`:
+
+```bash
+PYTHONPATH="$(pwd)/src" poetry run python -m scripts.run_seeded_evaluator_case_study \
   --evaluators all \
   --allow-live-llm \
   --output evaluation/seeded_evaluator_case_study.json
