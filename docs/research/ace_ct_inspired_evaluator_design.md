@@ -272,6 +272,16 @@ A dimension score may be null only when at least one of these applies:
 The result must still include the dimension, assessability, confidence, concise reasoning,
 improvement guidance, and a limitation note. Confidence must remain finite from 0 through 1.
 
+### Implemented evaluation result contract
+
+Checkpoint 4 implements frozen result models for dimensions, domains, score sources, and
+limitations. A result must contain all eleven dimensions and all four domain aggregates in
+stable order. Domain and assessability values must match the rubric. Scores are strict integers
+from 1 through 5 or null under the explicit insufficient-evidence policy; booleans, numeric
+strings, decimals, infinities, and NaN are rejected. Evidence coordinates must be positive,
+unique, and sorted. Reasoning, recommendations, and limitation notes are bounded. Domain means
+and counts are recalculated during validation so a model cannot return inconsistent aggregates.
+
 ### Domain aggregation
 
 Each domain score is the arithmetic mean of its non-null dimension scores. The result records

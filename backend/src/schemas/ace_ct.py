@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import math
 from enum import Enum
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class ACECTTranscriptWarning(BaseModel):
@@ -350,3 +351,172 @@ def require_ace_ct_rubric_approval(
             "ACE-CT-inspired rubric is pending expert review; an explicit experimental "
             "override is required."
         )
+
+
+class ACECTDimensionResult(BaseModel):
+    """Strict model-produced assessment for one rubric dimension."""
+
+    dimension_id: ACECTDimensionId
+    domain: ACECTDomain
+    score: int | None = Field(default=None, strict=True, ge=1, le=5)
+    insufficient_evidence: bool
+    assessability: ACECTAssessability
+    confidence: float = Field(ge=0.0, le=1.0, allow_inf_nan=False)
+    evidence_turn_numbers: tuple[int, ...] = Field(max_length=100)
+    reasoning: str = Field(min_length=1, max_length=500)
+    improvement_recommendation: str = Field(min_length=1, max_length=400)
+    modality_limitation_notes: tuple[str, ...] = Field(max_length=10)
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @field_validator("evidence_turn_numbers", mode="before")
+    @classmethod
+    def validate_raw_evidence_turn_numbers(cls, value: object) -> object:
+        if not isinstance(value, (list, tuple)) or any(
+            not isinstance(number, int) or isinstance(number, bool) or number < 1
+            for number in value
+        ):
+            raise ValueError("Evidence turn numbers must be positive integers.")
+        return value
+
+    @model_validator(mode="after")
+    def validate_evidence_and_null_policy(self) -> Self:
+        if self.score is None and not self.insufficient_evidence:
+            raise ValueError("A null score requires insufficient_evidence=true.")
+        if self.score is not None and self.insufficient_evidence:
+            raise ValueError("A scored dimension requires insufficient_evidence=false.")
+        if self.assessability == ACECTAssessability.NOT_ASSESSABLE and self.score is not None:
+            raise ValueError("A not-assessable dimension cannot receive a score.")
+
+        turn_numbers = self.evidence_turn_numbers
+        if any(
+            not isinstance(number, int) or isinstance(number, bool) or number < 1
+            for number in turn_numbers
+        ):
+            raise ValueError("Evidence turn numbers must be positive integers.")
+        if tuple(sorted(set(turn_numbers))) != turn_numbers:
+            raise ValueError("Evidence turn numbers must be unique and sorted.")
+        if any(not note.strip() or len(note) > 300 for note in self.modality_limitation_notes):
+            raise ValueError("Modality limitation notes must contain 1-300 characters.")
+        return self
+
+
+class ACECTDomainScore(BaseModel):
+    """Deterministic native-scale aggregate for one proposed domain."""
+
+    domain: ACECTDomain
+    mean_score: float | None = Field(default=None, ge=1.0, le=5.0, allow_inf_nan=False)
+    scored_dimension_count: int = Field(strict=True, ge=0, le=11)
+    insufficient_evidence_count: int = Field(strict=True, ge=0, le=11)
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ACECTScoreSources(BaseModel):
+    """Allowlisted origin labels for model and aggregate scores."""
+
+    dimension_scores: Literal["experimental_llm_transcript_rubric"]
+    domain_scores: Literal["arithmetic_mean_of_non_null_dimensions"]
+    compatibility_scores: Literal["not_computed_in_model_response"]
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ACECTEvaluationLimitations(BaseModel):
+    """Mandatory boundaries carried with every evaluation result."""
+
+    transcript_only: Literal[True]
+    missing_modalities: tuple[Literal["audio", "video", "timing", "overlap"], ...]
+    notes: tuple[str, ...] = Field(min_length=1, max_length=20)
+    official_model_reproduction: Literal[False]
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def validate_limitations(self) -> Self:
+        if self.missing_modalities != ("audio", "video", "timing", "overlap"):
+            raise ValueError("All transcript-only missing modalities must be declared in order.")
+        if any(not note.strip() or len(note) > 500 for note in self.notes):
+            raise ValueError("Limitation notes must contain 1-500 characters.")
+        return self
+
+
+class ACECTEvaluationResult(BaseModel):
+    """Strict complete output for an ACE-CT-inspired model evaluation."""
+
+    framework_name: Literal["ACE-CT-inspired"]
+    implementation_type: Literal["experimental_transcript_rubric"]
+    validation_status: Literal["experimental_unvalidated"]
+    publication_reproduction: Literal[False]
+    rubric_version: str = Field(min_length=1, max_length=50)
+    approval_status: ACECTRubricApprovalStatus
+    dimension_results: tuple[ACECTDimensionResult, ...]
+    domain_scores: tuple[ACECTDomainScore, ...]
+    score_sources: ACECTScoreSources
+    limitations: ACECTEvaluationLimitations
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def validate_against_rubric(self) -> Self:
+        if self.rubric_version != ACE_CT_RUBRIC_V0_1.rubric_version:
+            raise ValueError("Evaluation rubric version does not match the implemented rubric.")
+
+        dimension_ids = tuple(result.dimension_id for result in self.dimension_results)
+        if len(dimension_ids) != 11:
+            raise ValueError("Evaluation must contain exactly 11 dimension results.")
+        if len(set(dimension_ids)) != len(dimension_ids):
+            raise ValueError("Evaluation dimension results must be unique.")
+        if dimension_ids != EXPECTED_ACE_CT_DIMENSION_ORDER:
+            raise ValueError("Evaluation dimensions must use the stable rubric order.")
+
+        rubric_dimensions = {
+            dimension.identifier: dimension for dimension in ACE_CT_RUBRIC_V0_1.dimensions
+        }
+        for result in self.dimension_results:
+            spec = rubric_dimensions[result.dimension_id]
+            if result.domain != spec.domain:
+                raise ValueError(
+                    f"Returned domain for '{result.dimension_id.value}' does not match rubric."
+                )
+            if result.assessability != spec.assessability:
+                raise ValueError(
+                    f"Returned assessability for '{result.dimension_id.value}' does not "
+                    "match rubric."
+                )
+
+        domains = tuple(score.domain for score in self.domain_scores)
+        if len(domains) != len(ACECTDomain) or len(set(domains)) != len(domains):
+            raise ValueError("Evaluation must contain every domain score exactly once.")
+        if domains != tuple(ACECTDomain):
+            raise ValueError("Domain scores must use the stable domain order.")
+
+        for domain_score in self.domain_scores:
+            results = [
+                result for result in self.dimension_results if result.domain == domain_score.domain
+            ]
+            scores = [result.score for result in results if result.score is not None]
+            expected_mean = math.fsum(scores) / len(scores) if scores else None
+            expected_insufficient = sum(result.score is None for result in results)
+            if domain_score.scored_dimension_count != len(scores):
+                raise ValueError(
+                    f"Scored dimension count for domain '{domain_score.domain.value}' is invalid."
+                )
+            if domain_score.insufficient_evidence_count != expected_insufficient:
+                raise ValueError(
+                    "Insufficient-evidence count for domain "
+                    f"'{domain_score.domain.value}' is invalid."
+                )
+            if expected_mean is None:
+                if domain_score.mean_score is not None:
+                    raise ValueError(
+                        f"All-null domain '{domain_score.domain.value}' must have a null mean."
+                    )
+            elif domain_score.mean_score is None or not math.isclose(
+                domain_score.mean_score,
+                expected_mean,
+                rel_tol=0.0,
+                abs_tol=1e-6,
+            ):
+                raise ValueError(f"Mean score for domain '{domain_score.domain.value}' is invalid.")
+        return self
