@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import time
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -13,9 +14,13 @@ from sqlalchemy.orm import Session
 
 from domain.models.evaluator_comparison import (
     CanonicalTranscriptTurn,
+    EvaluatorComparisonAnalysis,
     EvaluatorProvenance,
     EvaluatorRunResult,
     EvaluatorScores,
+    NumericMetricSummary,
+    PairwiseEvaluatorDifference,
+    PairwiseFindingAgreement,
     SanitizedEvaluatorError,
 )
 from domain.models.scoring import ComputedFeedback
@@ -70,6 +75,14 @@ EVALUATOR_DEFINITIONS: dict[str, EvaluatorDefinition] = {
         prompt_version="v2",
     ),
 }
+
+SCORE_METRICS = (
+    "empathy_score",
+    "communication_score",
+    "spikes_completion_score",
+    "overall_score",
+)
+NUMERIC_PRECISION = 4
 
 
 def _turn_value(turn: Any, field: str) -> Any:
@@ -131,6 +144,210 @@ def build_evaluator_provenance(
         model_identifier=model_identifier if definition.llm_provider else None,
         reviewer_version=definition.reviewer_version,
         prompt_version=definition.prompt_version,
+    )
+
+
+def _normalize_number(value: Any) -> float | None:
+    """Normalize finite numeric values for deterministic JSON output."""
+    if value is None or isinstance(value, bool):
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    normalized = round(number, NUMERIC_PRECISION)
+    return 0.0 if normalized == 0 else normalized
+
+
+def _metric_summary(
+    values_by_evaluator: dict[str, Any],
+) -> NumericMetricSummary:
+    values: list[float] = []
+    missing: list[str] = []
+    for evaluator, raw_value in values_by_evaluator.items():
+        value = _normalize_number(raw_value)
+        if value is None:
+            missing.append(evaluator)
+        else:
+            values.append(value)
+    if not values:
+        return NumericMetricSummary(
+            available_count=0,
+            missing_evaluators=missing,
+        )
+    minimum = min(values)
+    maximum = max(values)
+    return NumericMetricSummary(
+        minimum=minimum,
+        maximum=maximum,
+        mean=_normalize_number(math.fsum(values) / len(values)),
+        range=_normalize_number(maximum - minimum),
+        available_count=len(values),
+        missing_evaluators=missing,
+    )
+
+
+def _result_score(result: EvaluatorRunResult, metric: str) -> float | None:
+    if result.status != "success" or result.scores is None:
+        return None
+    return _normalize_number(getattr(result.scores, metric, None))
+
+
+def _spikes_findings(result: EvaluatorRunResult) -> set[str] | None:
+    feedback = result.structured_feedback
+    if result.status != "success" or feedback is None:
+        return None
+    coverage = feedback.spikes_coverage
+    covered = coverage.get("covered") if isinstance(coverage, dict) else None
+    if not isinstance(covered, list):
+        return None
+    return {str(stage).strip().lower() for stage in covered if str(stage).strip()}
+
+
+def _evidence_findings(result: EvaluatorRunResult) -> set[str] | None:
+    feedback = result.structured_feedback
+    if result.status != "success" or feedback is None:
+        return None
+
+    findings: set[str] = set()
+    for missed in feedback.missed_opportunities or []:
+        if isinstance(missed, dict) and isinstance(missed.get("turn_number"), int):
+            findings.add(f"missed:turn:{missed['turn_number']}")
+    span_groups = (
+        ("eo", feedback.eo_spans),
+        ("elicitation", feedback.elicitation_spans),
+        ("response", feedback.response_spans),
+    )
+    for group, spans in span_groups:
+        for span in spans or []:
+            if not isinstance(span, dict):
+                continue
+            turn_number = span.get("turn_number")
+            if not isinstance(turn_number, int):
+                continue
+            subtype = span.get("dimension") or span.get("type") or "unspecified"
+            findings.add(f"{group}:turn:{turn_number}:{str(subtype).strip().lower()}")
+    return findings
+
+
+def _agreement(
+    evaluator_a: str,
+    evaluator_b: str,
+    findings_a: set[str] | None,
+    findings_b: set[str] | None,
+) -> PairwiseFindingAgreement:
+    if findings_a is None or findings_b is None:
+        return PairwiseFindingAgreement(
+            evaluator_a=evaluator_a,
+            evaluator_b=evaluator_b,
+            comparable=False,
+        )
+    shared = sorted(findings_a & findings_b)
+    only_a = sorted(findings_a - findings_b)
+    only_b = sorted(findings_b - findings_a)
+    union_count = len(findings_a | findings_b)
+    jaccard = 1.0 if union_count == 0 else len(shared) / union_count
+    return PairwiseFindingAgreement(
+        evaluator_a=evaluator_a,
+        evaluator_b=evaluator_b,
+        comparable=True,
+        intersection_count=len(shared),
+        union_count=union_count,
+        jaccard=_normalize_number(jaccard),
+        shared=shared,
+        only_a=only_a,
+        only_b=only_b,
+    )
+
+
+def analyze_evaluator_results(
+    results: Iterable[EvaluatorRunResult],
+) -> EvaluatorComparisonAnalysis:
+    """Derive deterministic descriptive analysis without ranking evaluator quality."""
+    observed = list(results)
+    successful = [result for result in observed if result.status == "success"]
+    failed_count = len(observed) - len(successful)
+
+    score_metrics = {
+        metric: _metric_summary(
+            {result.evaluator_identifier: _result_score(result, metric) for result in observed}
+        )
+        for metric in SCORE_METRICS
+    }
+    runtime = _metric_summary(
+        {result.evaluator_identifier: result.runtime_ms for result in observed}
+    )
+
+    pairwise: list[PairwiseEvaluatorDifference] = []
+    spikes_agreement: list[PairwiseFindingAgreement] = []
+    evidence_agreement: list[PairwiseFindingAgreement] = []
+    for index, result_a in enumerate(observed):
+        for result_b in observed[index + 1 :]:
+            differences: dict[str, float | None] = {}
+            for metric in SCORE_METRICS:
+                value_a = _result_score(result_a, metric)
+                value_b = _result_score(result_b, metric)
+                differences[metric] = (
+                    _normalize_number(value_a - value_b)
+                    if value_a is not None and value_b is not None
+                    else None
+                )
+            pairwise.append(
+                PairwiseEvaluatorDifference(
+                    evaluator_a=result_a.evaluator_identifier,
+                    evaluator_b=result_b.evaluator_identifier,
+                    evaluator_a_status=result_a.status,
+                    evaluator_b_status=result_b.status,
+                    score_differences=differences,
+                    runtime_difference_ms=(
+                        _normalize_number(result_a.runtime_ms - result_b.runtime_ms) or 0.0
+                    ),
+                )
+            )
+            spikes_agreement.append(
+                _agreement(
+                    result_a.evaluator_identifier,
+                    result_b.evaluator_identifier,
+                    _spikes_findings(result_a),
+                    _spikes_findings(result_b),
+                )
+            )
+            evidence_agreement.append(
+                _agreement(
+                    result_a.evaluator_identifier,
+                    result_b.evaluator_identifier,
+                    _evidence_findings(result_a),
+                    _evidence_findings(result_b),
+                )
+            )
+
+    all_findings = {
+        result.evaluator_identifier: (_evidence_findings(result) or set()) for result in successful
+    }
+    unique_findings: dict[str, list[str]] = {}
+    for evaluator, findings in all_findings.items():
+        findings_from_others: set[str] = set()
+        for other_evaluator, other_findings in all_findings.items():
+            if other_evaluator != evaluator:
+                findings_from_others.update(other_findings)
+        unique_findings[evaluator] = sorted(findings - findings_from_others)
+
+    return EvaluatorComparisonAnalysis(
+        successful_evaluator_count=len(successful),
+        failed_evaluator_count=failed_count,
+        score_metrics=score_metrics,
+        runtime=runtime,
+        pairwise_differences=pairwise,
+        spikes_stage_agreement=spikes_agreement,
+        evidence_agreement=evidence_agreement,
+        unique_findings=unique_findings,
+        limitations=[
+            "Agreement is descriptive and does not establish clinical correctness.",
+            "No evaluator is ranked without external reference labels.",
+            "Missing or failed evaluator outputs are excluded from numeric summaries.",
+        ],
     )
 
 

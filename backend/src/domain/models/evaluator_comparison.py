@@ -68,3 +68,61 @@ class EvaluatorRunResult(BaseModel):
     error: SanitizedEvaluatorError | None = None
 
     model_config = ConfigDict(frozen=True)
+
+
+class NumericMetricSummary(BaseModel):
+    """Derived distribution summary for one numeric metric."""
+
+    minimum: float | None = None
+    maximum: float | None = None
+    mean: float | None = None
+    range: float | None = None
+    available_count: int
+    missing_evaluators: list[str]
+
+    model_config = ConfigDict(frozen=True)
+
+
+class PairwiseEvaluatorDifference(BaseModel):
+    """Signed A-minus-B score and runtime differences for one evaluator pair."""
+
+    evaluator_a: str
+    evaluator_b: str
+    evaluator_a_status: Literal["success", "failed"]
+    evaluator_b_status: Literal["success", "failed"]
+    score_differences: dict[str, float | None]
+    runtime_difference_ms: float
+
+    model_config = ConfigDict(frozen=True)
+
+
+class PairwiseFindingAgreement(BaseModel):
+    """Set agreement for comparable stage or turn-linked evidence findings."""
+
+    evaluator_a: str
+    evaluator_b: str
+    comparable: bool
+    intersection_count: int | None = None
+    union_count: int | None = None
+    jaccard: float | None = None
+    shared: list[str] = []
+    only_a: list[str] = []
+    only_b: list[str] = []
+
+    model_config = ConfigDict(frozen=True)
+
+
+class EvaluatorComparisonAnalysis(BaseModel):
+    """Deterministic summaries derived from observed evaluator run results."""
+
+    successful_evaluator_count: int
+    failed_evaluator_count: int
+    score_metrics: dict[str, NumericMetricSummary]
+    runtime: NumericMetricSummary
+    pairwise_differences: list[PairwiseEvaluatorDifference]
+    spikes_stage_agreement: list[PairwiseFindingAgreement]
+    evidence_agreement: list[PairwiseFindingAgreement]
+    unique_findings: dict[str, list[str]]
+    limitations: list[str]
+
+    model_config = ConfigDict(frozen=True)
