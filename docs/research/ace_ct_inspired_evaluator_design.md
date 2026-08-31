@@ -366,6 +366,13 @@ configuration, credentials, raw prompts from other work, and requests for chain-
 - Synthetic review examples are labeled `synthetic_fake_model_output` and contain no private
   encounter content.
 
+Checkpoint 8 adds first-class `framework_results` to in-memory and artifact evaluator results.
+It carries framework and validation labels, rubric approval/version, all dimension and domain
+results, assessability and score-availability counts, explicit score-source labels, and
+limitations. Sanitization preserves turn-number evidence while redacting exact transcript text
+from reasoning and recommendations. The existing flat CSV remains unchanged because no stable
+cross-framework column policy has been approved.
+
 ## Persistence versus comparison behavior
 
 The same computation core serves both paths.

@@ -21,6 +21,7 @@ from domain.models.evaluator_comparison import (
     EvaluatorArtifactResult,
     EvaluatorComparisonAnalysis,
     EvaluatorComparisonArtifact,
+    EvaluatorFrameworkResults,
     EvaluatorProvenance,
     EvaluatorRunResult,
     EvaluatorScores,
@@ -514,6 +515,25 @@ def sanitize_evaluator_result(
             linkage_stats=feedback.linkage_stats,
             question_breakdown=feedback.question_breakdown,
         )
+    safe_framework: EvaluatorFrameworkResults | None = None
+    if result.status == "success" and result.framework_results is not None:
+        private_text = raw_turn_texts or set()
+        safe_framework = result.framework_results.model_copy(
+            update={
+                "dimension_results": tuple(
+                    dimension.model_copy(
+                        update={
+                            "reasoning": _redact_full_turn_text(dimension.reasoning, private_text),
+                            "improvement_recommendation": _redact_full_turn_text(
+                                dimension.improvement_recommendation, private_text
+                            ),
+                        }
+                    )
+                    for dimension in result.framework_results.dimension_results
+                )
+            }
+        )
+
     return EvaluatorArtifactResult(
         evaluator_identifier=result.evaluator_identifier,
         evaluator_name=result.evaluator_name,
@@ -524,6 +544,7 @@ def sanitize_evaluator_result(
         provenance=result.provenance,
         scores=result.scores,
         feedback=safe_feedback,
+        framework_results=safe_framework,
         error=result.error,
     )
 
