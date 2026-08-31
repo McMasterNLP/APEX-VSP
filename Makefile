@@ -1,7 +1,7 @@
 PYTHONPATH_BACKEND_SRC := $(subst \,/,$(abspath backend/src))
 EVALUATOR_CASE_STUDY_PYTHONPATH ?= $(PYTHONPATH_BACKEND_SRC)
 EVALUATOR_CASE_STUDY_BASELINE_OUTPUT ?= evaluation/seeded_baseline_case_study.json
-.PHONY: backend backend-dev backend-install frontend frontend-dev frontend-install db-migrate evaluator-case-study-baseline
+.PHONY: backend backend-dev backend-install frontend frontend-dev frontend-install db-migrate evaluator-case-study-baseline evaluator-case-study-baseline-overwrite
 
 backend: backend-install backend-dev
 
@@ -34,4 +34,14 @@ frontend-dev:
 	@cd frontend && npm run dev
 
 evaluator-case-study-baseline:
-	@cd backend && PYTHONPATH="$(EVALUATOR_CASE_STUDY_PYTHONPATH)" poetry run python -m scripts.run_seeded_evaluator_case_study --evaluators baseline --output "$(EVALUATOR_CASE_STUDY_BASELINE_OUTPUT)"
+	@cd backend && PYTHONPATH="$(EVALUATOR_CASE_STUDY_PYTHONPATH)" poetry run python \
+		-m scripts.run_seeded_evaluator_case_study \
+		--evaluators baseline \
+		--output "$(EVALUATOR_CASE_STUDY_BASELINE_OUTPUT)"
+
+evaluator-case-study-baseline-overwrite:
+	@cd backend && PYTHONPATH="$(EVALUATOR_CASE_STUDY_PYTHONPATH)" poetry run python \
+		-m scripts.run_seeded_evaluator_case_study \
+		--evaluators baseline \
+		--output "$(EVALUATOR_CASE_STUDY_BASELINE_OUTPUT)" \
+		--overwrite
