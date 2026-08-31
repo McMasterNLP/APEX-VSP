@@ -6,15 +6,19 @@ import hashlib
 import json
 import math
 import time
+import uuid
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from typing import Any, Literal
 
 from sqlalchemy.orm import Session
 
 from domain.models.evaluator_comparison import (
     CanonicalTranscriptTurn,
+    EvaluatorArtifactResult,
     EvaluatorComparisonAnalysis,
+    EvaluatorComparisonArtifact,
     EvaluatorProvenance,
     EvaluatorRunResult,
     EvaluatorScores,
@@ -22,6 +26,8 @@ from domain.models.evaluator_comparison import (
     PairwiseEvaluatorDifference,
     PairwiseFindingAgreement,
     SanitizedEvaluatorError,
+    SanitizedEvidenceFinding,
+    SanitizedFeedbackSummary,
 )
 from domain.models.scoring import ComputedFeedback
 from plugins.evaluators.apex_baseline_evaluator import ApexBaselineEvaluator
@@ -83,6 +89,7 @@ SCORE_METRICS = (
     "overall_score",
 )
 NUMERIC_PRECISION = 4
+COMPARISON_SCHEMA_VERSION = "1.0"
 
 
 def _turn_value(turn: Any, field: str) -> Any:
@@ -348,6 +355,132 @@ def analyze_evaluator_results(
             "No evaluator is ranked without external reference labels.",
             "Missing or failed evaluator outputs are excluded from numeric summaries.",
         ],
+    )
+
+
+def anonymize_session_reference(session_id: int, transcript_hash: str) -> str:
+    """Create a comparison-specific reference without exposing a database session id."""
+    source = f"evaluator-comparison:{int(session_id)}:{transcript_hash}".encode()
+    return f"session-{hashlib.sha256(source).hexdigest()[:16]}"
+
+
+def _redact_full_turn_text(value: str | None, raw_turn_texts: set[str]) -> str | None:
+    if value is None:
+        return None
+    redacted = value
+    for text in sorted(raw_turn_texts, key=len, reverse=True):
+        if text:
+            redacted = redacted.replace(text, "[TRANSCRIPT_TEXT_REDACTED]")
+    return redacted
+
+
+def _safe_finding(item: Any, finding_type: str) -> SanitizedEvidenceFinding:
+    if not isinstance(item, dict):
+        return SanitizedEvidenceFinding(finding_type=finding_type)
+    turn_number = item.get("turn_number")
+    confidence = _normalize_number(item.get("confidence"))
+    return SanitizedEvidenceFinding(
+        finding_type=finding_type,
+        turn_number=turn_number if isinstance(turn_number, int) else None,
+        dimension=str(item["dimension"]) if item.get("dimension") is not None else None,
+        subtype=str(item["type"]) if item.get("type") is not None else None,
+        confidence=confidence,
+    )
+
+
+def sanitize_evaluator_result(
+    result: EvaluatorRunResult,
+    *,
+    raw_turn_texts: set[str] | None = None,
+) -> EvaluatorArtifactResult:
+    """Project an in-memory result into a transcript-safe artifact representation."""
+    feedback = result.structured_feedback
+    safe_feedback: SanitizedFeedbackSummary | None = None
+    if result.status == "success" and feedback is not None:
+        evidence: list[SanitizedEvidenceFinding] = []
+        for finding_type, spans in (
+            ("empathic_opportunity", feedback.eo_spans),
+            ("elicitation", feedback.elicitation_spans),
+            ("response", feedback.response_spans),
+        ):
+            evidence.extend(_safe_finding(span, finding_type) for span in spans or [])
+        private_text = raw_turn_texts or set()
+        safe_feedback = SanitizedFeedbackSummary(
+            spikes_coverage=feedback.spikes_coverage,
+            strengths=_redact_full_turn_text(feedback.strengths, private_text),
+            areas_for_improvement=_redact_full_turn_text(
+                feedback.areas_for_improvement, private_text
+            ),
+            missed_opportunities=[
+                _safe_finding(item, "missed_opportunity")
+                for item in feedback.missed_opportunities or []
+            ],
+            evidence=evidence,
+            linkage_stats=feedback.linkage_stats,
+            question_breakdown=feedback.question_breakdown,
+        )
+    return EvaluatorArtifactResult(
+        evaluator_identifier=result.evaluator_identifier,
+        evaluator_name=result.evaluator_name,
+        evaluator_version=result.evaluator_version,
+        status=result.status,
+        runtime_ms=result.runtime_ms,
+        transcript_hash=result.transcript_hash,
+        provenance=result.provenance,
+        scores=result.scores,
+        feedback=safe_feedback,
+        error=result.error,
+    )
+
+
+def build_comparison_artifact(
+    *,
+    session_id: int,
+    turns: Iterable[Any],
+    requested_evaluators: list[str],
+    results: list[EvaluatorRunResult],
+    include_transcript: bool = False,
+    git_commit: str | None = None,
+    generated_at: datetime | None = None,
+    run_id: str | None = None,
+) -> EvaluatorComparisonArtifact:
+    """Build the canonical observed-plus-derived comparison document."""
+    canonical_turns = canonicalize_transcript(turns)
+    transcript_hash = hash_transcript(canonical_turns)
+    raw_turn_texts = {turn.text for turn in canonical_turns if turn.text}
+    if any(result.transcript_hash != transcript_hash for result in results):
+        raise ValueError("Evaluator result transcript hashes do not match the artifact transcript.")
+
+    analysis = analyze_evaluator_results(results)
+    warnings = [
+        f"Evaluator '{result.evaluator_identifier}' failed; partial results were retained."
+        for result in results
+        if result.status == "failed"
+    ]
+    if include_transcript:
+        warnings.append("Raw transcript text was explicitly included by request.")
+
+    timestamp = generated_at or datetime.now(UTC)
+    return EvaluatorComparisonArtifact(
+        schema_version=COMPARISON_SCHEMA_VERSION,
+        run_id=run_id or str(uuid.uuid4()),
+        generated_at=timestamp.isoformat().replace("+00:00", "Z"),
+        git_commit=git_commit,
+        anonymized_session_id=anonymize_session_reference(session_id, transcript_hash),
+        transcript_hash=transcript_hash,
+        requested_evaluators=requested_evaluators,
+        evaluator_provenance=[result.provenance for result in results],
+        observed_results=[
+            sanitize_evaluator_result(result, raw_turn_texts=raw_turn_texts) for result in results
+        ],
+        derived_analysis=analysis,
+        warnings=warnings,
+        limitations=[
+            *analysis.limitations,
+            "This artifact is technical evidence, not clinical validation.",
+            "Generated feedback may require additional review before external publication.",
+        ],
+        canonical_transcript=canonical_turns if include_transcript else None,
     )
 
 

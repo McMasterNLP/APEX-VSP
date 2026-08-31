@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from domain.models.scoring import ComputedFeedback
 
@@ -105,9 +105,9 @@ class PairwiseFindingAgreement(BaseModel):
     intersection_count: int | None = None
     union_count: int | None = None
     jaccard: float | None = None
-    shared: list[str] = []
-    only_a: list[str] = []
-    only_b: list[str] = []
+    shared: list[str] = Field(default_factory=list)
+    only_a: list[str] = Field(default_factory=list)
+    only_b: list[str] = Field(default_factory=list)
 
     model_config = ConfigDict(frozen=True)
 
@@ -124,5 +124,68 @@ class EvaluatorComparisonAnalysis(BaseModel):
     evidence_agreement: list[PairwiseFindingAgreement]
     unique_findings: dict[str, list[str]]
     limitations: list[str]
+
+    model_config = ConfigDict(frozen=True)
+
+
+class SanitizedEvidenceFinding(BaseModel):
+    """Turn-linked evidence metadata with transcript text deliberately excluded."""
+
+    finding_type: str
+    turn_number: int | None = None
+    dimension: str | None = None
+    subtype: str | None = None
+    confidence: float | None = None
+
+    model_config = ConfigDict(frozen=True)
+
+
+class SanitizedFeedbackSummary(BaseModel):
+    """Privacy-safe feedback fields suitable for canonical artifacts."""
+
+    spikes_coverage: dict | None = None
+    strengths: str | None = None
+    areas_for_improvement: str | None = None
+    missed_opportunities: list[SanitizedEvidenceFinding] = Field(default_factory=list)
+    evidence: list[SanitizedEvidenceFinding] = Field(default_factory=list)
+    linkage_stats: dict | None = None
+    question_breakdown: dict | None = None
+
+    model_config = ConfigDict(frozen=True)
+
+
+class EvaluatorArtifactResult(BaseModel):
+    """Privacy-safe observed result written to comparison artifacts."""
+
+    evaluator_identifier: str
+    evaluator_name: str
+    evaluator_version: str
+    status: Literal["success", "failed"]
+    runtime_ms: float
+    transcript_hash: str
+    provenance: EvaluatorProvenance
+    scores: EvaluatorScores | None = None
+    feedback: SanitizedFeedbackSummary | None = None
+    error: SanitizedEvaluatorError | None = None
+
+    model_config = ConfigDict(frozen=True)
+
+
+class EvaluatorComparisonArtifact(BaseModel):
+    """Canonical JSON document for one local evaluator comparison run."""
+
+    schema_version: str
+    run_id: str
+    generated_at: str
+    git_commit: str | None = None
+    anonymized_session_id: str
+    transcript_hash: str
+    requested_evaluators: list[str]
+    evaluator_provenance: list[EvaluatorProvenance]
+    observed_results: list[EvaluatorArtifactResult]
+    derived_analysis: EvaluatorComparisonAnalysis
+    warnings: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    canonical_transcript: list[CanonicalTranscriptTurn] | None = None
 
     model_config = ConfigDict(frozen=True)

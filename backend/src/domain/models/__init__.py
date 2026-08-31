@@ -20,7 +20,9 @@ from domain.models.cases import (
 )
 from domain.models.evaluator_comparison import (
     CanonicalTranscriptTurn,
+    EvaluatorArtifactResult,
     EvaluatorComparisonAnalysis,
+    EvaluatorComparisonArtifact,
     EvaluatorProvenance,
     EvaluatorRunResult,
     EvaluatorScores,
@@ -28,6 +30,8 @@ from domain.models.evaluator_comparison import (
     PairwiseEvaluatorDifference,
     PairwiseFindingAgreement,
     SanitizedEvaluatorError,
+    SanitizedEvidenceFinding,
+    SanitizedFeedbackSummary,
 )
 from domain.models.scoring import ComputedFeedback
 from domain.models.sessions import (
@@ -62,7 +66,9 @@ __all__ = [
     "FeedbackResponse",
     "ComputedFeedback",
     "CanonicalTranscriptTurn",
+    "EvaluatorArtifactResult",
     "EvaluatorComparisonAnalysis",
+    "EvaluatorComparisonArtifact",
     "EvaluatorProvenance",
     "EvaluatorRunResult",
     "EvaluatorScores",
@@ -70,6 +76,8 @@ __all__ = [
     "PairwiseEvaluatorDifference",
     "PairwiseFindingAgreement",
     "SanitizedEvaluatorError",
+    "SanitizedEvidenceFinding",
+    "SanitizedFeedbackSummary",
     "WebSocketMessage",
     # Admin
     "UserStats",
