@@ -18,6 +18,7 @@ from domain.models.cases import (
     CaseResponse,
     CaseUpdate,
 )
+from domain.models.scoring import ComputedFeedback
 from domain.models.sessions import (
     FeedbackResponse,
     SessionCreate,
@@ -48,6 +49,7 @@ __all__ = [
     "TurnCreate",
     "TurnResponse",
     "FeedbackResponse",
+    "ComputedFeedback",
     "WebSocketMessage",
     # Admin
     "UserStats",
@@ -57,4 +59,3 @@ __all__ = [
     "ResearchExportRequest",
     "ResearchExportResponse",
 ]
-
