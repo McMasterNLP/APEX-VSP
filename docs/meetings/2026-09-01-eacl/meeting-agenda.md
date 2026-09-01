@@ -1,53 +1,46 @@
-# APEX / EACL 2027 Internal Review Agenda
+# September 1, 2026 APEX / EACL Working Session
 
-**Date:** September 1, 2026  
-**Duration:** 45 minutes  
-**Primary reviewer:** Dr. Allison Lahnala  
-**Purpose:** Agree on the scientific, disclosure, validation, and scope decisions needed for a credible EACL 2027 Systems Demonstration submission target.
+**Audience:** Dr. Allison Lahnala and Christian
+**Length:** Approximately 45 minutes
+**Purpose:** Use the implemented APEX architecture, experimental evaluator work, and literature directions to shape the strongest credible EACL 2027 System Demonstration story.
 
-## Preparation
+## Agenda
 
-Before the meeting:
+| Time | Walkthrough | Slides | Desired outcome |
+|---:|---|---:|---|
+| 2 min | Today’s walkthrough | 1 | Confirm the discussion shape and where to spend time. |
+| 2 min | Quick APEX refresher | 2 | Re-establish the familiar learner/admin workflow without re-pitching the application. |
+| 4 min | Stable synthetic transcript | 3 | Anchor every architecture and evaluator discussion to the same observable turns. |
+| 7 min | Original foundations and system architecture | 4–5 | Confirm the AFCE-aligned boundary and the live-generation versus stored-evaluation split. |
+| 8 min | ACE-CT-inspired evaluator and non-persisting comparison | 6–9 | Review rubric scope, modality limits, compatibility mapping, and the comparison-only research path. |
+| 8 min | Plugin extensibility and implemented plugins | 10–11 | Confirm what the three plugin families own and how current implementations attach. |
+| 6 min | Literature-inspired expansion directions | 12–13 | Identify which additions best fit APEX’s intended research identity; make no implementation ranking today. |
+| 8 min | EACL expectations and Dr. Lahnala’s vision | 14–15 | Align the system contribution, evidence target, public boundary, and next research emphasis. |
 
-- Open `apex-eacl-briefing.html` locally and confirm previous/next navigation works.
-- Review the synthetic transcript and remember that all evaluator values are illustrative, not observed results.
-- Keep `decision-record.md` open for live note-taking.
-- Do not open, share, quote, or screen-share the confidential manuscript.
-- Be ready to show the repository-backed distinction between work merged into `main` and work present only on `ace-ct-inspired-evaluator`.
-- If the application or network is unavailable, use the standalone HTML; it requires no backend, database, Supabase, or model provider.
+## Walkthrough sequence
 
-## Timed agenda
+1. Today’s walkthrough
+2. Quick APEX refresher
+3. Stable synthetic transcript
+4. Original AFCE-aligned and SPIKES foundations
+5. Original system architecture
+6. Experimental ACE-CT-inspired evaluator
+7. Non-persisting comparison flow
+8. Interactive illustrative comparison
+9. Three complementary lenses
+10. Plugin extensibility model
+11. Implemented plugins
+12. Literature-inspired expansion directions
+13. Possible next plugins
+14. EACL expectations and preparation phases
+15. Dr. Lahnala’s vision and discussion
 
-| Time | Topic | Focus | Desired concrete outcome |
-|---|---|---|---|
-| 0–5 | EACL target and desired outcomes | Confirm the September 22 target, current status, and what must be decided today. | Shared definition of a defensible system-demonstration contribution. |
-| 5–12 | Current APEX workflow | Case selection, virtual-patient conversation, ordered transcript, evaluation, feedback/metrics, and learner/admin review. | Agreement on the system story that should anchor the paper and demo. |
-| 12–20 | Plugin architecture and completed comparison work | Patient model vs evaluator vs metrics; actual registry; non-persisting comparison, hashing, provenance, failure isolation, and exports. | Confirm that evaluator experimentation—not plugin quantity—is the central engineering contribution. |
-| 20–28 | ACE-CT-inspired evaluator | Four proposed groups, 11 dimensions, transcript-only assessability, nulls, aggregation, compatibility projection, gating, and confidentiality boundary. | Record scientific and naming corrections; decide what can remain in the EACL scope. |
-| 28–35 | Synthetic transcript and comparison walkthrough | Use evaluator tabs and evidence-turn highlighting; discuss what the eventual read-only UI should make inspectable. | Approve or revise the minimal comparison UI specification and evidence presentation. |
-| 35–42 | Scientific, disclosure, and validation decisions | Rubric source, partial observability, public claims, first provider/model, validation material, and reviewers. | Resolve as many decision-record rows as possible; explicitly mark unresolved blockers. |
-| 42–45 | Owners, dates, and next checkpoint | Confirm immediate work, analysis freeze, review cadence, and submission artifacts. | Named owners, dated next actions, and a confirmed next review date in the decision record. |
+## Discussion posture
 
-## Desired meeting outcomes
+This is a collaborative research walkthrough, not an introductory pitch or a status review. Spend less time on the product refresher and more time on architecture, framework boundaries, evaluator comparison, literature directions, evidence design, and the EACL narrative.
 
-By minute 45, aim to have:
+Use the synthetic transcript as the common evidence surface. Treat all comparison values as invented UI examples, all literature directions as inspiration rather than commitments, and all ACE-CT-inspired structure as experimental pending expert review.
 
-1. An approved or corrected framework name and proposed four-group/11-dimension structure.
-2. A controlling rubric source or a clear path to written authorization.
-3. A policy for partially observable dimensions, null scores, and aggregation.
-4. A decision on whether provisional APEX compatibility projections remain visible.
-5. An approved confidentiality and public-disclosure boundary.
-6. A first provider/model for controlled smoke testing, or explicit criteria for selecting it.
-7. A small validation-material plan and a list of expert reviewers.
-8. A contribution framing for EACL that does not imply clinical validation or manuscript reproduction.
-9. Confirmation that ACE-CT-inspired output remains comparison-only initially unless deliberately changed.
-10. Owners, dates, and a next checkpoint.
+## End-of-meeting capture
 
-## Facilitation guardrails
-
-- Treat the official EACL call as authoritative for format and submission mechanics.
-- Keep “implemented on `main`,” “implemented on the ACE feature branch,” “illustrative mock,” and “proposed” visibly separate.
-- Do not interpret higher illustrative scores as evaluator superiority.
-- Do not claim that transcript-only evidence establishes timing, prosody, overlap, or non-verbal behavior.
-- Use the provenance label when needed: **authorized confidential manuscript; public citation pending expert confirmation**.
-
+Record outcomes only after discussion in decision-record.md. Keep owners, dates, and next checkpoints blank until they are explicitly agreed.

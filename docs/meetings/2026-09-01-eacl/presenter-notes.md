@@ -1,262 +1,223 @@
 # APEX / EACL 2027 Presenter Notes
 
-**Meeting:** September 1, 2026 internal review with Dr. Allison Lahnala  
-**Presentation:** `apex-eacl-briefing.html`  
-**Primary goal:** Leave with the scientific, disclosure, validation, and scope decisions needed for a credible September 22 submission target.
+**Meeting:** September 1, 2026 internal working session with Dr. Allison Lahnala
+**Presentation:** apex-eacl-briefing.html
+**Primary goal:** Make the implemented architecture, scientific boundaries, expansion options, and EACL obligations concrete enough for Dr. Lahnala to shape APEX’s research identity and submission story.
 
-## Two-minute executive version
+## Delivery posture
 
-APEX is a virtual-patient communication training system: a learner chooses a case, talks with a simulated patient, and receives SPIKES/AFCE-oriented feedback and metrics. The engineering contribution now extends beyond one scoring path. A non-persisting comparison pipeline—already merged into `main`—can run baseline, hybrid v1, and hybrid v2 against the same completed transcript while preserving transcript identity, provenance, runtime, failure isolation, and privacy-safe exports.
+Assume familiarity with APEX. Avoid re-pitching the application or narrating project status. Use the stable synthetic transcript as the common evidence surface, separate implemented behavior from proposed directions, and invite correction whenever the framing crosses a scientific boundary.
 
-On the ACE feature branch, we added a gated, provider-independent, transcript-only ACE-CT-inspired evaluator. It carries four proposed groups and 11 proposed dimensions, structured evidence, assessability limits, and explicitly provisional compatibility fields. It is experimental, unvalidated, not the default, not merged, and not a reproduction of the authorized confidential manuscript. The manuscript informed a high-level framework direction; no private data, models, weights, examples, results, or unpublished anchors were reproduced.
+## Slide 1 — Today’s walkthrough
 
-For EACL, the recommended story is the comparison platform: virtual-patient conversation plus inspectable evaluator experimentation. Before September 22, we should restore and verify the full application, settle the rubric/disclosure decisions, run minimal authorized provider smoke tests, build the read-only comparison UI, validate on a small expert-reviewed set, then freeze provenance and produce the paper/demo package. We should not add several large plugins. Today’s decisions are framework wording, observability/null/aggregation policy, compatibility projection, public boundary, provider/model, validation material, contribution framing, persistence scope, owners, and dates.
+**Message:** We will move quickly from the familiar workflow into the research questions.
+
+**Say:** “I want to use the same transcript all the way through: first to make the original APEX architecture visible, then to show the experimental comparison path, then to ask which research direction should lead the EACL story.”
+
+**Ask:** “Is there one part you want to protect extra time for?”
+
+**Transition:** “I’ll spend one slide on the familiar learner flow, then move to the evidence surface.”
+
+## Slide 2 — Quick APEX refresher
+
+**Message:** APEX joins virtual-patient practice with evidence-linked review.
+
+**Say:** “The familiar flow is case selection, a stage-aware virtual-patient conversation, encounter completion, feedback and metrics, and learner/admin review. Today’s focus is the architecture under that surface.”
+
+**Ask:** “Is this still the right one-sentence description of the application?”
+
+**Transition:** “The stored transcript is what connects the experience to every evaluator.”
+
+**Sources:** Repository README and implemented case, dialogue, scoring, and admin paths.
+
+## Slide 3 — Stable synthetic transcript
+
+**Message:** One fictional 12-turn encounter gives every lens the same evidence.
+
+**Say:** “Turn 2 creates an explicit fear opportunity. Turn 3 moves to diagnosis and jargon without responding. Turn 5 repairs that miss and asks permission. Turns 7–11 add plain language, an understanding check, priorities, summary, next steps, and a question invitation.”
+
+**Ask:** “Do these markers separate observable behavior from interpretation clearly enough?”
+
+**Transition:** “The original APEX foundations explain how those turns become structured signals.”
+
+**Source:** assets/synthetic-transcript.json. Entirely synthetic; not clinical data.
+
+## Slide 4 — Original foundations
+
+**Message:** SPIKES and AFCE-aligned signals are complementary inputs to scoring and feedback.
+
+**Required explanation:** “AFCE-aligned detectors and relations are implemented. ApexMetrics exposes selected measures. Baseline and hybrid evaluators use those signals. AFCE is not a standalone evaluator.”
+
+**Required boundary:** “APEX implements an AFCE-aligned, rule-based operationalization of selected constructs.”
+
+**Say:** “On one side, SPIKES captures difficult-news conversation structure. On the other, rules detect selected Feeling, Judgment, and Appreciation opportunities, elicitations, response forms, and turn-linked misses. APEX combines those signals into scores, timeline events, suggestions, and research measures.”
+
+**Ask:** “Is the AFCE-aligned description faithful and appropriately narrow?”
+
+**Transition:** “Now I’ll place those two analytical flows inside the full running system.”
+
+**Sources:** docs/research/afce_framework.md; docs/research/spikes_protocol.md; Lahnala et al. 2024.
+
+## Slide 5 — Original system architecture
+
+**Message:** Patient generation is live, while evaluation starts from the ordered stored encounter.
+
+**Say:** “Case configuration and session state feed the selected patient-model plugin. The conversation produces an ordered transcript with frozen plugin provenance. NLU/span analysis creates SPIKES and AFCE-aligned signals. The selected evaluator and metrics plugins produce feedback for the UI.”
+
+**Emphasize:** “Production persistence and the research comparison are separate. The normal learner workflow may persist feedback and metrics. The comparison path reads a completed transcript and computes alternatives in memory.”
+
+**Ask:** “For the paper, should the learner loop or the inspectable research loop lead this figure?”
+
+**Transition:** “The experimental ACE-CT-inspired evaluator is one explicit consumer of that stored transcript.”
+
+**Sources:** backend plugin interfaces/registry, default patient model, NLU adapters, scoring service, evaluator comparison service.
+
+## Slide 6 — ACE-CT-inspired evaluator
+
+**Message:** The evaluator is a provider-neutral, versioned, strict transcript-rubric experiment—not an official ACE-CT implementation.
+
+**Say:** “The service projects roles strictly, applies a versioned rubric, calls an injected OpenAI or Gemini adapter, validates typed output, and preserves scores, evidence, confidence, and limitations across four groups and 11 dimensions.”
+
+**Emphasize:** “Respond to emotion, avoiding interruption/diversion, and pace are only partly observable from text. Tone, silence, overlap timing, and non-verbal behavior are unavailable. The General group and all anchors remain pending expert review.”
+
+**Ask:** “Is this four-group, 11-dimension structure an appropriate object for expert review, or should the research unit be narrower?”
+
+**Transition:** “The next slide shows why we kept this work separate from canonical learner feedback.”
+
+**Sources:** docs/research/ace_ct_inspired_evaluator_design.md; public ACE-CT article, DOI 10.1016/j.pec.2025.109465; authorized confidential manuscript, public citation pending expert confirmation.
+
+## Slide 7 — Non-persisting comparison flow
+
+**Message:** The same completed transcript can be compared without overwriting the learner record.
+
+**Say:** “Baseline, Hybrid v1, Hybrid v2, and the explicitly selected ACE-CT-inspired evaluator produce a canonical comparison artifact. The comparison does not write feedback, session metrics, turns, or plugin selections.”
+
+**Emphasize:** “ACE-CT-inspired is excluded from the aggregate all option, evidence turns must exist, and provider/model/rubric provenance travels with each result.”
+
+**Ask:** “Is comparison-only the right default boundary while the experimental rubric is reviewed?”
+
+**Transition:** “Here is the interface concept that makes that comparison inspectable.”
+
+**Sources:** docs/research/evaluator_comparison.md; docs/research/ace_ct_inspired_evaluator_design.md.
+
+## Slide 8 — Interactive illustrative comparison
+
+**Message:** A useful research interface aligns scores, narrative findings, evidence, provenance, and limitations.
+
+**Demo:** Select each evaluator tab. Use evidence buttons to highlight the same transcript turns. On ACE-CT-inspired, point to the null pace dimension and the modality limitation.
+
+**Say:** “These values are invented UI examples. They do not show evaluator accuracy, learner competence, clinical quality, or relative validity. No model was run.”
+
+**Ask:** “What would you need beside this comparison to make it scientifically useful: expert labels, disagreement views, repeated runs, or another evidence form?”
+
+**Transition:** “The interface should preserve the fact that these lenses overlap without being equivalent.”
+
+**Source:** assets/illustrative-comparison.json.
+
+## Slide 9 — Three complementary lenses
+
+**Message:** SPIKES, AFCE-aligned signals, and ACE-CT-inspired assessment cannot be collapsed into one framework.
+
+**Say:** “SPIKES asks about difficult-news structure. AFCE-aligned signals ask where appraisal-linked opportunities and responses occur. The ACE-CT-inspired rubric asks about a broader set of communication behaviors visible in the transcript.”
+
+**Emphasize:** “The compatibility bridge is an engineering display mapping, not an official theoretical crosswalk and not a replacement claim.”
+
+**Ask:** “How should the paper describe the overlap without over-integrating the constructs?”
+
+**Transition:** “The plugin model gives us a clean way to keep these responsibilities separate.”
+
+## Slide 10 — Extensibility model
+
+**Message:** APEX Core owns workflow and provenance; plugins own bounded behavior through three interfaces.
+
+**Say:** “Patient-model plugins generate one response from case/session state and clinician input. Evaluator plugins evaluate a completed session. Metrics plugins calculate additional research measures. Registration is deterministic, the session selection is frozen, provider and NLU adapters remain implementation details, and experimental plugins are opt-in.”
+
+**Ask:** “Does this separation support the research platform story, or should the EACL story hide some of this machinery?”
+
+**Transition:** “The implemented inventory is small enough to explain concretely.”
+
+**Sources:** backend/src/interfaces; backend/src/plugins/registry.py; backend/src/plugins/load_plugins.py.
+
+## Slide 11 — Implemented plugins
+
+**Message:** The current plugins are concrete wrappers around the live patient, scoring, and metrics paths.
+
+**Say:** “DefaultLLMPatientModel builds a case- and stage-aware prompt and delegates to an OpenAI or Gemini adapter. Baseline is rule-only. Hybrid v1 adds one optional LLM review; Hybrid v2 uses three focused reviews and the existing merge policy. ACE-CT-inspired is experimental and unmerged. ApexMetrics exposes selected opportunity/response counts and SPIKES coverage.”
+
+**Required AFCE explanation:** “AFCE-aligned detectors/relations are implemented; ApexMetrics exposes selected measures; baseline/hybrids use the signals; AFCE is not a standalone evaluator.”
+
+**Ask:** “Which of these components represents APEX’s most distinctive contribution today?”
+
+**Transition:** “The public literature suggests several directions we could attach without pretending they are already part of APEX.”
+
+**Sources:** implemented plugin modules and scoring service.
+
+## Slide 12 — Literature-inspired expansion directions
+
+**Message:** Ten public sources open several research directions, but the slide makes no feasibility or commitment claim.
+
+**Say:** “Adaptive-VP suggests trainee-responsive patient state. SFMSS suggests service-flow control. PATIENT-ψ suggests domain-bounded mental-health simulation. Emotion-aware dialogue suggests an explicit affect loop. Empathy-intent and non-emotion-centric work suggest alternative evaluator constructs. Speech-to-speech work suggests an audio interaction path. The medical-dialogue survey suggests broader system-quality evaluation. The 2022 and 2024 Lahnala papers anchor construct clarity, validity, and discourse-level empathy analysis.”
+
+**Ask:** “Which of these directions strengthens APEX’s identity rather than simply adding features?”
+
+**Transition:** “Grouped by the existing interfaces, the candidate space looks like this.”
+
+**Sources:** The ten linked ACL Anthology records on the slide. Use “inspired by”; do not imply reproduction.
+
+## Slide 13 — Possible next plugins
+
+**Message:** Patient, evaluator, and metrics additions can be discussed independently.
+
+**Say:** “The point is not to rank or schedule these today. It is to identify which family should carry the next research contribution and which measures would make that contribution credible.”
+
+**Ask exactly:** “Which additions best match the intended research identity of APEX?”
+
+**Transition:** “That choice should also respond directly to the official System Demonstrations review criteria.”
+
+## Slide 14 — EACL expectations and preparation phases
+
+**Message:** The current official call requires all three submission components and evidence supporting the prototype.
+
+**Say:** “The verified call requires a paper of up to six pages, a demo video of at most two and a half minutes, and a live site or installable package. It asks for motivation and novelty, related work, technical detail and visuals, system/demo description, some evidence of usefulness or quality, availability/licensing, and ethics. It also requires a reciprocal reviewer nomination. If accepted, a registered author presents a live demo with a poster.”
+
+**Say:** “The preparation phases deliberately have outcomes but no internal dates or owners: settle the science, restore the application, test end to end, run controlled provider tests, refine the experiment, build the comparison view, obtain a small expert-reviewed evaluation, freeze provenance, assemble the package, and review every claim.”
+
+**Ask:** “What is the smallest evidence package you would regard as credible for this submission?”
+
+**Transition:** “I want to end with the larger question of what APEX should become for this venue.”
+
+**Source:** Official EACL 2027 Systems Demonstrations call: https://2027.eacl.org/calls/demos/
+
+## Slide 15 — Dr. Lahnala’s vision and discussion
+
+**Message:** The meeting should end with a research direction, not a checklist exercise.
+
+**Facilitate:** Move through research direction, scientific design, application direction, and submission expectations. Capture only explicitly agreed outcomes in decision-record.md after the discussion.
+
+**Provider point:** Gemini is immediately available to Christian for controlled tests; OpenAI may require restoration. Treat the default/provider choice as open, with reproducibility and fallback needs in view.
+
+**Ask exactly:** “What does the strongest realistic version of APEX look like for this EACL submission?”
+
+**Note:** The on-slide text area has no save or submit behavior. Do not put sensitive or confidential details into a screen-shared browser field.
 
 ## Ten-minute fallback walkthrough
 
-Use sections 1, 2, 5, 7, 8, 10, 11, 13, 14, and 15.
-
-1. **Opening (45 seconds):** State the target and emphasize that comparison engineering is complete but scientific review, live validation, UI integration, and submission preparation remain.
-2. **What APEX does (45 seconds):** Trace case → conversation → transcript → evaluation → feedback/metrics → review. Name trainee and administrator views.
-3. **Plugin architecture (60 seconds):** Patient model generates behavior; evaluator interprets the completed session; metrics plugin measures observable behavior. Selections resolve through the registry and freeze on the session.
-4. **Comparison infrastructure (60 seconds):** One transcript, independent evaluator runs, deterministic hash, provenance/runtime, isolated failures, JSON/CSV, no overwrite of learner records.
-5. **Mock comparison (90 seconds):** Select ACE-CT-inspired, point to all 11 dimensions and the null pace dimension, then click turns 3 and 5 to show miss/repair evidence. Repeat that all values are illustrative.
-6. **Manuscript boundary (60 seconds):** Contrast research benchmarking with APEX integration. Read the boundary sentence; do not discuss unpublished detail.
-7. **Engineering status (60 seconds):** Show the clean main/feature split. State that the comparison UI is not yet in production.
-8. **Recommended scope (60 seconds):** Prioritize app restoration, decisions, minimal live tests, read-only UI, small validation set, analysis freeze, and submission package. Reject plugin sprawl.
-9. **Timeline (45 seconds):** Decisions now, integrated demo next, freeze by September 12, paper/media after freeze, final review September 19–22.
-10. **Decisions (75 seconds):** Move directly into the decision record and assign owners/dates.
-
-## Section notes
-
-### 1. Opening — target, status, and today’s outcome
-
-**Main message:** We have a credible engineering base, but a submission-quality scientific claim still depends on decisions and validation.
-
-**Suggested explanation (45–60 seconds):** “The target is EACL 2027 System Demonstrations, with a September 22 submission deadline. The non-persisting evaluator-comparison infrastructure is complete and merged. The ACE-CT-inspired evaluator exists experimentally on its feature branch. What remains is scientific review, controlled live testing, the actual comparison UI, a small validation exercise, and the paper/demo package. Today is about narrowing the claims and unblocking that work.”
-
-**Important caveat:** This is a target, not an acceptance, completed submission, or clinically validated evaluator.
-
-**Question to ask:** “Does evaluator experimentation around a virtual-patient conversation feel like the right primary contribution?”
-
-**Transition:** “To judge that framing, let’s first anchor on what APEX already does.”
-
-### 2. What APEX does — current workflow
-
-**Main message:** APEX already has an end-to-end learning and review loop; evaluator comparison is an extension of that loop.
-
-**Suggested explanation (45–60 seconds):** “A learner chooses a difficult-conversation case, speaks with the virtual patient, and APEX stores an ordered transcript. The selected evaluator produces communication feedback, selected metrics add research signals, and both learners and administrators review the result. Administrators also manage cases and see frozen plugin provenance. The comparison work reuses the completed transcript; it does not replace this workflow.”
-
-**Important caveat:** A normal application run still depends on configured services such as the database and providers. Only this briefing and the seeded baseline case-study command are offline fallbacks.
-
-**Question to ask:** “Which part of this workflow should the EACL demo spend the most time showing?”
-
-**Transition:** “A synthetic encounter makes the evaluation problem concrete.”
-
-### 3. Synthetic case and transcript — one realistic conversation
-
-**Main message:** The fixture deliberately contains both strong behaviors and a repairable miss, making it useful for evaluator comparison.
-
-**Suggested explanation (60–90 seconds):** “This is a wholly fictional lymphoma conversation. Turn 2 contains fear and a family concern. Turn 3 moves into diagnosis and jargon without acknowledging that fear. The patient names the miss at turn 4; the clinician repairs it at turn 5, asks permission, explains in plain language, checks understanding, elicits priorities, summarizes next steps, and invites questions. Stable turn numbers let every evaluator point to the same evidence.”
-
-**Important caveat:** It is not clinical data, a private example, or evidence that any evaluator performed correctly.
-
-**Question to ask:** “Does this fixture contain enough observable opportunities for expert review without becoming clinically over-specific?”
-
-**Transition:** “APEX’s original frameworks look at different parts of this conversation.”
-
-### 4. Original APEX foundations — SPIKES and AFCE
-
-**Main message:** ACE-CT-inspired evaluation is additive; SPIKES and AFCE retain distinct educational roles.
-
-**Suggested explanation (60 seconds):** “SPIKES gives APEX a structure for difficult-news communication: setting, perception, invitation, knowledge, emotion, and strategy/summary. AFCE focuses on appraisal and empathic discourse: opportunities, elicitations, responses, misses, and linked spans. ACE-CT-inspired work explores broader communication behaviors, but it does not make SPIKES or AFCE obsolete.”
-
-**Important caveat:** Overlap does not make the frameworks equivalent or interchangeable.
-
-**Question to ask:** “Is this distinction faithful to how you would position AFCE and ACE-CT together?”
-
-**Transition:** “The plugin boundary lets these different responsibilities coexist cleanly.”
-
-### 5. Plugin architecture — generate, interpret, measure
-
-**Main message:** Patient-model, evaluator, and metrics plugins have separate interfaces and lifecycle roles.
-
-**Suggested explanation (60 seconds):** “The patient-model plugin generates behavior while the encounter is running. The evaluator interprets a completed session into feedback. The metrics plugin measures observable features for research and analytics. At startup, a fixed module list registers classes in an in-memory registry. Settings or case overrides resolve those keys and freeze them on the session. This gives experiments traceable identities without pretending every component does the same job.”
-
-**Important caveat:** The registry uses explicit imports; there is no automatic filesystem discovery.
-
-**Question to ask:** “Is this separation clear enough to support the system-demonstration story?”
-
-**Transition:** “Here is the inventory actually registered on this branch.”
-
-### 6. Current plugin inventory — what really exists
-
-**Main message:** The current system has one patient model, four evaluators on this branch, and one metrics plugin; only ACE-CT-inspired is unmerged.
-
-**Suggested explanation (60–75 seconds):** “DefaultLLMPatientModel is one plugin with OpenAI and Gemini provider adapters. Baseline is rule-only. Hybrid v1 is the settings default and merges the rule core with optional LLM review. Hybrid v2 uses three focused reviews and a 70/30 merge. ApexMetrics exposes current AFCE-style counts and SPIKES coverage. ACECTInspiredRubricEvaluator is version 0.1.0-experimental, gated, unvalidated, and present only on the feature branch.”
-
-**Important caveat:** Provider adapters are not separate patient-model plugins, and registration does not mean clinical validation.
-
-**Question to ask:** “Should the paper inventory every plugin, or focus the main text on the evaluator family?”
-
-**Transition:** “The comparison infrastructure makes those evaluator differences inspectable.”
-
-### 7. Non-persisting evaluator comparison — completed spine
-
-**Main message:** Evaluators can run independently on one immutable transcript without altering the learner record.
-
-**Suggested explanation (60–75 seconds):** “The service loads a completed session, computes a canonical transcript hash, and runs each requested evaluator independently. It captures runtime and allowlisted provenance. If one fails, the error is sanitized and the others remain. It verifies that the transcript hash did not change. JSON is canonical; CSV is a compact summary. Crucially, the comparison path does not persist feedback, metrics, session fields, or turns.”
-
-**Important caveat:** Hybrid and ACE live runs can make paid provider calls; automation uses fakes unless live calls are explicitly authorized.
-
-**Question to ask:** “Is non-persistence a requirement for all early ACE-CT review, or only the default?”
-
-**Transition:** “The next screen shows what a read-only comparison UI could make visible.”
-
-### 8. Illustrative evaluator comparison — UI specification
-
-**Main message:** The comparison UI should expose construct, evidence, provenance, and limitations—not just a score.
-
-**Suggested explanation (75–90 seconds):** “Every tab sees the same transcript. Baseline, hybrid v1, and hybrid v2 retain the APEX score shape. The ACE-CT-inspired tab preserves four proposed groups and all 11 dimensions. Partial dimensions are amber; pace is null because timing and delivery are unavailable. Clicking an evidence number highlights the transcript coordinate. Provider/model and runtime remain unavailable because this is a mock. The UI makes disagreement reviewable without declaring a winner.”
-
-**Important caveat:** Every displayed value is invented for UI discussion. The compatibility fields are provisional engineering projections.
-
-**Question to ask:** “What must be visible for expert review: full reasoning, concise evidence, confidence, limitations, or all four?”
-
-**Transition:** “That interface only works if the framework relationships stay explicit.”
-
-### 9. SPIKES, AFCE, and ACE-CT together — three lenses
-
-**Main message:** Structure, empathic discourse, and broader communication quality can overlap while remaining non-equivalent constructs.
-
-**Suggested explanation (45–60 seconds):** “SPIKES asks whether the conversation followed a useful difficult-news structure. AFCE asks where empathic opportunities and responses occurred. ACE-CT-inspired asks which broader communication behaviors are observable in the transcript and where the modality limits are. Their evidence may overlap, but their meanings are different.”
-
-**Important caveat:** Reusing an APEX SPIKES score in the ACE-shaped compatibility output does not make SPIKES an ACE-CT dimension.
-
-**Question to ask:** “Should the compatibility view exist at all, or should the interface keep native framework outputs entirely separate?”
-
-**Transition:** “That distinction is also central to the confidential-manuscript boundary.”
-
-### 10. Paper architecture versus APEX — provenance boundary
-
-**Main message:** APEX built an original integration and comparison path; it did not reproduce the manuscript’s research assets or model.
-
-**Suggested explanation (60–75 seconds):** “At a permitted high level, the authorized manuscript involved private encounters, human ratings, transcript preprocessing, and several research-model directions evaluated against ratings. APEX starts from a learner’s virtual-patient session, projects the transcript strictly, applies a versioned provisional rubric through an injected provider, and returns evidence-backed results through a non-persisting comparison artifact. We adopted the framework direction, not private data, trained models, weights, examples, results, or exact unpublished anchors.”
-
-**Important caveat:** Do not elaborate beyond the permitted high-level description or show the confidential source.
-
-**Question to ask:** “Is the current provenance sentence sufficient, and what may be stated in a public paper, PR, or demo?”
-
-**Transition:** “With that boundary clear, here is the precise engineering state.”
-
-### 11. Completed engineering status — main versus feature branch
-
-**Main message:** The stable contribution and the experimental extension are cleanly separable.
-
-**Suggested explanation (60 seconds):** “Main contains non-persisting computation, the three established evaluator comparisons, hashing, provenance, runtime, failure isolation, exports, the seeded offline case-study path, tests, and documentation. The ACE branch adds strict projection, the provisional rubric and typed result, provider-independent evaluation, gating, comparison integration, synthetic review artifacts, and non-live verification. It does not add the real comparison page to the production frontend.”
-
-**Important caveat:** Passing automated tests is technical verification, not clinical or construct validation.
-
-**Question to ask:** “Which feature-branch pieces should be eligible to merge before scientific approval, if any?”
-
-**Transition:** “The architecture supports many future plugins, but the roadmap must be sequenced.”
-
-### 12. Literature-backed plugin roadmap — broad ideas, disciplined timing
-
-**Main message:** The literature suggests a rich roadmap across all three plugin families, but most candidates belong after EACL.
-
-**Suggested explanation (75–90 seconds):** “Patient candidates include minimal adaptive state, service-flow awareness, emotion-aware behavior, mental-health specialization, and speech-to-speech. Evaluator candidates include intent-oriented empathy, non-emotion-centric empathy, simulation quality, and data-dependent supervised ACE-CT directions. Near-term metrics are more feasible: transcript dynamics, jargon/readability, question and understanding checks, and evidence grounding. Stability and patient consistency are stretch work; service-flow and audio metrics are longer-term.”
-
-**Important caveat:** These are title- and note-grounded inspirations, not claims that APEX implemented or reproduced the cited methods or findings.
-
-**Question to ask:** “Which one future direction best strengthens the EACL discussion without becoming a promised deliverable?”
-
-**Transition:** “The recommended implementation scope is narrower than the research roadmap.”
-
-### 13. Recommended pre-EACL scope — smallest defensible demo
-
-**Main message:** Reliability, decisions, inspectability, and frozen provenance matter more than new plugin count.
-
-**Suggested explanation (60–75 seconds):** “First restore the complete application. Resolve the ACE scientific/disclosure questions. Run minimal controlled provider smoke tests. Build the read-only comparison UI. Add deterministic evidence metrics only if there is time. Create a small expert-reviewed set. Freeze everything by the analysis deadline, then produce the paper, architecture figure, video, and offline fallback. Treat minimal adaptive-patient state as stretch only after the core works.”
-
-**Important caveat:** Scope reduction does not lower the research ambition; it protects the validity and reproducibility of the submitted system.
-
-**Question to ask:** “Do you agree that the comparison platform is sufficient without another large patient or evaluator plugin?”
-
-**Transition:** “The remaining calendar makes that sequencing necessary.”
-
-### 14. EACL package and timeline — freeze before writing the final story
-
-**Main message:** Scientific decisions and integrated validation must precede analysis freeze and submission production.
-
-**Suggested explanation (45–60 seconds):** “Use the first week for decisions, application restoration, controlled live tests, and comparison UI. Use the next days for the small validation set. Freeze analysis, prompts, rubric, provider/model, and fixtures around September 12. Then finish the paper, architecture figure, demonstration media, and fallback. Reserve September 19–22 for claims, confidentiality, reproducibility, and submission checks.”
-
-**Important caveat:** The official call remains authoritative for format, page limits, media, anonymity, and mechanics.
-
-**Question to ask:** “Is the proposed analysis-freeze date realistic, and which review must occur before it?”
-
-**Transition:** “The final slide turns the plan into decisions and owners.”
-
-### 15. Decisions required today — close with commitments
-
-**Main message:** Record explicit decisions, unresolved blockers, owners, and dates; do not leave scientific assumptions implicit.
-
-**Suggested explanation (60–90 seconds):** “We need confirmation or correction of the four groups and 11 dimensions, the exact rubric source, partial-observability and null handling, aggregation, compatibility, naming, disclosure, provider/model, validation material, EACL framing, persistence scope, and owners/dates. My proposed default is comparison-only ACE output with explicit provenance and limitations until the controlling rubric and disclosure boundaries are confirmed.”
-
-**Important caveat:** The checkboxes are discussion aids. The signed record is `decision-record.md`, and blank outcomes must stay blank until agreed.
-
-**Question to ask:** “Which decision is blocking us most, and can we resolve it before ending?”
-
-**Transition:** Move from slides to the decision record; read back owners, dates, and next checkpoint.
-
-## Likely questions and concise answers
-
-### Wasn’t APEX originally SPIKES-based?
-
-Yes. SPIKES remains the difficult-conversation structure in APEX, and AFCE remains central to empathic opportunity/response analysis. The evaluator-comparison work adds an experimentation layer around the same completed transcript; it does not erase those foundations.
-
-### Is ACE-CT replacing SPIKES?
-
-No. They answer different questions. SPIKES concerns conversation structure; the ACE-CT-inspired experiment concerns broader communication behaviors. The APEX SPIKES field in compatibility output is explicitly external to ACE-CT and provisional.
-
-### Did we reproduce the anonymous paper?
-
-No. The authorized manuscript helped identify a promising framework direction and motivated transcript-based experimentation. APEX did not reproduce private data, models, weights, results, examples, or exact unpublished scoring anchors. The implementation is an original, gated, high-level transcript rubric and comparison integration.
-
-### Is the evaluator clinically validated?
-
-No. It is labeled `experimental_unvalidated`, uses provisional placeholder wording, and is intended for methodological review. Automated tests verify software behavior, not clinical validity or communication competence.
-
-### Why compare multiple evaluators?
-
-Comparison makes assumptions, evidence, score differences, provenance, and failure modes visible on the same transcript. It supports technical and expert review without overwriting the learner’s canonical record or declaring an evaluator superior without reference labels.
-
-### Why is non-persistence important?
-
-It prevents experiments from changing saved feedback, metrics, session fields, or turns. That isolates research comparison from the learner record, makes reruns safer, and allows failed evaluators to be inspected without corrupting canonical state.
-
-### What works without Supabase?
-
-This HTML package works entirely offline. The repository’s seeded baseline case-study command uses ephemeral in-memory SQLite and no model calls. The normal APEX application workflow still needs its configured backend/database environment.
-
-### What still needs real OpenAI/Gemini calls?
-
-Hybrid v1/v2 need OpenAI for their live LLM review paths. The ACE-CT-inspired evaluator supports OpenAI or Gemini through an injected adapter. Real calls should occur only after authorization, with exact provider/model/prompt/rubric provenance frozen and recorded.
-
-### What is realistic by September 22?
-
-A restored end-to-end app, approved boundaries, a read-only comparison UI, minimal authorized provider smoke tests, a small expert-reviewed synthetic/authorized set, frozen provenance, and a paper/demo package with an offline fallback. Several new large plugins are not realistic or necessary.
-
-### What would be demonstrated at EACL?
-
-A learner conducts a synthetic virtual-patient conversation; the completed transcript is compared across versioned evaluators without persistence; the interface exposes scores, evidence turns, provenance, runtime/failure state, and framework-specific limitations; artifacts can be exported; and the demo continues with a sanitized offline fallback if services are unavailable.
-
-## Presenter safety checklist
-
-- Keep the “Internal review” label visible.
-- Do not screen-share the confidential PDF or private notes.
-- Repeat “illustrative mock output” before discussing scores.
-- Do not describe automated test success as scientific validation.
-- Do not imply EACL acceptance, submission completion, or production UI completion.
-- Record decisions and owners only after explicit agreement.
-
+1. **Slide 1 (30 sec):** State that the goal is to shape the EACL research identity.
+2. **Slide 3 (60 sec):** Show the fear opportunity at turn 2, miss at turn 3, repair at turn 5, and structured close at turn 11.
+3. **Slides 4–5 (90 sec):** Give the exact AFCE boundary, then explain live patient generation versus stored evaluation.
+4. **Slides 6–7 (90 sec):** Explain the strict ACE-CT-inspired pipeline, partial observability, and the no-overwrite comparison boundary.
+5. **Slide 8 (60 sec):** Open ACE-CT-inspired, highlight turns 3 and 5, and state that every value is illustrative.
+6. **Slides 10–11 (90 sec):** Show the three plugin families and the implemented patient/evaluator/metrics paths.
+7. **Slides 12–13 (60 sec):** Name the main literature lanes and ask which family best fits the research identity.
+8. **Slide 14 (60 sec):** State the three mandatory submission components, evidence expectation, reciprocal reviewer, and ethics obligation.
+9. **Slide 15 (60 sec):** Ask for the strongest realistic APEX vision and capture agreed follow-up outside the slide.
+
+## Non-negotiable boundaries
+
+- Synthetic transcript only; no clinical or confidential example.
+- Comparison values are illustrative, never observed results.
+- AFCE-aligned implementation is partial and rule-based; AFCE is not a standalone evaluator.
+- ACE-CT-inspired work is experimental, unvalidated, non-default, and pending expert review.
+- No private data, models, weights, results, examples, or unpublished anchors are reproduced.
+- No live LLM call occurred in preparing this package.
+- The presentation branch changes documentation only; it does not change production code.
