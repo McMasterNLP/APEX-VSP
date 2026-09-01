@@ -1,0 +1,272 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "illustrative_evaluator_comparison",
+  "label": "Illustrative mock output — not an experimental result",
+  "synthetic_transcript": true,
+  "empirical_result": false,
+  "origin": "Invented UI example for the September 1, 2026 internal meeting; it is not copied from a model run or confidential source.",
+  "runtime_policy": "Unavailable because no evaluator or live model was run for this asset.",
+  "score_notice": "All displayed values are arbitrary interface examples. They do not measure evaluator accuracy, learner competence, or clinical quality.",
+  "evaluators": [
+    {
+      "id": "baseline",
+      "display_name": "Baseline",
+      "class_name": "ApexBaselineEvaluator",
+      "version": "1.0",
+      "framework": "APEX SPIKES/AFCE rule-only",
+      "status": "implemented_on_main",
+      "default": false,
+      "provenance": {
+        "evaluator_type": "rule_based",
+        "provider": null,
+        "model": null,
+        "provider_status": "not_applicable",
+        "runtime_ms": null
+      },
+      "scores": {
+        "empathy_score": 57,
+        "communication_score": 69,
+        "spikes_completion_score": 83,
+        "overall_score": 68
+      },
+      "strength": "Detects the perception check, later emotional acknowledgement, understanding check, and summary.",
+      "improvement": "Flags turn 3 as a missed response to fear and as dense unexplained terminology.",
+      "evidence_turns": [1, 2, 3, 5, 7, 11],
+      "limitations": [
+        "Illustrative values only; the evaluator was not run on this transcript.",
+        "Rule patterns can miss contextual or indirect behavior."
+      ]
+    },
+    {
+      "id": "hybrid_v1",
+      "display_name": "Hybrid v1",
+      "class_name": "ApexHybridEvaluator",
+      "version": "1.0",
+      "framework": "APEX rule core plus optional LLM review",
+      "status": "implemented_on_main_default",
+      "default": true,
+      "provenance": {
+        "evaluator_type": "hybrid_llm",
+        "provider": "OpenAI-supported",
+        "model": null,
+        "provider_status": "not_run_for_meeting_asset",
+        "runtime_ms": null
+      },
+      "scores": {
+        "empathy_score": 65,
+        "communication_score": 74,
+        "spikes_completion_score": 83,
+        "overall_score": 73
+      },
+      "strength": "Adds contextual feedback about the clinician's repair after the initial missed cue.",
+      "improvement": "Suggests acknowledging fear before introducing the diagnosis and technical terminology.",
+      "evidence_turns": [2, 3, 4, 5, 8, 9],
+      "limitations": [
+        "Illustrative values only; no provider call occurred.",
+        "Real output depends on a configured provider/model and frozen prompt version."
+      ]
+    },
+    {
+      "id": "hybrid_v2",
+      "display_name": "Hybrid v2",
+      "class_name": "ApexHybridV2Evaluator",
+      "version": "2.0",
+      "framework": "APEX rule core plus three focused LLM reviews and 70/30 merge",
+      "status": "implemented_on_main",
+      "default": false,
+      "provenance": {
+        "evaluator_type": "hybrid_llm",
+        "provider": "OpenAI-supported",
+        "model": null,
+        "provider_status": "not_run_for_meeting_asset",
+        "runtime_ms": null
+      },
+      "scores": {
+        "empathy_score": 70,
+        "communication_score": 78,
+        "spikes_completion_score": 83,
+        "overall_score": 77
+      },
+      "strength": "Separates empathy, communication, and sequencing observations while retaining the rule-based core.",
+      "improvement": "Highlights both the missed cue at turn 3 and the value of making the final safety/support contact explicit.",
+      "evidence_turns": [3, 5, 7, 8, 9, 11, 12],
+      "limitations": [
+        "Illustrative values only; no provider call occurred.",
+        "Higher mock values do not imply superior validity or performance."
+      ]
+    },
+    {
+      "id": "ace_ct_inspired",
+      "display_name": "ACE-CT-inspired",
+      "class_name": "ACECTInspiredRubricEvaluator",
+      "version": "0.1.0-experimental",
+      "framework": "ACE-CT-inspired experimental transcript rubric",
+      "status": "implemented_on_feature_branch_unmerged_experimental_unvalidated",
+      "default": false,
+      "provenance": {
+        "evaluator_type": "experimental_rubric_llm",
+        "provider": "OpenAI or Gemini supported",
+        "model": null,
+        "provider_status": "not_selected_or_run_for_meeting_asset",
+        "runtime_ms": null,
+        "rubric_version": "0.1.0-experimental",
+        "approval_status": "pending_expert_review",
+        "publication_reproduction": false,
+        "source_label": "authorized confidential manuscript; public citation pending expert confirmation"
+      },
+      "scores": {
+        "empathy_score": 50,
+        "communication_score": 65,
+        "spikes_completion_score": 83,
+        "overall_score": 65
+      },
+      "score_sources": {
+        "empathy_score": "Provisional normalization of respond_to_emotion.",
+        "communication_score": "Provisional normalized mean of non-null dimensions.",
+        "overall_score": "Provisional normalized mean of non-null dimensions.",
+        "spikes_completion_score": "External APEX baseline SPIKES field; not ACE-CT."
+      },
+      "strength": "Makes transcript evidence and modality limits visible across a broader communication rubric.",
+      "improvement": "Shows the early missed emotional response and jargon as dimension-specific review items.",
+      "evidence_turns": [1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12],
+      "domains": [
+        {
+          "id": "respond",
+          "display_name": "Respond",
+          "score_1_to_5": 3.0,
+          "scored_dimensions": 1,
+          "insufficient_evidence_dimensions": 0
+        },
+        {
+          "id": "listen",
+          "display_name": "Listen",
+          "score_1_to_5": 3.5,
+          "scored_dimensions": 4,
+          "insufficient_evidence_dimensions": 0
+        },
+        {
+          "id": "speak",
+          "display_name": "Speak",
+          "score_1_to_5": 3.5,
+          "scored_dimensions": 2,
+          "insufficient_evidence_dimensions": 0
+        },
+        {
+          "id": "general",
+          "display_name": "General",
+          "score_1_to_5": 4.0,
+          "scored_dimensions": 3,
+          "insufficient_evidence_dimensions": 1,
+          "status_note": "Whether General is a formal fourth domain requires expert confirmation."
+        }
+      ],
+      "dimensions": [
+        {
+          "id": "respond_to_emotion",
+          "display_name": "Respond to emotion",
+          "domain": "respond",
+          "assessability": "partially_assessable",
+          "score_1_to_5": 3,
+          "evidence_turns": [2, 3, 4, 5, 8, 9],
+          "limitation": "Text shows acknowledgement and repair but not tone, gesture, facial expression, or silence duration."
+        },
+        {
+          "id": "elicit_person_perspective",
+          "display_name": "Elicit the person's perspective",
+          "domain": "listen",
+          "assessability": "text_assessable",
+          "score_1_to_5": 4,
+          "evidence_turns": [1, 8, 9, 10],
+          "limitation": "Tone and meaningful silence are unavailable."
+        },
+        {
+          "id": "avoid_interrupting_or_diverting",
+          "display_name": "Avoid interrupting or diverting",
+          "domain": "listen",
+          "assessability": "partially_assessable",
+          "score_1_to_5": 2,
+          "evidence_turns": [2, 3, 4],
+          "limitation": "Turn order shows redirection, but overlap, interruption timing, and pauses are unavailable."
+        },
+        {
+          "id": "assess_understanding",
+          "display_name": "Assess understanding",
+          "domain": "listen",
+          "assessability": "text_assessable",
+          "score_1_to_5": 4,
+          "evidence_turns": [1, 7, 8],
+          "limitation": "Non-verbal signs of confusion or comprehension are unavailable."
+        },
+        {
+          "id": "discuss_hopes_priorities_worries_fears",
+          "display_name": "Discuss hopes, priorities, worries, and fears",
+          "domain": "listen",
+          "assessability": "text_assessable",
+          "score_1_to_5": 4,
+          "evidence_turns": [2, 8, 9, 10],
+          "limitation": "Unspoken affect and visual cues are unavailable."
+        },
+        {
+          "id": "ask_permission_to_progress",
+          "display_name": "Ask permission to progress",
+          "domain": "speak",
+          "assessability": "text_assessable",
+          "score_1_to_5": 4,
+          "evidence_turns": [3, 5, 6],
+          "limitation": "Prosody and non-verbal assent are unavailable."
+        },
+        {
+          "id": "avoid_unexplained_clinical_terminology",
+          "display_name": "Avoid unexplained clinical terminology",
+          "domain": "speak",
+          "assessability": "text_assessable",
+          "score_1_to_5": 3,
+          "evidence_turns": [3, 4, 7],
+          "limitation": "The patient's prior knowledge is unknown unless stated."
+        },
+        {
+          "id": "offer_question_opportunities",
+          "display_name": "Offer question opportunities",
+          "domain": "general",
+          "assessability": "text_assessable",
+          "score_1_to_5": 4,
+          "evidence_turns": [11, 12],
+          "limitation": "Non-verbal invitation or discouragement is unavailable."
+        },
+        {
+          "id": "summarize_conversation",
+          "display_name": "Summarize the conversation",
+          "domain": "general",
+          "assessability": "text_assessable",
+          "score_1_to_5": 4,
+          "evidence_turns": [11],
+          "limitation": "Non-verbal confirmation is unavailable."
+        },
+        {
+          "id": "review_next_steps",
+          "display_name": "Review next steps",
+          "domain": "general",
+          "assessability": "text_assessable",
+          "score_1_to_5": 4,
+          "evidence_turns": [7, 11],
+          "limitation": "Visual aids or off-record planning are unavailable."
+        },
+        {
+          "id": "manage_conversation_pace",
+          "display_name": "Manage conversation pace",
+          "domain": "general",
+          "assessability": "partially_assessable",
+          "score_1_to_5": null,
+          "evidence_turns": [],
+          "limitation": "Insufficient evidence: timing, pause length, overlap, delivery speed, and video are unavailable."
+        }
+      ],
+      "limitations": [
+        "Illustrative values only; no provider call occurred.",
+        "The four-domain and 11-dimension structure and placeholder anchors are pending expert review.",
+        "Compatibility scores are provisional engineering fields, not an official ACE-CT mapping.",
+        "Text alone cannot establish audio, timing, overlap, or non-verbal behavior."
+      ]
+    }
+  ]
+}

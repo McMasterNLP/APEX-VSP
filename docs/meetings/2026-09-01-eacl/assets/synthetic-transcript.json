@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "synthetic_demonstration_transcript",
+  "label": "Synthetic demonstration transcript — not clinical data",
+  "synthetic": true,
+  "confidential_source_content": false,
+  "case": {
+    "title": "Discussing a newly confirmed lymphoma diagnosis",
+    "scenario": "A clinician explains a difficult diagnosis, responds to concern, and agrees on next steps in an entirely fictional training encounter.",
+    "notice": "No person, medical record, database identifier, or private source example is represented."
+  },
+  "turns": [
+    {
+      "turn_number": 1,
+      "role": "clinician",
+      "text": "Thank you for meeting with me. Before we discuss the biopsy, could you tell me what you understand about the tests so far?",
+      "behaviors": ["setting", "perception", "elicit_person_perspective"]
+    },
+    {
+      "turn_number": 2,
+      "role": "patient",
+      "text": "I know the scan found something unusual. I am scared it might be cancer, and I keep thinking about what that would mean for my daughter.",
+      "behaviors": ["explicit_fear", "empathy_opportunity", "worry_about_family"]
+    },
+    {
+      "turn_number": 3,
+      "role": "clinician",
+      "text": "The biopsy shows lymphoma. It is a malignancy involving cells in the lymphatic system, and we will need immunophenotyping before choosing treatment.",
+      "behaviors": ["knowledge", "unexplained_jargon", "missed_empathy_opportunity", "no_permission_before_progressing"]
+    },
+    {
+      "turn_number": 4,
+      "role": "patient",
+      "text": "Malignancy means cancer, right? I feel like we moved past how frightening this is.",
+      "behaviors": ["explicit_fear", "confusion_about_jargon", "empathy_opportunity"]
+    },
+    {
+      "turn_number": 5,
+      "role": "clinician",
+      "text": "You are right, and I am sorry I moved too quickly. This is frightening news. Would it be okay if I pause and then explain what lymphoma means in plain language?",
+      "behaviors": ["acknowledge_emotion", "repair", "permission_request", "pace_check"]
+    },
+    {
+      "turn_number": 6,
+      "role": "patient",
+      "text": "Yes, please. I need to know whether it can be treated.",
+      "behaviors": ["permission_granted", "question"]
+    },
+    {
+      "turn_number": 7,
+      "role": "clinician",
+      "text": "Lymphoma is a cancer that starts in part of the immune system. There are different types, and many can be treated. The next test identifies the type. Does that explanation make sense, and what are you taking from it?",
+      "behaviors": ["plain_language_explanation", "next_step", "understanding_check"]
+    },
+    {
+      "turn_number": 8,
+      "role": "patient",
+      "text": "I understand that it is cancer and that the next test tells us the type. I am still scared about caring for my daughter and missing work.",
+      "behaviors": ["teach_back", "explicit_fear", "priorities", "empathy_opportunity"]
+    },
+    {
+      "turn_number": 9,
+      "role": "clinician",
+      "text": "I hear that your daughter and work are central concerns. Before we make a plan, what matters most to you over the next few weeks?",
+      "behaviors": ["acknowledge_emotion", "elicit_priorities", "collaborative_transition"]
+    },
+    {
+      "turn_number": 10,
+      "role": "patient",
+      "text": "I want to stay well enough to care for her, and I would like my sister with me for the specialist visit.",
+      "behaviors": ["hope", "priority", "support_preference"]
+    },
+    {
+      "turn_number": 11,
+      "role": "clinician",
+      "text": "Let me summarize: the biopsy confirms lymphoma, the next test identifies the type, and then the specialist will discuss treatment. We will arrange that visit, include your sister, and give you the terms in writing. What questions would you like us to address first?",
+      "behaviors": ["summary", "review_next_steps", "question_invitation", "strategy"]
+    },
+    {
+      "turn_number": 12,
+      "role": "patient",
+      "text": "Can we discuss the likely timeline and who I should call if the worry becomes overwhelming?",
+      "behaviors": ["question", "support_request"]
+    }
+  ]
+}

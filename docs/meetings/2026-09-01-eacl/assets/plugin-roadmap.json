@@ -1,0 +1,366 @@
+{
+  "schema_version": "1.0",
+  "asset_type": "apex_plugin_inventory_and_roadmap",
+  "as_of": "2026-09-01",
+  "status_vocabulary": {
+    "implemented_on_main": "Present on main and available through the fixed plugin registry.",
+    "implemented_on_feature_branch": "Present only on ace-ct-inspired-evaluator and this presentation branch; not merged to main.",
+    "proposed": "Literature-inspired concept; no implementation is claimed.",
+    "default": "Selected by the current settings default.",
+    "experimental": "Gated and unvalidated; not a production or clinical claim."
+  },
+  "current_plugins": [
+    {
+      "family": "patient_model",
+      "name": "DefaultLLMPatientModel",
+      "registry_key": "plugins.patient_models.default_llm_patient:DefaultLLMPatientModel",
+      "version": "1.0",
+      "status": ["implemented_on_main", "default"],
+      "behavior": "Builds a case- and SPIKES-stage-aware prompt and delegates patient response generation to the configured OpenAI or Gemini adapter.",
+      "produces": "One simulated patient response for a clinician turn.",
+      "limitation": "It is a general case-script patient; OpenAI and Gemini are provider adapters within the same plugin, not separate patient-model plugins."
+    },
+    {
+      "family": "evaluator",
+      "name": "ApexBaselineEvaluator",
+      "registry_key": "plugins.evaluators.apex_baseline_evaluator:ApexBaselineEvaluator",
+      "version": "1.0",
+      "status": ["implemented_on_main", "comparison_option", "non_default"],
+      "behavior": "Rule-only wrapper around non-LLM APEX scoring.",
+      "produces": "APEX feedback and scores derived from SPIKES/AFCE-oriented rule processing.",
+      "limitation": "Rule patterns can miss context and indirect language."
+    },
+    {
+      "family": "evaluator",
+      "name": "ApexHybridEvaluator",
+      "registry_key": "plugins.evaluators.apex_hybrid_evaluator:ApexHybridEvaluator",
+      "version": "1.0",
+      "status": ["implemented_on_main", "default"],
+      "behavior": "Combines the rule-based core with an optional LLM review/merge path.",
+      "produces": "Persistable APEX feedback and canonical score fields.",
+      "limitation": "Real hybrid review requires a configured OpenAI provider/model and can incur paid calls."
+    },
+    {
+      "family": "evaluator",
+      "name": "ApexHybridV2Evaluator",
+      "registry_key": "plugins.evaluators.apex_hybrid_v2_evaluator:ApexHybridV2Evaluator",
+      "version": "2.0",
+      "status": ["implemented_on_main", "comparison_option", "non_default"],
+      "behavior": "Combines the rule core with three focused LLM reviews and a documented 70/30 merge.",
+      "produces": "APEX feedback with focused reviewer contributions and canonical score fields.",
+      "limitation": "Real review remains OpenAI-only in the comparison definition and needs frozen prompt/model provenance for study use."
+    },
+    {
+      "family": "evaluator",
+      "name": "ACECTInspiredRubricEvaluator",
+      "registry_key": "plugins.evaluators.ace_ct_inspired_evaluator:ACECTInspiredRubricEvaluator",
+      "version": "0.1.0-experimental",
+      "status": ["implemented_on_feature_branch", "experimental", "unvalidated", "non_default", "unmerged"],
+      "behavior": "Projects an interleaved transcript into a strict provider-neutral, versioned 11-dimension experimental rubric and preserves typed framework results.",
+      "produces": "Evidence-linked dimension/domain results plus explicitly provisional APEX compatibility fields.",
+      "limitation": "Pending expert review; gated; transcript-only; not official ACE-CT automation; not a reproduction of private data, models, weights, results, examples, or unpublished anchors.",
+      "source_label": "authorized confidential manuscript; public citation pending expert confirmation"
+    },
+    {
+      "family": "metrics",
+      "name": "ApexMetrics",
+      "registry_key": "plugins.metrics.apex_metrics:ApexMetrics",
+      "version": "1.0",
+      "status": ["implemented_on_main", "default"],
+      "behavior": "Computes AFCE-style opportunity/response counts and SPIKES coverage from stored turns.",
+      "produces": "Research-oriented count and coverage dictionaries.",
+      "limitation": "It reuses current rule/span helpers and does not establish evaluator validity."
+    }
+  ],
+  "candidate_plugins": [
+    {
+      "family": "patient_model",
+      "name": "Minimal adaptive-patient state",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Lee et al. 2025, Adaptive-VP",
+          "url": "https://aclanthology.org/2025.findings-acl.118.pdf"
+        }
+      ],
+      "value_to_apex": "Let a synthetic patient's affect, trust, disclosure, or resistance respond to clinician behavior across turns.",
+      "feasibility": "stretch",
+      "dependency": "A small explicit state model, transition rules, stable fixtures, and safety review.",
+      "risk": "State behavior could distract from the evaluator demo or create difficult-to-reproduce conversations."
+    },
+    {
+      "family": "patient_model",
+      "name": "Service-flow-aware patient",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Bao et al. 2025, SFMSS",
+          "url": "https://aclanthology.org/2025.findings-naacl.259.pdf"
+        }
+      ],
+      "value_to_apex": "Represent scenario phases and expected care-flow transitions when generating dialogue.",
+      "feasibility": "post-EACL",
+      "dependency": "Authorized service-flow schemas, case authoring support, and coverage validation.",
+      "risk": "Flow fidelity may be mistaken for clinical correctness without domain review."
+    },
+    {
+      "family": "patient_model",
+      "name": "Emotion-aware patient",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Feng et al. 2024, Infusing Emotions into Task-oriented Dialogue Systems",
+          "url": "https://aclanthology.org/2024.sigdial-1.60.pdf"
+        }
+      ],
+      "value_to_apex": "Make emotion state explicit enough to test whether clinician responses change subsequent patient behavior.",
+      "feasibility": "post-EACL",
+      "dependency": "Emotion-state definitions, transition policy, and expert-reviewed scenarios.",
+      "risk": "Stereotyped or over-dramatic affect can reduce realism and fairness."
+    },
+    {
+      "family": "patient_model",
+      "name": "Mental-health-specific patient",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Wang et al. 2024, PATIENT-psi",
+          "url": "https://aclanthology.org/2024.emnlp-main.711.pdf"
+        },
+        {
+          "citation": "Atapattu et al. 2025, Mental Health Conversational Agents in Training",
+          "url": "https://aclanthology.org/2025.findings-acl.1069.pdf"
+        }
+      ],
+      "value_to_apex": "Support specialized training scenarios with domain-appropriate patient behavior and evaluation boundaries.",
+      "feasibility": "post-EACL",
+      "dependency": "Clinical governance, risk controls, expert-authored cases, and targeted validation.",
+      "risk": "High safety, representation, and misuse risk; unsuitable as a rushed system-demo addition."
+    },
+    {
+      "family": "patient_model",
+      "name": "Speech-to-speech patient",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Emerson et al. 2026, Speech-to-Speech Virtual Standardized Patients",
+          "url": "https://aclanthology.org/2026.iwsds-1.16.pdf"
+        }
+      ],
+      "value_to_apex": "Enable a more natural spoken encounter and eventually expose timing/prosody signals unavailable in text.",
+      "feasibility": "post-EACL",
+      "dependency": "Low-latency audio pipeline, consent/privacy controls, multimodal storage policy, and audio evaluation.",
+      "risk": "Latency, accessibility, privacy, cost, and validation complexity are substantial."
+    },
+    {
+      "family": "evaluator",
+      "name": "Empathy-intent evaluator",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Jiang et al. 2023, Empathy Intent Drives Empathy Detection",
+          "url": "https://aclanthology.org/2023.emnlp-main.386.pdf"
+        }
+      ],
+      "value_to_apex": "Add an intent-oriented lens beside AFCE opportunities and observable response forms.",
+      "feasibility": "stretch",
+      "dependency": "A public operationalization, labeled review examples, and construct-overlap analysis.",
+      "risk": "Intent should not be inferred as fact from wording alone."
+    },
+    {
+      "family": "evaluator",
+      "name": "Non-emotion-centric empathy evaluator",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Huangfu et al. 2025, Non-Emotion-Centric Empathetic Dialogue Generation",
+          "url": "https://aclanthology.org/2025.coling-main.66.pdf"
+        },
+        {
+          "citation": "Lahnala et al. 2022, A Critical Reflection and Forward Perspective on Empathy and NLP",
+          "url": "https://aclanthology.org/2022.findings-emnlp.157.pdf"
+        }
+      ],
+      "value_to_apex": "Broaden analysis beyond emotion words toward supportive, perspective-sensitive communication behavior.",
+      "feasibility": "post-EACL",
+      "dependency": "A clearly bounded construct, labels, and comparison against AFCE to avoid double-counting.",
+      "risk": "Conceptual overlap can produce persuasive but uninterpretable scores."
+    },
+    {
+      "family": "evaluator",
+      "name": "Patient-simulation-quality evaluator",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Shi et al. 2024, Medical Dialogue System survey",
+          "url": "https://aclanthology.org/2024.findings-acl.167.pdf"
+        },
+        {
+          "citation": "Bao et al. 2025, SFMSS",
+          "url": "https://aclanthology.org/2025.findings-naacl.259.pdf"
+        }
+      ],
+      "value_to_apex": "Evaluate whether the virtual patient stays consistent with the synthetic case, role, and dialogue flow.",
+      "feasibility": "stretch",
+      "dependency": "Case-grounded criteria and adversarial fixtures independent of learner scoring.",
+      "risk": "A model judge may reward stylistic plausibility rather than case fidelity."
+    },
+    {
+      "family": "evaluator",
+      "name": "Supervised embedding/regression ACE-CT evaluator",
+      "status": "proposed_conditional",
+      "literature_inspiration": [
+        {
+          "citation": "Public ACE-CT article",
+          "url": "https://doi.org/10.1016/j.pec.2025.109465"
+        },
+        {
+          "citation": "authorized confidential manuscript; public citation pending expert confirmation",
+          "url": null
+        }
+      ],
+      "value_to_apex": "Test a supervised research baseline only if authorized labels and an approved construct become available.",
+      "feasibility": "post-EACL",
+      "dependency": "Authorized labeled data, governance, train/test protocol, expert raters, and external validation.",
+      "risk": "Data scarcity, leakage, and unauthorized reproduction claims."
+    },
+    {
+      "family": "evaluator",
+      "name": "Transformer ACE-CT evaluator",
+      "status": "proposed_conditional",
+      "literature_inspiration": [
+        {
+          "citation": "Public ACE-CT article",
+          "url": "https://doi.org/10.1016/j.pec.2025.109465"
+        },
+        {
+          "citation": "authorized confidential manuscript; public citation pending expert confirmation",
+          "url": null
+        }
+      ],
+      "value_to_apex": "Explore a task-specific model only after the rubric, data rights, labels, and validation design are settled.",
+      "feasibility": "post-EACL",
+      "dependency": "Substantial authorized data, compute, governance, reproducible baselines, and independent validation.",
+      "risk": "Overfitting, opaque failure modes, and conflation with the unpublished system."
+    },
+    {
+      "family": "metrics",
+      "name": "Transcript dynamics",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Wang et al. 2025, Computational Linguistic Approach to Empathy and its Language Communication Pattern",
+          "url": "https://aclanthology.org/2025.paclic-1.60.pdf"
+        }
+      ],
+      "value_to_apex": "Measure turn balance, question cadence, response adjacency, and deterministic sequence features.",
+      "feasibility": "before EACL",
+      "dependency": "Metric definitions, fixtures, and careful interpretation of transcript-only proxies.",
+      "risk": "Conversation quantity can be mistaken for communication quality."
+    },
+    {
+      "family": "metrics",
+      "name": "Jargon and readability",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Public ACE-CT article",
+          "url": "https://doi.org/10.1016/j.pec.2025.109465"
+        }
+      ],
+      "value_to_apex": "Expose deterministic terminology and readability signals alongside evaluator interpretation.",
+      "feasibility": "before EACL",
+      "dependency": "A transparent term list/readability policy and audience-context caveats.",
+      "risk": "Readability formulas do not establish patient understanding."
+    },
+    {
+      "family": "metrics",
+      "name": "Question and understanding checks",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Lahnala et al. 2024, Appraisal Framework for Clinical Empathy",
+          "url": "https://aclanthology.org/2024.lrec-main.124.pdf"
+        },
+        {
+          "citation": "Public ACE-CT article",
+          "url": "https://doi.org/10.1016/j.pec.2025.109465"
+        }
+      ],
+      "value_to_apex": "Count invitations, checks, and observable teach-back sequences with turn-linked evidence.",
+      "feasibility": "before EACL",
+      "dependency": "Rule definitions and manual review of false positives.",
+      "risk": "A question mark is not necessarily an understanding check."
+    },
+    {
+      "family": "metrics",
+      "name": "Evidence grounding",
+      "status": "proposed",
+      "literature_inspiration": [],
+      "value_to_apex": "Verify that each structured finding points to a valid turn and quantify unsupported or duplicated references.",
+      "feasibility": "before EACL",
+      "dependency": "A stable evidence schema across evaluators.",
+      "risk": "Valid coordinates do not prove that the interpretation is correct."
+    },
+    {
+      "family": "metrics",
+      "name": "Evaluator stability",
+      "status": "proposed",
+      "literature_inspiration": [],
+      "value_to_apex": "Measure repeated-run variance under frozen prompt, provider, model, and transcript conditions.",
+      "feasibility": "stretch",
+      "dependency": "Authorized repeated calls, cost budget, and frozen provenance.",
+      "risk": "Small samples can overstate stability."
+    },
+    {
+      "family": "metrics",
+      "name": "Patient consistency",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Lee et al. 2025, Adaptive-VP",
+          "url": "https://aclanthology.org/2025.findings-acl.118.pdf"
+        },
+        {
+          "citation": "Wang et al. 2024, PATIENT-psi",
+          "url": "https://aclanthology.org/2024.emnlp-main.711.pdf"
+        }
+      ],
+      "value_to_apex": "Track contradictions against the synthetic case and explicit patient state.",
+      "feasibility": "stretch",
+      "dependency": "Structured case facts and an auditable consistency policy.",
+      "risk": "Flexible human-like dialogue may be misclassified as inconsistency."
+    },
+    {
+      "family": "metrics",
+      "name": "Service-flow coverage",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Bao et al. 2025, SFMSS",
+          "url": "https://aclanthology.org/2025.findings-naacl.259.pdf"
+        }
+      ],
+      "value_to_apex": "Measure whether expected synthetic scenario phases were visited without treating order alone as quality.",
+      "feasibility": "post-EACL",
+      "dependency": "Service-flow-aware cases and phase annotations.",
+      "risk": "Rigid flow metrics may punish appropriate conversational adaptation."
+    },
+    {
+      "family": "metrics",
+      "name": "Audio interaction metrics",
+      "status": "proposed",
+      "literature_inspiration": [
+        {
+          "citation": "Emerson et al. 2026, Speech-to-Speech Virtual Standardized Patients",
+          "url": "https://aclanthology.org/2026.iwsds-1.16.pdf"
+        }
+      ],
+      "value_to_apex": "Eventually measure latency, overlap, pause distribution, and other observable spoken-interaction signals.",
+      "feasibility": "post-EACL",
+      "dependency": "Consent, audio capture, signal-processing definitions, accessibility, and validation.",
+      "risk": "Sensitive raw audio and uncertain links between proxies and communication quality."
+    }
+  ],
+  "literature_boundary": "Candidate descriptions are inspired by the listed public works and titles; they do not claim reproduction of any paper's system, findings, data, or model. Detailed claims require source inspection and expert confirmation."
+}
