@@ -845,21 +845,21 @@
             <p><strong>Improve:</strong> turn 3 misses fear and introduces dense terminology.</p>
             <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="1">1</button><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="11">11</button></div>
           </article>
-          <article class="comparison-panel" id="panel-hybrid-v1" role="tabpanel" aria-labelledby="tab-hybrid-v1" hidden>
+          <article class="comparison-panel" id="panel-hybrid-v1" role="tabpanel" aria-labelledby="tab-hybrid-v1">
             <div class="status-row"><span class="status main">Rule + optional LLM · v1.0 · default</span><span class="status">Provider not run</span></div>
             <div class="score-grid"><div class="score"><strong>65</strong><span>Empathy</span></div><div class="score"><strong>74</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>73</strong><span>Overall</span></div></div>
             <p><strong>Strength:</strong> contextualizes the repair after the initial missed cue.</p>
             <p><strong>Improve:</strong> acknowledge fear before diagnosis and technical language.</p>
             <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="4">4</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button></div>
           </article>
-          <article class="comparison-panel" id="panel-hybrid-v2" role="tabpanel" aria-labelledby="tab-hybrid-v2" hidden>
+          <article class="comparison-panel" id="panel-hybrid-v2" role="tabpanel" aria-labelledby="tab-hybrid-v2">
             <div class="status-row"><span class="status main">Three focused reviews · v2.0</span><span class="status">Provider not run</span></div>
             <div class="score-grid"><div class="score"><strong>70</strong><span>Empathy</span></div><div class="score"><strong>78</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>77</strong><span>Overall</span></div></div>
             <p><strong>Strength:</strong> separates empathy, communication, and sequencing observations.</p>
             <p><strong>Improve:</strong> surface both the missed cue and an explicit support contact.</p>
             <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button><button class="evidence-button" data-evidence="11">11</button><button class="evidence-button" data-evidence="12">12</button></div>
           </article>
-          <article class="comparison-panel" id="panel-ace" role="tabpanel" aria-labelledby="tab-ace" hidden>
+          <article class="comparison-panel" id="panel-ace" role="tabpanel" aria-labelledby="tab-ace">
             <div class="status-row"><span class="status feature">Experimental · unmerged · v0.1.0</span><span class="status">Provider not selected/run</span></div>
             <div class="score-grid"><div class="score"><strong>50</strong><span>Empathy*</span></div><div class="score"><strong>65</strong><span>Communication*</span></div><div class="score"><strong>83</strong><span>SPIKES†</span></div><div class="score"><strong>65</strong><span>Overall*</span></div></div>
             <div class="domain-grid" aria-label="Four proposed ACE-CT-inspired domains"><div class="domain"><strong>3.0</strong>Respond</div><div class="domain"><strong>3.5</strong>Listen</div><div class="domain"><strong>3.5</strong>Speak</div><div class="domain"><strong>4.0</strong>General‡</div></div>
@@ -980,10 +980,10 @@
             <tr><td>Evaluator · Supervised ACE-CT regression</td><td>Public ACE-CT article; confidential direction label</td><td>Research baseline only if authorized labels exist.</td><td><span class="status">Post-EACL</span></td><td>Data rights + expert labels / leakage, reproduction claims</td></tr>
             <tr><td>Evaluator · Transformer ACE-CT</td><td>Public ACE-CT article; confidential direction label</td><td>Task-specific research after governance and baselines.</td><td><span class="status">Post-EACL</span></td><td>Substantial authorized data / opacity, overfitting</td></tr>
             <tr><td>Metrics · Transcript dynamics</td><td>Wang et al. 2025</td><td>Turn balance, cadence, adjacency, sequence features.</td><td><span class="status main">Before EACL</span></td><td>Definitions + fixtures / quantity mistaken for quality</td></tr>
-            <tr><td>Metrics · Jargon / readability</td><td>Public ACE-CT direction</td><td>Transparent terminology and readability signals.</td><td><span class="status main">Before EACL</span></td><td>Term policy / readability is not understanding</td></tr>
-            <tr><td>Metrics · Questions / understanding checks</td><td>Lahnala et al. 2024; public ACE-CT direction</td><td>Count invitations, checks, and teach-back sequences.</td><td><span class="status main">Before EACL</span></td><td>Rule review / a question mark is not a check</td></tr>
-            <tr><td>Metrics · Evidence grounding</td><td>APEX engineering need</td><td>Validate turn references; flag duplicates/unsupported links.</td><td><span class="status main">Before EACL</span></td><td>Stable schema / valid coordinates do not prove interpretation</td></tr>
-            <tr><td>Metrics · Evaluator stability</td><td>Reproducibility objective</td><td>Repeated-run variance with frozen provenance.</td><td><span class="status feature">Stretch</span></td><td>Authorized call budget / small samples overstate stability</td></tr>
+            <tr><td>Metrics · Jargon / readability</td><td>ACE-CT-inspired provisional direction · citation pending</td><td>Transparent terminology and readability signals.</td><td><span class="status main">Before EACL</span></td><td>Term policy / readability is not understanding</td></tr>
+            <tr><td>Metrics · Questions / understanding checks</td><td>Lahnala et al. 2024; ACE-CT-inspired provisional direction</td><td>Count invitations, checks, and teach-back sequences.</td><td><span class="status main">Before EACL</span></td><td>Rule review / a question mark is not a check</td></tr>
+            <tr><td>Metrics · Evidence grounding</td><td>Shi et al. 2024 survey; APEX engineering need</td><td>Validate turn references; flag duplicates/unsupported links.</td><td><span class="status main">Before EACL</span></td><td>Stable schema / valid coordinates do not prove interpretation</td></tr>
+            <tr><td>Metrics · Evaluator stability</td><td>Shi et al. 2024 survey; reproducibility objective</td><td>Repeated-run variance with frozen provenance.</td><td><span class="status feature">Stretch</span></td><td>Authorized call budget / small samples overstate stability</td></tr>
             <tr><td>Metrics · Patient consistency</td><td>Adaptive-VP; PATIENT-ψ</td><td>Track contradictions against case and explicit state.</td><td><span class="status feature">Stretch</span></td><td>Structured case facts / flexibility misread as inconsistency</td></tr>
             <tr><td>Metrics · Service-flow coverage</td><td>Bao et al. 2025 · SFMSS</td><td>Measure expected scenario phases without equating order to quality.</td><td><span class="status">Post-EACL</span></td><td>Flow annotations / rigid metrics punish adaptation</td></tr>
             <tr><td>Metrics · Audio interaction</td><td>Emerson et al. 2026</td><td>Future latency, overlap, pause, delivery signals.</td><td><span class="status">Post-EACL</span></td><td>Consent + signal definitions / sensitive audio and proxy validity</td></tr>
@@ -1120,7 +1120,10 @@
         progress.value = current + 1;
         progressLabel.textContent = `${current + 1} / ${slides.length}`;
         document.title = `${current + 1}. ${slides[current].dataset.title} — APEX EACL 2027`;
-        if (updateHash) history.replaceState(null, '', `#${slides[current].id}`);
+        if (updateHash) {
+          try { history.replaceState(null, '', `#${slides[current].id}`); }
+          catch (_) { window.location.hash = slides[current].id; }
+        }
         slides[current].scrollTop = 0;
       };
 
@@ -1170,6 +1173,7 @@
           target.focus();
         });
       });
+      selectTab(tabs.find((tab) => tab.getAttribute('aria-selected') === 'true') || tabs[0]);
 
       document.querySelectorAll('[data-evidence]').forEach((button) => {
         button.addEventListener('click', () => {

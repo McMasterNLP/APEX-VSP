@@ -264,8 +264,8 @@
       "status": "proposed",
       "literature_inspiration": [
         {
-          "citation": "Public ACE-CT article",
-          "url": "https://doi.org/10.1016/j.pec.2025.109465"
+          "citation": "ACE-CT-inspired provisional direction; authorized confidential manuscript; public citation pending expert confirmation",
+          "url": null
         }
       ],
       "value_to_apex": "Expose deterministic terminology and readability signals alongside evaluator interpretation.",
@@ -283,8 +283,8 @@
           "url": "https://aclanthology.org/2024.lrec-main.124.pdf"
         },
         {
-          "citation": "Public ACE-CT article",
-          "url": "https://doi.org/10.1016/j.pec.2025.109465"
+          "citation": "ACE-CT-inspired provisional direction; authorized confidential manuscript; public citation pending expert confirmation",
+          "url": null
         }
       ],
       "value_to_apex": "Count invitations, checks, and observable teach-back sequences with turn-linked evidence.",
@@ -296,7 +296,12 @@
       "family": "metrics",
       "name": "Evidence grounding",
       "status": "proposed",
-      "literature_inspiration": [],
+      "literature_inspiration": [
+        {
+          "citation": "Shi et al. 2024, Medical Dialogue System: A Survey of Categories, Methods, Evaluation and Challenges",
+          "url": "https://aclanthology.org/2024.findings-acl.167.pdf"
+        }
+      ],
       "value_to_apex": "Verify that each structured finding points to a valid turn and quantify unsupported or duplicated references.",
       "feasibility": "before EACL",
       "dependency": "A stable evidence schema across evaluators.",
@@ -306,7 +311,12 @@
       "family": "metrics",
       "name": "Evaluator stability",
       "status": "proposed",
-      "literature_inspiration": [],
+      "literature_inspiration": [
+        {
+          "citation": "Shi et al. 2024, Medical Dialogue System: A Survey of Categories, Methods, Evaluation and Challenges",
+          "url": "https://aclanthology.org/2024.findings-acl.167.pdf"
+        }
+      ],
       "value_to_apex": "Measure repeated-run variance under frozen prompt, provider, model, and transcript conditions.",
       "feasibility": "stretch",
       "dependency": "Authorized repeated calls, cost budget, and frozen provenance.",
