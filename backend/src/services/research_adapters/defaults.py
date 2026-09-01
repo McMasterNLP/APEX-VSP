@@ -48,6 +48,7 @@ def build_default_research_adapter_registry() -> ResearchAdapterRegistry:
                 adapter=ApexResearchAdapter(live_execution=definition.requires_llm),
                 requires_live_execution=definition.requires_llm,
                 supported_providers=definition.supported_providers,
+                default_provider=definition.default_llm_provider,
                 default_selected=default_selected,
                 warnings=(AFCE_IMPLEMENTATION_STATEMENT,),
             )
@@ -71,6 +72,7 @@ def build_default_research_adapter_registry() -> ResearchAdapterRegistry:
             adapter=ACECTResearchAdapter(),
             requires_live_execution=True,
             supported_providers=ace_definition.supported_providers,
+            default_provider=ace_definition.default_llm_provider,
             experimental=True,
             warnings=(ACE_WARNING,),
         )

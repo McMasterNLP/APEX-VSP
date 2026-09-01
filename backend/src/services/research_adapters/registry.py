@@ -24,6 +24,7 @@ class ResearchAdapterRegistration:
     adapter: ResearchResultAdapter
     requires_live_execution: bool
     supported_providers: tuple[str, ...] = ()
+    default_provider: str | None = None
     default_selected: bool = False
     experimental: bool = False
     warnings: tuple[str, ...] = ()
@@ -62,8 +63,15 @@ class ResearchAdapterRegistry:
             raise ValueError("Registration live metadata must match adapter capabilities.")
         if registration.requires_live_execution and not registration.supported_providers:
             raise ValueError("Live research evaluators must declare supported providers.")
+        if (
+            registration.requires_live_execution
+            and registration.default_provider not in registration.supported_providers
+        ):
+            raise ValueError("A live evaluator default provider must be supported.")
         if not registration.requires_live_execution and registration.supported_providers:
             raise ValueError("Offline research evaluators cannot declare providers.")
+        if not registration.requires_live_execution and registration.default_provider is not None:
+            raise ValueError("Offline research evaluators cannot declare a default provider.")
         self._registrations[identifier] = registration
 
     def get(self, evaluator_identifier: str) -> ResearchAdapterRegistration:
