@@ -147,23 +147,7 @@ class ResearchEvaluationService:
         session_id: int,
         request: ResearchEvaluationRequest,
     ) -> ResearchEvaluationResponse:
-        session = self.session_repo.get_by_id(session_id)
-        if session is None:
-            raise ResearchEvaluationServiceError(
-                "session_not_found", "The requested session was not found."
-            )
-        if session.state != "completed":
-            raise ResearchEvaluationServiceError(
-                "session_incomplete",
-                "Research evaluation requires a completed session.",
-            )
-
-        transcript_turns, transcript_hash = self._build_transcript(session_id)
-        response_identity = ResearchTranscriptIdentity(
-            canonical_transcript_hash=transcript_hash,
-            turn_count=len(transcript_turns),
-            raw_transcript_included=True,
-        )
+        transcript_turns, response_identity = self.completed_transcript(session_id)
         envelope_identity = response_identity.model_copy(
             update={"raw_transcript_included": False}
         )
@@ -199,6 +183,30 @@ class ResearchEvaluationService:
                 "response_too_large", "The validated research response exceeds its size limit."
             )
         return response
+
+    def completed_transcript(
+        self, session_id: int
+    ) -> tuple[tuple[ResearchTranscriptTurn, ...], ResearchTranscriptIdentity]:
+        """Return authorized export/run transcript context after session-state checks."""
+
+        session = self.session_repo.get_by_id(session_id)
+        if session is None:
+            raise ResearchEvaluationServiceError(
+                "session_not_found", "The requested session was not found."
+            )
+        if session.state != "completed":
+            raise ResearchEvaluationServiceError(
+                "session_incomplete",
+                "Research evaluation requires a completed session.",
+            )
+
+        transcript_turns, transcript_hash = self._build_transcript(session_id)
+        identity = ResearchTranscriptIdentity(
+            canonical_transcript_hash=transcript_hash,
+            turn_count=len(transcript_turns),
+            raw_transcript_included=True,
+        )
+        return transcript_turns, identity
 
     def _build_transcript(
         self, session_id: int
