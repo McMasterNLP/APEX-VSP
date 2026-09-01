@@ -20,6 +20,8 @@
       --teal-soft: #eaf7f2;
       --amber: #a25b08;
       --amber-soft: #fff6df;
+      --violet: #6652a3;
+      --violet-soft: #f2effc;
       --red: #9b2c2c;
       --red-soft: #fff0f0;
       --shadow: 0 14px 36px rgba(30, 55, 80, .10);
@@ -513,6 +515,193 @@
       background: #fff;
     }
 
+    .agenda-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 28px 0;
+      counter-reset: agenda;
+    }
+    .agenda-item {
+      counter-increment: agenda;
+      min-height: 118px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #f8fbfd;
+      font-weight: 800;
+    }
+    .agenda-item::before {
+      display: block;
+      margin-bottom: 9px;
+      color: var(--teal);
+      content: "0" counter(agenda);
+      font-size: .72rem;
+      font-weight: 900;
+      letter-spacing: .1em;
+    }
+    .meta-line { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--muted); font-size: .8rem; }
+
+    .workflow {
+      display: flex;
+      align-items: stretch;
+      gap: 8px;
+      margin: 24px 0;
+    }
+    .flow-node {
+      position: relative;
+      flex: 1 1 0;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      min-height: 82px;
+      padding: 13px;
+      border: 1px solid #c8d7e5;
+      border-top: 5px solid var(--blue);
+      border-radius: 13px;
+      background: var(--surface-blue);
+      color: #263f5b;
+      font-size: .8rem;
+      font-weight: 850;
+      text-align: center;
+    }
+    .flow-node.patient-node { border-top-color: var(--blue); background: var(--surface-blue); }
+    .flow-node.evaluator-node { border-top-color: var(--teal); background: var(--teal-soft); }
+    .flow-node.metrics-node { border-top-color: var(--violet); background: var(--violet-soft); }
+    .flow-node.experimental-node { border-top-color: var(--amber); background: var(--amber-soft); }
+    .flow-node.blocker-node { border-top-color: var(--red); background: var(--red-soft); }
+    .flow-arrow {
+      flex: 0 0 22px;
+      display: grid;
+      place-items: center;
+      color: var(--teal);
+      font-size: 1.4rem;
+      font-weight: 900;
+    }
+    .flow-arrow::before { content: "→"; }
+    .flow-column { display: grid; gap: 8px; }
+    .flow-column .flow-node { min-height: 58px; }
+    .flow-label { display: block; margin-top: 5px; color: var(--muted); font-size: .66rem; font-weight: 650; }
+    .flow-legend { display: flex; flex-wrap: wrap; gap: 12px; margin: 12px 0 0; color: var(--muted); font-size: .72rem; }
+    .flow-legend span::before { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 3px; background: var(--blue); content: ""; }
+    .flow-legend .eval::before { background: var(--teal); }
+    .flow-legend .metric::before { background: var(--violet); }
+    .flow-legend .experiment::before { background: var(--amber); }
+    .flow-legend .blocker::before { background: var(--red); }
+
+    .event-key { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+    .event-chip, .turn-tags span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 7px;
+      border: 1px solid #cbd9e7;
+      border-radius: 999px;
+      background: #fff;
+      color: #435970;
+      font-size: .62rem;
+      font-weight: 850;
+    }
+    .event-chip.opportunity, .turn-tags .opportunity { border-color: #e2bf72; background: var(--amber-soft); color: #78470a; }
+    .event-chip.response, .turn-tags .response { border-color: #9fd1bf; background: var(--teal-soft); color: #245f4f; }
+    .event-chip.spikes, .turn-tags .spikes { border-color: #aac8e8; background: var(--surface-blue); color: var(--blue-deep); }
+    .event-chip.ace, .turn-tags .ace { border-color: #c6bce7; background: var(--violet-soft); color: #4e3f82; }
+    .turn-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+
+    .foundation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .foundation-flow { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: #fbfdfe; }
+    .foundation-flow .workflow { margin: 12px 0 0; }
+    .foundation-flow .flow-node { min-height: 68px; padding: 10px; }
+    .merge-row { display: grid; grid-template-columns: 1fr 38px 1fr 38px 1.25fr; gap: 8px; align-items: center; margin-top: 18px; }
+
+    .architecture-flow { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9px; align-items: stretch; margin: 20px 0 12px; }
+    .architecture-flow .flow-node { min-height: 108px; }
+    .architecture-flow .flow-node:not(:last-child)::after {
+      position: absolute;
+      z-index: 2;
+      right: -18px;
+      top: 50%;
+      color: var(--teal);
+      content: "→";
+      transform: translateY(-50%);
+      font-size: 1.2rem;
+      font-weight: 900;
+    }
+    .storage-split { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 16px; }
+
+    .rubric-groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0; }
+    .rubric-group { padding: 12px; border: 1px solid #c6e5da; border-top: 5px solid var(--teal); border-radius: 12px; background: var(--teal-soft); }
+    .rubric-group h3 { font-size: .9rem; }
+    .rubric-group ul { padding-left: 16px; color: #36564d; font-size: .7rem; }
+    .rubric-group li { margin: 3px 0; }
+    .rubric-status { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 10px; }
+
+    .no-overwrite {
+      padding: 20px;
+      border: 2px solid var(--red);
+      border-radius: 16px;
+      background: var(--red-soft);
+      color: #732d2d;
+      text-align: center;
+    }
+    .no-overwrite strong { display: block; margin-bottom: 5px; font-size: 1.15rem; }
+
+    .overlap-strip { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; gap: 8px; align-items: center; margin: 16px 0; }
+    .overlap-mark { color: var(--muted); font-size: .8rem; font-weight: 850; text-align: center; }
+    .compatibility-bridge { padding: 15px; border: 1px dashed var(--amber); border-radius: 12px; background: var(--amber-soft); color: #71440c; text-align: center; }
+
+    .plugin-tree { display: grid; gap: 12px; margin: 18px 0; }
+    .tree-root { width: min(420px, 100%); margin: auto; }
+    .tree-branches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; position: relative; }
+    .tree-branch { padding-top: 22px; }
+    .tree-branch::before { position: absolute; top: 0; width: calc((100% - 32px) / 3); height: 18px; border-top: 2px solid #9aabba; content: ""; }
+    .tree-branch:first-child::before { border-left: 2px solid #9aabba; }
+    .tree-branch:last-child::before { border-right: 2px solid #9aabba; }
+    .interface-box { min-height: 215px; padding: 17px; border: 1px solid var(--line); border-top: 6px solid var(--blue); border-radius: 15px; background: #fff; }
+    .interface-box.evaluator { border-top-color: var(--teal); }
+    .interface-box.metrics { border-top-color: var(--violet); }
+    .interface-box code { display: block; margin-top: 8px; color: #4e6074; font-size: .7rem; white-space: normal; }
+
+    .implemented-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .implemented-lane { padding: 16px; border: 1px solid var(--line); border-radius: var(--radius); background: #fbfdfe; }
+    .implemented-lane .workflow { flex-direction: column; margin: 12px 0; }
+    .implemented-lane .flow-arrow { min-height: 16px; transform: rotate(90deg); }
+    .example-quote { padding: 10px 12px; border-left: 4px solid var(--blue); border-radius: 7px; background: var(--surface-blue); color: #2d4662; font-size: .72rem; }
+    .example-quote.eval { border-left-color: var(--teal); background: var(--teal-soft); }
+    .example-quote.metric { border-left-color: var(--violet); background: var(--violet-soft); }
+
+    .literature-scroll { max-height: 520px; overflow: auto; padding: 2px 7px 8px 2px; }
+    .literature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .paper-card { padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: #fff; }
+    .paper-card h3 { margin-bottom: 5px; font-size: .86rem; }
+    .paper-card p { margin-bottom: 7px; font-size: .7rem; }
+    .paper-card .citation { color: var(--muted); font-size: .64rem; }
+    .mini-flow { display: flex; align-items: center; gap: 4px; color: #344b64; font-size: .63rem; font-weight: 750; }
+    .mini-flow span { flex: 1; padding: 5px; border-radius: 7px; background: var(--surface-soft); text-align: center; }
+    .mini-flow b { color: var(--teal); }
+
+    .family-lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 18px 0; }
+    .family-lane { padding: 18px; border: 1px solid var(--line); border-top: 6px solid var(--blue); border-radius: 15px; background: #fff; }
+    .family-lane.evaluator { border-top-color: var(--teal); }
+    .family-lane.metrics { border-top-color: var(--violet); }
+    .family-lane li { font-size: .78rem; }
+
+    .eacl-layout { display: grid; grid-template-columns: .9fr 1.4fr; gap: 18px; }
+    .expectations { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .expectation { padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: #f8fbfd; font-size: .7rem; }
+    .phase-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .phase-step { position: relative; min-height: 112px; padding: 10px; border: 1px solid #c9ded7; border-top: 5px solid var(--teal); border-radius: 10px; background: var(--teal-soft); }
+    .phase-step:nth-child(2n) { border-top-color: var(--blue); background: var(--surface-blue); }
+    .phase-step h3 { margin-bottom: 6px; font-size: .76rem; }
+    .phase-step p { color: var(--muted); font-size: .64rem; }
+
+    .discussion-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .discussion-group { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fbfdfe; }
+    .discussion-group h3 { color: var(--blue-deep); font-size: .9rem; }
+    .discussion-group li { font-size: .76rem; }
+    .closing-question { margin: 16px 0; padding: 17px; border-radius: 15px; background: linear-gradient(135deg, var(--blue-deep), var(--teal)); color: #fff; font-size: 1.28rem; font-weight: 850; text-align: center; }
+    .notes-field { width: 100%; min-height: 64px; padding: 10px; border: 1px solid #b9c8d6; border-radius: 10px; resize: vertical; }
+
     .presentation-footer {
       position: fixed;
       z-index: 20;
@@ -576,6 +765,11 @@
       .timeline { grid-template-columns: repeat(4, 1fr); }
       .phase { min-height: 160px; }
       .decision-grid { grid-template-columns: repeat(2, 1fr); }
+      .agenda-grid { grid-template-columns: repeat(2, 1fr); }
+      .architecture-flow { grid-template-columns: repeat(3, 1fr); }
+      .architecture-flow .flow-node::after { display: none; }
+      .rubric-groups, .phase-grid { grid-template-columns: repeat(2, 1fr); }
+      .eacl-layout { grid-template-columns: 1fr; }
     }
     @media (max-width: 760px) {
       :root { --header-h: 102px; --footer-h: 72px; }
@@ -583,20 +777,27 @@
       .review-badge { grid-column: 1 / -1; justify-self: start; padding: 4px 8px; }
       main { padding-left: 9px; padding-right: 9px; }
       .slide { min-height: calc(100vh - var(--header-h) - var(--footer-h) - 26px); padding: 24px 18px; border-radius: 16px; }
-      .opening-layout, .grid-2, .grid-3, .framework-columns, .comparison-demo, .vennish, .boundary-compare { grid-template-columns: 1fr; }
+      .opening-layout, .grid-2, .grid-3, .framework-columns, .comparison-demo, .vennish, .boundary-compare, .foundation-grid, .tree-branches, .implemented-lanes, .family-lanes, .literature-grid, .discussion-grid, .storage-split { grid-template-columns: 1fr; }
       .opening-layout { min-height: 0; }
       .opening-meta { border-left: 0; border-top: 2px solid var(--teal-bright); padding: 18px 0 0; }
       .process, .grid-4, .timeline, .decision-grid, .score-grid, .domain-grid, .dimension-list { grid-template-columns: 1fr 1fr; }
       .boundary-divider { min-height: 36px; writing-mode: initial; }
       .turn { width: 97%; grid-template-columns: 38px 1fr; }
       .mini-transcript { max-height: 330px; }
+      .workflow { flex-direction: column; }
+      .flow-arrow { min-height: 22px; transform: rotate(90deg); }
+      .architecture-flow { grid-template-columns: 1fr; }
+      .merge-row, .overlap-strip { grid-template-columns: 1fr; }
+      .rubric-status, .expectations { grid-template-columns: 1fr; }
+      .tree-branch { padding-top: 0; }
+      .tree-branch::before { display: none; }
       .presentation-footer { grid-template-columns: 1fr auto; padding: 8px 10px; }
       .section-nav { display: none; }
       progress { width: 92px; }
       .nav-button { min-width: 68px; padding: 7px 8px; }
     }
     @media (max-width: 480px) {
-      .process, .grid-4, .timeline, .decision-grid, .score-grid, .domain-grid, .dimension-list { grid-template-columns: 1fr; }
+      .process, .grid-4, .timeline, .decision-grid, .score-grid, .domain-grid, .dimension-list, .agenda-grid, .rubric-groups, .phase-grid { grid-template-columns: 1fr; }
       .header-title strong { font-size: .82rem; }
       .header-title span { font-size: .68rem; }
       .phase { min-height: 0; }
@@ -627,7 +828,7 @@
       h2 { font-size: 25pt; }
       h3 { font-size: 13pt; }
       .lede { font-size: 13pt; }
-      .transcript, .mini-transcript, .table-wrap { max-height: none; overflow: visible; }
+      .transcript, .mini-transcript, .table-wrap, .literature-scroll { max-height: none; overflow: visible; }
       .comparison-panel, .js .comparison-panel[hidden] { display: block !important; margin-bottom: 8px; }
       .comparison-demo { grid-template-columns: .8fr 1.2fr; }
       .timeline { grid-template-columns: repeat(4, 1fr); }
@@ -635,11 +836,12 @@
       th { position: static; }
       a { color: inherit; text-decoration: none; }
       input[type="text"] { border: 0 !important; border-bottom: 1px solid #555 !important; border-radius: 0 !important; }
+      .notes-field { border: 1px solid #777; }
     }
   </style>
 </head>
 <body>
-  <a class="skip-link" href="#opening">Skip to presentation content</a>
+  <a class="skip-link" href="#agenda">Skip to presentation content</a>
   <header class="presentation-header">
     <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>APEX</span></div>
     <div class="header-title">
@@ -652,435 +854,261 @@
   <noscript><p class="no-js-note">JavaScript is unavailable. All sections are shown in order; navigation links and printing still work.</p></noscript>
 
   <main id="presentation" tabindex="-1">
-    <section class="slide active" id="opening" data-title="Opening" aria-labelledby="opening-title">
-      <div class="opening-layout">
-        <div>
-          <p class="eyebrow">Internal scientific and product review</p>
-          <h1 id="opening-title">APEX: Virtual-Patient Communication Training and Evaluator Experimentation</h1>
-          <p class="lede">A decision-focused briefing for a credible, reproducible EACL 2027 Systems Demonstration target.</p>
-          <div class="status-row" aria-label="Current status">
-            <span class="status main"><span class="dot"></span>Comparison infrastructure complete</span>
-            <span class="status feature"><span class="dot"></span>ACE-CT-inspired evaluator experimental</span>
-            <span class="status blocked"><span class="dot"></span>Review and validation remain</span>
-          </div>
-          <div class="callout warning">
-            <strong>Target—not acceptance:</strong> submission preparation is underway for the September 22, 2026 deadline. Scientific review, live validation, UI integration, and submission work are not complete.
-          </div>
-        </div>
-        <aside class="opening-meta" aria-label="Meeting and target dates">
-          <p class="date-lockup"><span class="big-date">Sep 1</span>Internal review</p>
-          <p class="date-lockup"><span class="big-date">Sep 22</span>Submission deadline</p>
-          <p><strong>Today’s outcome</strong></p>
-          <p class="muted">Agree on scientific boundaries, comparison-only scope, validation material, and the smallest defensible demonstration.</p>
-        </aside>
+    <section class="slide active" id="agenda" data-title="Today’s walkthrough" aria-labelledby="agenda-title">
+      <p class="eyebrow">APEX / EACL working session</p>
+      <h1 id="agenda-title">Today’s walkthrough</h1>
+      <p class="lede">A collaborative technical and research review: make the implemented system, scientific boundaries, and credible expansion paths concrete enough to shape the EACL story.</p>
+      <div class="agenda-grid" aria-label="Eight-part meeting agenda">
+        <div class="agenda-item">Quick APEX refresher</div>
+        <div class="agenda-item">Synthetic transcript walkthrough</div>
+        <div class="agenda-item">Original foundations and architecture</div>
+        <div class="agenda-item">Experimental ACE-CT-inspired evaluator</div>
+        <div class="agenda-item">Plugin architecture and implemented plugins</div>
+        <div class="agenda-item">Literature-inspired expansion directions</div>
+        <div class="agenda-item">EACL System Demonstrations expectations</div>
+        <div class="agenda-item">Dr. Lahnala’s vision and priorities</div>
       </div>
+      <div class="meta-line" aria-label="Meeting metadata"><span><strong>When:</strong> September 1, 2026</span><span><strong>Format:</strong> 45-minute internal review</span><span><strong>Audience:</strong> Dr. Allison Lahnala</span><span><strong>Artifact:</strong> presentation branch only</span></div>
     </section>
 
-    <section class="slide" id="what-apex-does" data-title="What APEX does" aria-labelledby="workflow-title">
-      <p class="eyebrow">Current product</p>
-      <h2 id="workflow-title">APEX turns a difficult-conversation practice session into structured feedback</h2>
-      <ol class="process" aria-label="APEX workflow from case selection to review">
-        <li>Select a case</li>
-        <li>Conduct clinician–patient conversation</li>
-        <li>Store ordered transcript</li>
-        <li>Evaluate communication</li>
-        <li>Generate feedback + metrics</li>
-        <li>Learner / admin review</li>
-      </ol>
-      <div class="grid-2">
-        <article class="card blue">
-          <h3>Trainee perspective</h3>
-          <p>Choose a training case, communicate with a virtual patient, then review strengths, missed empathic opportunities, SPIKES coverage, and suggested improvements.</p>
-        </article>
-        <article class="card teal">
-          <h3>Administrator / researcher perspective</h3>
-          <p>Manage cases and plugin selections, inspect frozen session provenance, review aggregate analytics, and produce controlled research exports.</p>
-        </article>
+    <section class="slide" id="apex-refresher" data-title="Quick APEX refresher" aria-labelledby="refresher-title">
+      <p class="eyebrow">Quick refresher</p>
+      <h2 id="refresher-title">One APEX encounter, end to end</h2>
+      <div class="workflow" role="img" aria-label="Select a case, speak with a virtual patient, complete the encounter, receive feedback and metrics, then review as a learner or administrator">
+        <div class="flow-node patient-node">Select case</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-node patient-node">Speak with virtual patient</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-node patient-node">Complete encounter</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-node evaluator-node">Receive feedback</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-node metrics-node">Inspect metrics</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-node metrics-node">Learner / admin review</div>
       </div>
-      <p class="source-note">Repository basis: <span class="mono">README.md</span>, session/dialogue/scoring services, and <span class="mono">frontend/src/pages/Admin.tsx</span>. The comparison UI shown later is a meeting mockup, not the current production frontend.</p>
+      <div class="grid-2">
+        <article class="card blue"><h3>Interaction surface</h3><p>Case-guided, stage-aware clinician–patient dialogue with a generated patient response after each clinician turn.</p></article>
+        <article class="card teal"><h3>Research surface</h3><p>An ordered transcript, frozen plugin provenance, evidence-linked evaluation, and inspectable feedback and metrics.</p></article>
+      </div>
+      <div class="callout"><strong>Today’s focus:</strong> the architecture and research choices beneath this familiar workflow.</div>
     </section>
 
     <section class="slide" id="synthetic-transcript" data-title="Synthetic transcript" aria-labelledby="transcript-title">
-      <p class="eyebrow">Walkthrough case</p>
-      <h2 id="transcript-title">One conversation contains both effective communication and repairable misses</h2>
-      <div class="callout warning"><strong>Synthetic demonstration transcript — not clinical data.</strong> Entirely fictional; no person, medical record, private transcript, or confidential source example is represented.</div>
-      <div class="transcript" aria-label="Twelve-turn synthetic clinician and patient conversation">
-        <article class="turn clinician" id="transcript-turn-1"><span class="turn-number">1</span><div><span class="turn-role">Clinician</span><p>Thank you for meeting with me. Before we discuss the biopsy, could you tell me what you understand about the tests so far?</p></div></article>
-        <article class="turn patient" id="transcript-turn-2"><span class="turn-number">2</span><div><span class="turn-role">Patient</span><p>I know the scan found something unusual. I am scared it might be cancer, and I keep thinking about what that would mean for my daughter.</p></div></article>
-        <article class="turn clinician" id="transcript-turn-3"><span class="turn-number">3</span><div><span class="turn-role">Clinician</span><p>The biopsy shows lymphoma. It is a malignancy involving cells in the lymphatic system, and we will need immunophenotyping before choosing treatment.</p></div></article>
-        <article class="turn patient" id="transcript-turn-4"><span class="turn-number">4</span><div><span class="turn-role">Patient</span><p>Malignancy means cancer, right? I feel like we moved past how frightening this is.</p></div></article>
-        <article class="turn clinician" id="transcript-turn-5"><span class="turn-number">5</span><div><span class="turn-role">Clinician</span><p>You are right, and I am sorry I moved too quickly. This is frightening news. Would it be okay if I pause and then explain what lymphoma means in plain language?</p></div></article>
-        <article class="turn patient" id="transcript-turn-6"><span class="turn-number">6</span><div><span class="turn-role">Patient</span><p>Yes, please. I need to know whether it can be treated.</p></div></article>
-        <article class="turn clinician" id="transcript-turn-7"><span class="turn-number">7</span><div><span class="turn-role">Clinician</span><p>Lymphoma is a cancer that starts in part of the immune system. There are different types, and many can be treated. The next test identifies the type. Does that explanation make sense, and what are you taking from it?</p></div></article>
-        <article class="turn patient" id="transcript-turn-8"><span class="turn-number">8</span><div><span class="turn-role">Patient</span><p>I understand that it is cancer and that the next test tells us the type. I am still scared about caring for my daughter and missing work.</p></div></article>
-        <article class="turn clinician" id="transcript-turn-9"><span class="turn-number">9</span><div><span class="turn-role">Clinician</span><p>I hear that your daughter and work are central concerns. Before we make a plan, what matters most to you over the next few weeks?</p></div></article>
-        <article class="turn patient" id="transcript-turn-10"><span class="turn-number">10</span><div><span class="turn-role">Patient</span><p>I want to stay well enough to care for her, and I would like my sister with me for the specialist visit.</p></div></article>
-        <article class="turn clinician" id="transcript-turn-11"><span class="turn-number">11</span><div><span class="turn-role">Clinician</span><p>Let me summarize: the biopsy confirms lymphoma, the next test identifies the type, and then the specialist will discuss treatment. We will arrange that visit, include your sister, and give you the terms in writing. What questions would you like us to address first?</p></div></article>
-        <article class="turn patient" id="transcript-turn-12"><span class="turn-number">12</span><div><span class="turn-role">Patient</span><p>Can we discuss the likely timeline and who I should call if the worry becomes overwhelming?</p></div></article>
+      <p class="eyebrow">Stable walkthrough case</p>
+      <h2 id="transcript-title">The transcript is the shared evidence surface</h2>
+      <div class="event-key" aria-label="Transcript marker legend"><span class="event-chip opportunity">AFCE opportunity / miss</span><span class="event-chip response">Clinician response</span><span class="event-chip spikes">SPIKES-relevant</span><span class="event-chip ace">ACE-CT-relevant</span></div>
+      <div class="transcript" aria-label="Twelve-turn synthetic clinician and patient conversation with analysis markers">
+        <article class="turn clinician" id="transcript-turn-1"><span class="turn-number">1</span><div><span class="turn-role">Clinician</span><p>Thank you for meeting with me. Before we discuss the biopsy, could you tell me what you understand about the tests so far?</p><div class="turn-tags"><span class="spikes">Setting · Perception</span><span class="ace">Elicit perspective</span></div></div></article>
+        <article class="turn patient" id="transcript-turn-2"><span class="turn-number">2</span><div><span class="turn-role">Patient</span><p>I know the scan found something unusual. I am scared it might be cancer, and I keep thinking about what that would mean for my daughter.</p><div class="turn-tags"><span class="opportunity">Feeling EO: fear</span><span class="ace">Worries / priorities</span></div></div></article>
+        <article class="turn clinician" id="transcript-turn-3"><span class="turn-number">3</span><div><span class="turn-role">Clinician</span><p>The biopsy shows lymphoma. It is a malignancy involving cells in the lymphatic system, and we will need immunophenotyping before choosing treatment.</p><div class="turn-tags"><span class="opportunity">Missed response</span><span class="spikes">Knowledge</span><span class="ace">Jargon · no permission</span></div></div></article>
+        <article class="turn patient" id="transcript-turn-4"><span class="turn-number">4</span><div><span class="turn-role">Patient</span><p>Malignancy means cancer, right? I feel like we moved past how frightening this is.</p><div class="turn-tags"><span class="opportunity">Feeling EO: fear</span><span class="ace">Understanding gap</span></div></div></article>
+        <article class="turn clinician" id="transcript-turn-5"><span class="turn-number">5</span><div><span class="turn-role">Clinician</span><p>You are right, and I am sorry I moved too quickly. This is frightening news. Would it be okay if I pause and then explain what lymphoma means in plain language?</p><div class="turn-tags"><span class="response">Understanding + repair</span><span class="spikes">Emotion</span><span class="ace">Permission · pace</span></div></div></article>
+        <article class="turn patient" id="transcript-turn-6"><span class="turn-number">6</span><div><span class="turn-role">Patient</span><p>Yes, please. I need to know whether it can be treated.</p><div class="turn-tags"><span class="spikes">Invitation accepted</span></div></div></article>
+        <article class="turn clinician" id="transcript-turn-7"><span class="turn-number">7</span><div><span class="turn-role">Clinician</span><p>Lymphoma is a cancer that starts in part of the immune system. There are different types, and many can be treated. The next test identifies the type. Does that explanation make sense, and what are you taking from it?</p><div class="turn-tags"><span class="spikes">Knowledge · Strategy</span><span class="ace">Plain language · understanding</span></div></div></article>
+        <article class="turn patient" id="transcript-turn-8"><span class="turn-number">8</span><div><span class="turn-role">Patient</span><p>I understand that it is cancer and that the next test tells us the type. I am still scared about caring for my daughter and missing work.</p><div class="turn-tags"><span class="opportunity">Feeling + Appreciation EO</span><span class="ace">Teach-back · priorities</span></div></div></article>
+        <article class="turn clinician" id="transcript-turn-9"><span class="turn-number">9</span><div><span class="turn-role">Clinician</span><p>I hear that your daughter and work are central concerns. Before we make a plan, what matters most to you over the next few weeks?</p><div class="turn-tags"><span class="response">Understanding</span><span class="spikes">Emotion · Strategy</span><span class="ace">Elicit priorities</span></div></div></article>
+        <article class="turn patient" id="transcript-turn-10"><span class="turn-number">10</span><div><span class="turn-role">Patient</span><p>I want to stay well enough to care for her, and I would like my sister with me for the specialist visit.</p><div class="turn-tags"><span class="opportunity">Appreciation EO</span><span class="ace">Hope · support preference</span></div></div></article>
+        <article class="turn clinician" id="transcript-turn-11"><span class="turn-number">11</span><div><span class="turn-role">Clinician</span><p>Let me summarize: the biopsy confirms lymphoma, the next test identifies the type, and then the specialist will discuss treatment. We will arrange that visit, include your sister, and give you the terms in writing. What questions would you like us to address first?</p><div class="turn-tags"><span class="spikes">Strategy / Summary</span><span class="ace">Next steps · questions</span></div></div></article>
+        <article class="turn patient" id="transcript-turn-12"><span class="turn-number">12</span><div><span class="turn-role">Patient</span><p>Can we discuss the likely timeline and who I should call if the worry becomes overwhelming?</p><div class="turn-tags"><span class="ace">Question + support request</span></div></div></article>
       </div>
-      <p class="source-note">Canonical meeting asset: <a href="assets/synthetic-transcript.json">assets/synthetic-transcript.json</a>. Turn numbers remain stable for evidence linking.</p>
+      <p class="source-note"><strong>Synthetic demonstration transcript — not clinical data.</strong> Stable asset: <a href="assets/synthetic-transcript.json">assets/synthetic-transcript.json</a>.</p>
     </section>
 
-    <section class="slide" id="foundations" data-title="Foundations" aria-labelledby="foundations-title">
-      <p class="eyebrow">Original APEX foundations</p>
-      <h2 id="foundations-title">SPIKES structures the conversation; AFCE locates empathic opportunities and responses</h2>
-      <div class="framework-columns">
-        <article class="card blue framework-card">
-          <p class="eyebrow">Conversation structure</p>
-          <h3 class="framework-name">SPIKES</h3>
-          <p>Tracks the structure of breaking-bad-news communication and supports stage-aware patient behavior and learner feedback.</p>
-          <div class="stage-list" aria-label="SPIKES stages"><span>Setting</span><span>Perception</span><span>Invitation</span><span>Knowledge</span><span>Emotion</span><span>Strategy / Summary</span></div>
-        </article>
-        <article class="card teal framework-card">
-          <p class="eyebrow">Empathy discourse</p>
-          <h3 class="framework-name">AFCE</h3>
-          <p>Represents emotional and appraisal spans, elicitations, empathic responses, missed opportunities, and relevant discourse-level span/relation concepts.</p>
-          <div class="stage-list" aria-label="AFCE concepts"><span>Feeling</span><span>Judgment</span><span>Appreciation</span><span>Elicitation</span><span>Response</span><span>Missed opportunity</span></div>
-        </article>
-        <aside class="card amber framework-card">
-          <p class="eyebrow">Experimental complement</p>
-          <h3 class="framework-name">ACE-CT-inspired</h3>
-          <p>Explores broader communication-quality dimensions in the same transcript. It does <strong>not</strong> replace SPIKES or AFCE, and it is not an official or validated ACE-CT model.</p>
-        </aside>
+    <section class="slide" id="original-foundations" data-title="Original foundations" aria-labelledby="foundations-title">
+      <p class="eyebrow">Original research foundations</p>
+      <h2 id="foundations-title">Two lenses become observable signals, then feedback</h2>
+      <div class="foundation-grid">
+        <article class="foundation-flow"><h3>AFCE-aligned discourse flow</h3><div class="workflow" role="img" aria-label="Patient appraisal creates an empathy opportunity, clinician may elicit or respond, and APEX links or marks a missed opportunity"><div class="flow-node patient-node">Patient appraisal<span class="flow-label">Feeling · Judgment · Appreciation</span></div><div class="flow-arrow"></div><div class="flow-node evaluator-node">EO span</div><div class="flow-arrow"></div><div class="flow-column"><div class="flow-node evaluator-node">Elicitation</div><div class="flow-node evaluator-node">Response</div><div class="flow-node blocker-node">Missed</div></div></div></article>
+        <article class="foundation-flow"><h3>SPIKES conversation flow</h3><div class="workflow" role="img" aria-label="SPIKES stages progress from setting through perception invitation knowledge emotion and strategy or summary"><div class="flow-node patient-node">Setting</div><div class="flow-arrow"></div><div class="flow-node patient-node">Perception</div><div class="flow-arrow"></div><div class="flow-column"><div class="flow-node patient-node">Invitation</div><div class="flow-node patient-node">Knowledge</div><div class="flow-node patient-node">Emotion</div></div><div class="flow-arrow"></div><div class="flow-node patient-node">Strategy / Summary</div></div></article>
       </div>
-      <p class="source-note">Repository references: <a href="../../../docs/research/spikes_protocol.md">SPIKES protocol</a> and <a href="../../../docs/research/afce_framework.md">AFCE framework</a>.</p>
+      <div class="merge-row" role="img" aria-label="AFCE-aligned span relations and SPIKES coverage combine in APEX scoring and feedback"><div class="flow-node evaluator-node">Spans + relations</div><div class="flow-arrow"></div><div class="flow-node patient-node">Stage coverage</div><div class="flow-arrow"></div><div class="flow-node metrics-node">Scores · timeline · suggestions · research metrics</div></div>
+      <div class="callout warning" style="margin-top:16px"><strong>Scientific boundary:</strong> APEX implements an AFCE-aligned, rule-based operationalization of selected constructs.</div>
+      <p class="source-note">Sources: <a href="../../../research/afce_framework.md">APEX AFCE implementation note</a>, <a href="../../../research/spikes_protocol.md">SPIKES protocol note</a>, and <a href="https://aclanthology.org/2024.lrec-main.124/">Lahnala et al. (2024)</a>. This is not a full validated AFCE reproduction or an official AFCE evaluator.</p>
     </section>
 
-    <section class="slide" id="plugin-architecture" data-title="Plugin architecture" aria-labelledby="plugins-title">
-      <p class="eyebrow">Extensibility model</p>
-      <h2 id="plugins-title">Generate, interpret, and measure are intentionally separate responsibilities</h2>
-      <div class="plugin-flow" role="img" aria-label="Patient model generates dialogue behavior, evaluator interprets a completed session, and metrics plugin measures observable features. Fixed imports register classes, then settings or case selections are frozen on the session.">
-        <article class="card blue plugin-type">
-          <h3>Patient-model plugin</h3><span class="verb">Generates behavior</span>
-          <p>Async <span class="mono">generate_response(state, clinician_input)</span> produces a virtual-patient turn during the encounter.</p>
-        </article>
+    <section class="slide" id="system-architecture" data-title="Original system architecture" aria-labelledby="architecture-title">
+      <p class="eyebrow">Implemented system</p>
+      <h2 id="architecture-title">The patient is generated live; evaluation starts from the stored encounter</h2>
+      <div class="architecture-flow" role="img" aria-label="Case configuration goes to patient model plugin, conversation, ordered transcript, NLU and span analysis, SPIKES and AFCE-aligned signals, evaluator, feedback and metrics, then user interface">
+        <div class="flow-node patient-node">Case config<span class="flow-label">script · stage · plugin ids</span></div>
+        <div class="flow-node patient-node">Patient-model plugin<span class="flow-label">provider adapter inside</span></div>
+        <div class="flow-node patient-node">Conversation<span class="flow-label">clinician ↔ patient</span></div>
+        <div class="flow-node metrics-node">Ordered transcript<span class="flow-label">stored turns + frozen provenance</span></div>
+        <div class="flow-node evaluator-node">NLU / span analysis<span class="flow-label">EO · elicitation · response · SPIKES</span></div>
+        <div class="flow-node evaluator-node">Evaluator<span class="flow-label">baseline · hybrid · experimental</span></div>
+        <div class="flow-node metrics-node">Feedback + metrics<span class="flow-label">scores · evidence · limitations</span></div>
+        <div class="flow-node patient-node">UI<span class="flow-label">learner · admin · research view</span></div>
+      </div>
+      <div class="storage-split">
+        <article class="card blue"><h3>Production path</h3><p>Live patient response generation; transcript, feedback, and configured metrics may persist as part of the normal learner workflow.</p></article>
+        <article class="card amber"><h3>Research comparison path</h3><p>Reads one completed stored transcript, computes evaluator outputs in memory, exports a comparison artifact, and stays separate from canonical feedback.</p></article>
+      </div>
+      <div class="flow-legend"><span>Patient path</span><span class="eval">Evaluator path</span><span class="metric">Metrics / stored evidence</span><span class="experiment">Experimental comparison</span><span class="blocker">Boundary / blocker</span></div>
+      <p class="source-note">Repository basis: plugin interfaces and registry, default patient model, NLU adapters, scoring service, and evaluator comparison service.</p>
+    </section>
+
+    <section class="slide" id="ace-ct-evaluator" data-title="ACE-CT-inspired evaluator" aria-labelledby="ace-title">
+      <p class="eyebrow">Experimental · feature branch · non-default</p>
+      <h2 id="ace-title">A strict transcript-rubric pipeline makes scope and uncertainty inspectable</h2>
+      <div class="workflow" role="img" aria-label="Transcript is strictly projected, sent through versioned rubric and OpenAI or Gemini adapter, parsed as strict output, grouped into four groups and eleven dimensions, then returned as scores evidence confidence and limitations">
+        <div class="flow-node metrics-node">Stored transcript</div><div class="flow-arrow"></div>
+        <div class="flow-node experimental-node">Strict projection<span class="flow-label">user→clinician · assistant→patient</span></div><div class="flow-arrow"></div>
+        <div class="flow-node experimental-node">Versioned rubric<span class="flow-label">0.1.0-experimental</span></div><div class="flow-arrow"></div>
+        <div class="flow-node experimental-node">OpenAI / Gemini adapter</div><div class="flow-arrow"></div>
+        <div class="flow-node experimental-node">Strict typed output</div><div class="flow-arrow"></div>
+        <div class="flow-node evaluator-node">4 groups · 11 dimensions</div><div class="flow-arrow"></div>
+        <div class="flow-node metrics-node">Scores · evidence · confidence · limitations</div>
+      </div>
+      <div class="rubric-groups" aria-label="ACE-CT-inspired rubric groups and dimensions">
+        <article class="rubric-group"><h3>Respond</h3><ul><li>Respond to emotion <span class="status feature">partial</span></li></ul></article>
+        <article class="rubric-group"><h3>Listen</h3><ul><li>Elicit person perspective</li><li>Avoid interrupting / diverting <span class="status feature">partial</span></li><li>Assess understanding</li><li>Discuss hopes, priorities, worries, fears</li></ul></article>
+        <article class="rubric-group"><h3>Speak</h3><ul><li>Ask permission to progress</li><li>Avoid unexplained clinical terminology</li></ul></article>
+        <article class="rubric-group"><h3>General <span class="status feature">proposed</span></h3><ul><li>Offer question opportunities</li><li>Summarize conversation</li><li>Review next steps</li><li>Manage pace <span class="status feature">partial</span></li></ul></article>
+      </div>
+      <div class="rubric-status"><div class="callout warning"><strong>Status:</strong> experimental, unvalidated, gated, pending expert review.</div><div class="card soft"><strong>Observable</strong><p class="small">Transcript wording, order, cited turns.</p></div><div class="card amber"><strong>Partly / unavailable</strong><p class="small">Tone, silence, timing, overlap, non-verbal behavior.</p></div></div>
+      <p class="source-note">High-level direction only: <a href="https://doi.org/10.1016/j.pec.2025.109465">public ACE-CT article</a> plus “authorized confidential manuscript; public citation pending expert confirmation.” No private data, models, results, examples, weights, or unpublished anchors are reproduced.</p>
+    </section>
+
+    <section class="slide" id="comparison-flow" data-title="Non-persisting comparison flow" aria-labelledby="comparison-flow-title">
+      <p class="eyebrow">Research comparison boundary</p>
+      <h2 id="comparison-flow-title">Compare evaluators without rewriting the learner record</h2>
+      <div class="comparison-flow" role="img" aria-label="One completed session is loaded and validated, evaluated by four explicit evaluators, normalized into a comparison artifact, and exported without persistence">
+        <div class="flow-node metrics-node">Completed session<span class="flow-label">ordered transcript · stable identity</span></div>
         <div class="plugin-arrow" aria-hidden="true">→</div>
-        <article class="card amber plugin-type">
-          <h3>Evaluator plugin</h3><span class="verb">Interprets behavior</span>
-          <p>Async <span class="mono">evaluate(db, session_id)</span> interprets a completed session and returns the feedback contract.</p>
-        </article>
+        <div class="comparison-stack" aria-label="Evaluator options"><span>Baseline</span><span>Hybrid v1</span><span>Hybrid v2</span><span>ACE-CT-inspired</span></div>
         <div class="plugin-arrow" aria-hidden="true">→</div>
-        <article class="card teal plugin-type">
-          <h3>Metrics plugin</h3><span class="verb">Measures behavior</span>
-          <p>Sync <span class="mono">compute(db, session_id)</span> calculates observable research or analytics measurements.</p>
-        </article>
+        <div class="flow-column"><div class="flow-node metrics-node">Canonical JSON</div><div class="flow-node metrics-node">Optional CSV</div><div class="flow-node metrics-node">Evidence + provenance</div></div>
       </div>
-      <div class="callout"><strong>Lifecycle:</strong> startup imports a fixed module list → modules register classes in the in-memory <span class="mono">PluginRegistry</span> → configuration/case choices resolve to registry keys → selections freeze on the session → core services invoke the selected interfaces.</div>
-      <p class="source-note">Repository basis: <span class="mono">backend/src/plugins/load_plugins.py</span>, <span class="mono">registry.py</span>, the three <span class="mono">interfaces/</span> protocols, and session/scoring/dialogue services. There is no filesystem plugin discovery.</p>
+      <div class="no-overwrite"><strong>No overwrite</strong>Comparison reads the same completed session and computes outputs in memory. It does not write feedback, session metrics, turns, or plugin selections.</div>
+      <div class="grid-3" style="margin-top:16px"><article class="card soft"><h3>Explicit selection</h3><p>ACE-CT-inspired is excluded from <span class="mono">all</span>; the experimental path must be requested.</p></article><article class="card soft"><h3>Valid evidence</h3><p>Every cited turn must exist in the exact transcript identity used by every evaluator.</p></article><article class="card soft"><h3>Provider discipline</h3><p>Provider, model, prompt/rubric version, status, and limitations travel with the result.</p></article></div>
+      <p class="source-note">Implementation and boundary: <a href="../../../research/evaluator_comparison.md">evaluator_comparison.md</a> and <a href="../../../research/ace_ct_inspired_evaluator_design.md">ace_ct_inspired_evaluator_design.md</a>.</p>
     </section>
 
-    <section class="slide" id="plugin-inventory" data-title="Plugin inventory" aria-labelledby="inventory-title">
-      <p class="eyebrow">Actual registry on this branch</p>
-      <h2 id="inventory-title">Six implemented plugins; only one is feature-branch-only</h2>
-      <div class="table-wrap">
-        <table>
-          <caption>Current fixed plugin registry. Provider adapters are not separate patient-model plugins.</caption>
-          <thead><tr><th>Family / plugin</th><th>Version &amp; behavior</th><th>Status</th><th>Produces</th><th>Important limitation</th></tr></thead>
-          <tbody>
-            <tr><td><strong>Patient</strong><br>DefaultLLMPatientModel</td><td>1.0 · case/SPIKES-aware prompt; OpenAI or Gemini adapter</td><td><span class="status main">main · default</span></td><td>Simulated patient response</td><td>General case-script patient; provider adapters remain inside one plugin.</td></tr>
-            <tr><td><strong>Evaluator</strong><br>ApexBaselineEvaluator</td><td>1.0 · rule-only</td><td><span class="status main">main · comparison</span></td><td>APEX feedback and scores</td><td>Rules can miss context and indirect language.</td></tr>
-            <tr><td><strong>Evaluator</strong><br>ApexHybridEvaluator</td><td>1.0 · rule core + optional LLM merge</td><td><span class="status main">main · default</span></td><td>Persistable APEX feedback</td><td>Real LLM review requires configured OpenAI/model.</td></tr>
-            <tr><td><strong>Evaluator</strong><br>ApexHybridV2Evaluator</td><td>2.0 · rule core + three focused reviews + 70/30 merge</td><td><span class="status main">main · comparison</span></td><td>APEX feedback with focused review</td><td>Comparison definition is currently OpenAI-only.</td></tr>
-            <tr><td><strong>Evaluator</strong><br>ACECTInspiredRubricEvaluator</td><td>0.1.0-experimental · strict provider-neutral transcript rubric</td><td><span class="status feature">feature · gated · unmerged</span></td><td>4 domains, 11 dimensions, evidence, compatibility projection</td><td>Pending expert review; transcript-only; experimental and unvalidated.</td></tr>
-            <tr><td><strong>Metrics</strong><br>ApexMetrics</td><td>1.0 · reuses span/SPIKES scoring helpers</td><td><span class="status main">main · default</span></td><td>AFCE counts and SPIKES coverage</td><td>Observable rule-derived measures are not validation.</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="source-note">Confirmed against <span class="mono">PLUGIN_MODULES</span>, registry calls, class metadata, and settings defaults on <span class="mono">presentation/september-1-eacl-briefing</span>. Full inventory: <a href="assets/plugin-roadmap.json">assets/plugin-roadmap.json</a>.</p>
-    </section>
-
-    <section class="slide" id="comparison-infrastructure" data-title="Comparison infrastructure" aria-labelledby="comparison-infra-title">
-      <p class="eyebrow">Completed on main</p>
-      <h2 id="comparison-infra-title">One frozen transcript can be evaluated several ways without changing the learner record</h2>
-      <div class="comparison-flow" role="img" aria-label="The same completed stored transcript is hashed, then passed independently to baseline, hybrid version one, hybrid version two, and an optional explicitly selected ACE-CT-inspired evaluator. Sanitized results are combined into JSON and CSV artifacts without persistence.">
-        <article class="card blue"><h3>Completed session</h3><p>Ordered transcript</p><p class="mono small">SHA-256 canonical hash</p></article>
-        <div class="plugin-arrow" aria-hidden="true">→</div>
-        <div class="comparison-stack"><span>Baseline</span><span>Hybrid v1</span><span>Hybrid v2</span><span>ACE-CT-inspired<br><small>explicit only</small></span></div>
-        <div class="plugin-arrow" aria-hidden="true">→</div>
-        <article class="card teal"><h3>Comparison artifact</h3><p>Per-evaluator provenance, runtime, scores, evidence, failures, and descriptive analysis</p><p class="mono small">JSON canonical · CSV summary</p></article>
-      </div>
-      <div class="grid-4">
-        <div class="card soft"><h3>No overwrite</h3><p class="small">No saved feedback, metrics, session fields, or turns are changed.</p></div>
-        <div class="card soft"><h3>Deterministic identity</h3><p class="small">Transcript hash detects any mid-comparison change.</p></div>
-        <div class="card soft"><h3>Failure isolation</h3><p class="small">A sanitized failure result does not discard successful evaluators.</p></div>
-        <div class="card soft"><h3>Safe exports</h3><p class="small">Transcript text is omitted unless explicitly included; CSV omits evidence blobs.</p></div>
-      </div>
-      <p class="source-note">Merged into <span class="mono">main</span> via PR #1. Repository source: <a href="../../../docs/research/evaluator_comparison.md">evaluator comparison guide</a> and <span class="mono">backend/src/services/evaluator_comparison_service.py</span>.</p>
-    </section>
-
-    <section class="slide" id="illustrative-comparison" data-title="Mock comparison" aria-labelledby="mock-title">
-      <p class="eyebrow">UI concept · interaction specification</p>
-      <h2 id="mock-title">Different evaluators can inspect the same evidence without pretending their constructs are equivalent</h2>
-      <div class="callout warning"><strong>Illustrative mock output — not an experimental result.</strong> No evaluator or provider was run; values are arbitrary interface examples and do not rank evaluator validity.</div>
-      <div class="comparison-demo">
-        <div>
-          <h3>Synthetic transcript</h3>
-          <p class="small muted">Choose an evidence turn to highlight it.</p>
-          <div class="mini-transcript" id="comparison-transcript" aria-label="Compact synthetic transcript for comparison evidence">
-            <p class="mini-turn clinician" data-turn="1"><b>1 · Clinician</b> What do you understand about the tests?</p>
-            <p class="mini-turn patient" data-turn="2"><b>2 · Patient</b> I am scared it might be cancer.</p>
-            <p class="mini-turn clinician" data-turn="3"><b>3 · Clinician</b> The biopsy shows lymphoma… malignancy… immunophenotyping.</p>
-            <p class="mini-turn patient" data-turn="4"><b>4 · Patient</b> We moved past how frightening this is.</p>
-            <p class="mini-turn clinician" data-turn="5"><b>5 · Clinician</b> You are right. I am sorry. Would it be okay if I explain?</p>
-            <p class="mini-turn patient" data-turn="6"><b>6 · Patient</b> Yes, please.</p>
-            <p class="mini-turn clinician" data-turn="7"><b>7 · Clinician</b> Plain-language explanation + understanding check.</p>
-            <p class="mini-turn patient" data-turn="8"><b>8 · Patient</b> Teach-back + concern about daughter and work.</p>
-            <p class="mini-turn clinician" data-turn="9"><b>9 · Clinician</b> Acknowledges concern + asks what matters most.</p>
-            <p class="mini-turn patient" data-turn="10"><b>10 · Patient</b> Names priority and support preference.</p>
-            <p class="mini-turn clinician" data-turn="11"><b>11 · Clinician</b> Summary, next steps, and question invitation.</p>
-            <p class="mini-turn patient" data-turn="12"><b>12 · Patient</b> Asks about timing and emotional support.</p>
-          </div>
+    <section class="slide" id="illustrative-comparison" data-title="Illustrative comparison" aria-labelledby="comparison-title">
+      <p class="eyebrow">Interactive meeting mockup</p>
+      <h2 id="comparison-title">One transcript, four inspectable evaluator views</h2>
+      <div class="callout warning"><strong>Illustrative mock output — not an experimental result.</strong> Values are arbitrary interface examples; no evaluator or provider was run.</div>
+      <div class="comparison-demo" style="margin-top:14px">
+        <div class="mini-transcript" aria-label="Synthetic transcript evidence turns">
+          <div class="mini-turn clinician" data-turn="1"><b>1 Clinician</b> asks what the patient understands.</div><div class="mini-turn patient" data-turn="2"><b>2 Patient</b> names fear and concern for daughter.</div><div class="mini-turn clinician" data-turn="3"><b>3 Clinician</b> discloses diagnosis with jargon; misses fear.</div><div class="mini-turn patient" data-turn="4"><b>4 Patient</b> names the miss and asks about “malignancy.”</div><div class="mini-turn clinician" data-turn="5"><b>5 Clinician</b> apologizes, names fear, asks permission.</div><div class="mini-turn patient" data-turn="6"><b>6 Patient</b> grants permission; asks about treatment.</div><div class="mini-turn clinician" data-turn="7"><b>7 Clinician</b> uses plain language and checks understanding.</div><div class="mini-turn patient" data-turn="8"><b>8 Patient</b> teaches back; names work and caregiving fears.</div><div class="mini-turn clinician" data-turn="9"><b>9 Clinician</b> acknowledges and elicits priorities.</div><div class="mini-turn patient" data-turn="10"><b>10 Patient</b> names hope and support preference.</div><div class="mini-turn clinician" data-turn="11"><b>11 Clinician</b> summarizes, reviews next steps, invites questions.</div><div class="mini-turn patient" data-turn="12"><b>12 Patient</b> asks about timeline and support.</div>
         </div>
         <div>
-          <div class="tablist" role="tablist" aria-label="Illustrative evaluator result">
-            <button class="tab" id="tab-baseline" role="tab" aria-selected="true" aria-controls="panel-baseline" data-panel="baseline">Baseline</button>
-            <button class="tab" id="tab-hybrid-v1" role="tab" aria-selected="false" aria-controls="panel-hybrid-v1" data-panel="hybrid-v1">Hybrid v1</button>
-            <button class="tab" id="tab-hybrid-v2" role="tab" aria-selected="false" aria-controls="panel-hybrid-v2" data-panel="hybrid-v2">Hybrid v2</button>
-            <button class="tab" id="tab-ace" role="tab" aria-selected="false" aria-controls="panel-ace" data-panel="ace">ACE-CT-inspired</button>
-          </div>
-          <article class="comparison-panel" id="panel-baseline" role="tabpanel" aria-labelledby="tab-baseline">
-            <div class="status-row"><span class="status main">Rule-only · v1.0</span><span class="status">Runtime unavailable</span></div>
-            <div class="score-grid"><div class="score"><strong>57</strong><span>Empathy</span></div><div class="score"><strong>69</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>68</strong><span>Overall</span></div></div>
-            <p><strong>Strength:</strong> perception check, later emotional acknowledgement, understanding check, and summary.</p>
-            <p><strong>Improve:</strong> turn 3 misses fear and introduces dense terminology.</p>
-            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="1">1</button><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="11">11</button></div>
-          </article>
-          <article class="comparison-panel" id="panel-hybrid-v1" role="tabpanel" aria-labelledby="tab-hybrid-v1">
-            <div class="status-row"><span class="status main">Rule + optional LLM · v1.0 · default</span><span class="status">Provider not run</span></div>
-            <div class="score-grid"><div class="score"><strong>65</strong><span>Empathy</span></div><div class="score"><strong>74</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>73</strong><span>Overall</span></div></div>
-            <p><strong>Strength:</strong> contextualizes the repair after the initial missed cue.</p>
-            <p><strong>Improve:</strong> acknowledge fear before diagnosis and technical language.</p>
-            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="4">4</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button></div>
-          </article>
-          <article class="comparison-panel" id="panel-hybrid-v2" role="tabpanel" aria-labelledby="tab-hybrid-v2">
-            <div class="status-row"><span class="status main">Three focused reviews · v2.0</span><span class="status">Provider not run</span></div>
-            <div class="score-grid"><div class="score"><strong>70</strong><span>Empathy</span></div><div class="score"><strong>78</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>77</strong><span>Overall</span></div></div>
-            <p><strong>Strength:</strong> separates empathy, communication, and sequencing observations.</p>
-            <p><strong>Improve:</strong> surface both the missed cue and an explicit support contact.</p>
-            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button><button class="evidence-button" data-evidence="11">11</button><button class="evidence-button" data-evidence="12">12</button></div>
-          </article>
-          <article class="comparison-panel" id="panel-ace" role="tabpanel" aria-labelledby="tab-ace">
-            <div class="status-row"><span class="status feature">Experimental · unmerged · v0.1.0</span><span class="status">Provider not selected/run</span></div>
-            <div class="score-grid"><div class="score"><strong>50</strong><span>Empathy*</span></div><div class="score"><strong>65</strong><span>Communication*</span></div><div class="score"><strong>83</strong><span>SPIKES†</span></div><div class="score"><strong>65</strong><span>Overall*</span></div></div>
-            <div class="domain-grid" aria-label="Four proposed ACE-CT-inspired domains"><div class="domain"><strong>3.0</strong>Respond</div><div class="domain"><strong>3.5</strong>Listen</div><div class="domain"><strong>3.5</strong>Speak</div><div class="domain"><strong>4.0</strong>General‡</div></div>
-            <div class="dimension-list" aria-label="All eleven ACE-CT-inspired dimensions">
-              <div class="dimension partial"><span>Respond to emotion</span><b>3 / 5</b></div>
-              <div class="dimension"><span>Elicit perspective</span><b>4 / 5</b></div>
-              <div class="dimension partial"><span>Avoid interruption / diversion</span><b>2 / 5</b></div>
-              <div class="dimension"><span>Assess understanding</span><b>4 / 5</b></div>
-              <div class="dimension"><span>Discuss hopes / priorities / fears</span><b>4 / 5</b></div>
-              <div class="dimension"><span>Ask permission to progress</span><b>4 / 5</b></div>
-              <div class="dimension"><span>Avoid unexplained terminology</span><b>3 / 5</b></div>
-              <div class="dimension"><span>Offer question opportunities</span><b>4 / 5</b></div>
-              <div class="dimension"><span>Summarize conversation</span><b>4 / 5</b></div>
-              <div class="dimension"><span>Review next steps</span><b>4 / 5</b></div>
-              <div class="dimension partial null"><span>Manage pace · insufficient text evidence</span><b>Null</b></div>
-            </div>
-            <p class="small"><strong>*</strong> Provisional engineering projection, not an official ACE-CT mapping. <strong>†</strong> External APEX baseline field. <strong>‡</strong> Formal fourth-domain status requires expert confirmation.</p>
-            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="4">4</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button><button class="evidence-button" data-evidence="10">10</button><button class="evidence-button" data-evidence="11">11</button><button class="evidence-button" data-evidence="12">12</button></div>
-          </article>
+          <div class="tablist" role="tablist" aria-label="Evaluator comparison tabs"><button class="tab" role="tab" aria-selected="true" data-panel="baseline">Baseline</button><button class="tab" role="tab" aria-selected="false" data-panel="hybrid1">Hybrid v1</button><button class="tab" role="tab" aria-selected="false" data-panel="hybrid2">Hybrid v2</button><button class="tab" role="tab" aria-selected="false" data-panel="ace">ACE-CT-inspired</button></div>
+          <section class="comparison-panel" id="panel-baseline" role="tabpanel"><h3>Baseline · rule only · v1.0</h3><div class="score-grid"><div class="score"><strong>57</strong><span>Empathy</span></div><div class="score"><strong>69</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>68</strong><span>Overall</span></div></div><p><strong>Example:</strong> detects the perception check, later acknowledgement, understanding check, and summary; flags turn 3 as a missed response and dense terminology.</p><div class="evidence-buttons" aria-label="Baseline evidence turns"><button class="evidence-button" data-evidence="1">T1</button><button class="evidence-button" data-evidence="2">T2</button><button class="evidence-button" data-evidence="3">T3</button><button class="evidence-button" data-evidence="5">T5</button><button class="evidence-button" data-evidence="7">T7</button><button class="evidence-button" data-evidence="11">T11</button></div><p class="source-note">Rule patterns can miss indirect behavior. Runtime/provider: not applicable.</p></section>
+          <section class="comparison-panel" id="panel-hybrid1" role="tabpanel"><h3>Hybrid v1 · rule core + optional LLM · v1.0</h3><div class="score-grid"><div class="score"><strong>65</strong><span>Empathy</span></div><div class="score"><strong>74</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>73</strong><span>Overall</span></div></div><p><strong>Example:</strong> adds contextual feedback about the repair and recommends acknowledging fear before diagnosis and jargon.</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="2">T2</button><button class="evidence-button" data-evidence="3">T3</button><button class="evidence-button" data-evidence="4">T4</button><button class="evidence-button" data-evidence="5">T5</button><button class="evidence-button" data-evidence="8">T8</button><button class="evidence-button" data-evidence="9">T9</button></div><p class="source-note">Provider supported: OpenAI; no model selected and no call occurred.</p></section>
+          <section class="comparison-panel" id="panel-hybrid2" role="tabpanel"><h3>Hybrid v2 · three focused reviews + 70/30 merge · v2.0</h3><div class="score-grid"><div class="score"><strong>70</strong><span>Empathy</span></div><div class="score"><strong>78</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>77</strong><span>Overall</span></div></div><p><strong>Example:</strong> separates empathy, communication, and sequencing observations while retaining the rule core.</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="3">T3</button><button class="evidence-button" data-evidence="5">T5</button><button class="evidence-button" data-evidence="7">T7</button><button class="evidence-button" data-evidence="8">T8</button><button class="evidence-button" data-evidence="9">T9</button><button class="evidence-button" data-evidence="11">T11</button><button class="evidence-button" data-evidence="12">T12</button></div><p class="source-note">Higher mock values do not imply superior validity. No provider call occurred.</p></section>
+          <section class="comparison-panel" id="panel-ace" role="tabpanel"><h3>ACE-CT-inspired · experimental transcript rubric · v0.1.0</h3><div class="domain-grid"><div class="domain"><strong>3.0</strong>Respond</div><div class="domain"><strong>3.5</strong>Listen</div><div class="domain"><strong>3.5</strong>Speak</div><div class="domain"><strong>4.0</strong>General*</div></div><div class="dimension-list"><div class="dimension partial"><span>Respond to emotion</span><b>3</b></div><div class="dimension"><span>Elicit perspective</span><b>4</b></div><div class="dimension partial"><span>Avoid diverting</span><b>2</b></div><div class="dimension"><span>Assess understanding</span><b>4</b></div><div class="dimension"><span>Discuss hopes / worries</span><b>4</b></div><div class="dimension"><span>Ask permission</span><b>4</b></div><div class="dimension"><span>Avoid jargon</span><b>3</b></div><div class="dimension"><span>Offer questions</span><b>4</b></div><div class="dimension"><span>Summarize</span><b>4</b></div><div class="dimension"><span>Review next steps</span><b>4</b></div><div class="dimension null"><span>Manage pace</span><b>—</b></div></div><div class="evidence-buttons"><button class="evidence-button" data-evidence="3">Miss · T3</button><button class="evidence-button" data-evidence="5">Repair · T5</button><button class="evidence-button" data-evidence="7">Clarity · T7</button><button class="evidence-button" data-evidence="11">Plan · T11</button></div><p class="source-note">*General is proposed. Partial dimensions cannot observe tone, silence, timing, overlap, or non-verbal behavior. OpenAI/Gemini supported; no model selected and no call occurred.</p></section>
         </div>
       </div>
-      <p class="source-note">Full explicit mock asset: <a href="assets/illustrative-comparison.json">assets/illustrative-comparison.json</a>. The values are invented for interface discussion; higher numbers do not imply better validity.</p>
+      <p class="source-note">Data source: <a href="assets/illustrative-comparison.json">assets/illustrative-comparison.json</a>. Every evidence control maps to a valid turn in the stable synthetic transcript.</p>
     </section>
 
-    <section class="slide" id="framework-fit" data-title="Framework fit" aria-labelledby="fit-title">
-      <p class="eyebrow">Complementary lenses</p>
-      <h2 id="fit-title">Three views answer different questions about the same conversation</h2>
-      <div class="vennish" role="img" aria-label="SPIKES assesses difficult-conversation structure, AFCE identifies empathic opportunities and responses, and ACE-CT-inspired explores broader communication-quality dimensions. The lenses overlap but are not equivalent.">
-        <article class="lens"><h3>SPIKES</h3><p><strong>Question:</strong> Did the conversation follow a useful difficult-news structure?</p><p class="muted">Setting · Perception · Invitation · Knowledge · Emotion · Strategy/Summary</p></article>
-        <article class="lens"><h3>AFCE</h3><p><strong>Question:</strong> Where were emotional/appraisal opportunities, elicitations, responses, and misses?</p><p class="muted">Feeling · Judgment · Appreciation · discourse relations</p></article>
-        <article class="lens"><h3>ACE-CT-inspired</h3><p><strong>Question:</strong> What broader communication behaviors are visible—and which are not observable—in this transcript?</p><p class="muted">Respond · Listen · Speak · proposed General group</p></article>
+    <section class="slide" id="three-lenses" data-title="Three complementary lenses" aria-labelledby="lenses-title">
+      <p class="eyebrow">Conceptual fit</p>
+      <h2 id="lenses-title">Three lenses overlap—but answer different questions</h2>
+      <div class="vennish" role="img" aria-label="SPIKES, AFCE-aligned signals, and ACE-CT-inspired assessment overlap in observable communication behavior but are not equivalent and do not replace one another">
+        <article class="lens"><h3>SPIKES</h3><p><strong>Structure:</strong> how the difficult-news conversation progresses.</p><p class="muted">Setting · Perception · Invitation · Knowledge · Emotion · Strategy/Summary</p></article>
+        <article class="lens"><h3>AFCE-aligned</h3><p><strong>Discourse:</strong> where empathy opportunities, elicitations, responses, and misses occur.</p><p class="muted">Feeling · Judgment · Appreciation · turn-linked relations</p></article>
+        <article class="lens"><h3>ACE-CT-inspired</h3><p><strong>Broader rubric:</strong> which observable communication behaviors appear, with evidence and modality limits.</p><p class="muted">Respond · Listen · Speak · proposed General group</p></article>
       </div>
-      <div class="callout warning"><strong>Compatibility is not equivalence.</strong> Projecting ACE-CT-inspired results into APEX <span class="mono">empathy</span>, <span class="mono">communication</span>, <span class="mono">overall</span>, and external <span class="mono">SPIKES</span> fields is provisional engineering compatibility—not an official ACE-CT mapping.</div>
+      <div class="overlap-strip"><div class="flow-node patient-node">Sequence evidence</div><div class="overlap-mark">overlap ≠ equivalence</div><div class="flow-node evaluator-node">Empathy evidence</div><div class="overlap-mark">overlap ≠ replacement</div><div class="flow-node experimental-node">Rubric evidence</div></div>
+      <div class="compatibility-bridge"><strong>Compatibility bridge:</strong> ACE-CT-inspired results may project into familiar APEX display fields for comparison, but those fields are provisional engineering mappings—not an official framework crosswalk.</div>
     </section>
 
-    <section class="slide" id="paper-boundary" data-title="Manuscript boundary" aria-labelledby="boundary-title">
-      <p class="eyebrow">Provenance and confidentiality</p>
-      <h2 id="boundary-title">We adopted a framework direction—not a private research system</h2>
-      <div class="boundary-compare">
-        <article class="card red">
-          <p class="eyebrow">Authorized anonymous manuscript · high-level only</p>
-          <h3>Research benchmarking architecture</h3>
-          <ul>
-            <li>Private ACE-CT encounters and human ratings</li>
-            <li>Transcript preprocessing</li>
-            <li>Embedding/regression, transformer, and general-LLM research directions</li>
-            <li>Predictions compared against human ratings</li>
-          </ul>
-        </article>
-        <div class="boundary-divider" aria-hidden="true">boundary</div>
-        <article class="card teal">
-          <p class="eyebrow">APEX feature branch</p>
-          <h3>Experimental integration architecture</h3>
-          <ul>
-            <li>Learner selects a synthetic case and converses with a virtual patient</li>
-            <li>Strict interleaved transcript projection + deterministic hash</li>
-            <li>Versioned provisional rubric + provider-independent service</li>
-            <li>Structured evidence-backed output + non-persisting comparison</li>
-            <li>Sanitized research artifact + planned read-only UI</li>
-          </ul>
-        </article>
-      </div>
-      <div class="callout boundary" style="margin-top:18px"><strong>Boundary:</strong> We adopted the framework direction, not private data, trained models, model weights, private examples, reported results, or exact unpublished scoring anchors. APEX does not claim reproduction of the manuscript’s model.</div>
-      <p class="source-note">Provenance label: <strong>authorized confidential manuscript; public citation pending expert confirmation</strong>. Separate public attribution: Arora et al. (2026), <a href="https://doi.org/10.1016/j.pec.2025.109465">public ACE-CT article</a>.</p>
-    </section>
-
-    <section class="slide" id="engineering-status" data-title="Engineering status" aria-labelledby="status-title">
-      <p class="eyebrow">What is complete</p>
-      <h2 id="status-title">The comparison spine is merged; ACE-CT experimentation remains isolated on its feature branch</h2>
-      <div class="grid-2">
-        <article class="status-group card teal">
-          <div class="status-row"><span class="status main">Merged into main · PR #1</span></div>
-          <ul class="checklist">
-            <li>Non-persisting scoring core</li>
-            <li>Baseline / hybrid v1 / hybrid v2 comparison</li>
-            <li>Canonical JSON and compact CSV exports</li>
-            <li>Deterministic transcript hashing</li>
-            <li>Evaluator/model provenance and runtime</li>
-            <li>Per-evaluator failure isolation</li>
-            <li>Seeded offline case-study command and artifact path</li>
-            <li>Automated tests and research documentation</li>
-          </ul>
-        </article>
-        <article class="status-group card amber">
-          <div class="status-row"><span class="status feature">ACE feature branch · not merged</span></div>
-          <ul class="checklist feature-list">
-            <li>Strict transcript projection and role mapping</li>
-            <li>Versioned provisional rubric; 4 groups / 11 dimensions</li>
-            <li>Typed framework result and explicit limitations</li>
-            <li>Provider-independent evaluator service</li>
-            <li>OpenAI / Gemini selection for ACE only</li>
-            <li>Experimental gating; no surprise call in “all”</li>
-            <li>Comparison integration + compatibility source labels</li>
-            <li>Synthetic fake-adapter review artifact and guide</li>
-            <li>Non-live automated verification</li>
-          </ul>
-        </article>
-      </div>
-      <p class="source-note">Status derived from <span class="mono">main..ace-ct-inspired-evaluator</span> commit history and current source. No production frontend comparison interface exists in <span class="mono">Admin.tsx</span>.</p>
-    </section>
-
-    <section class="slide" id="plugin-roadmap" data-title="Plugin roadmap" aria-labelledby="roadmap-title">
-      <p class="eyebrow">Literature-backed candidates</p>
-      <h2 id="roadmap-title">The roadmap is broad; the pre-EACL implementation should remain narrow</h2>
-      <div class="table-wrap">
-        <table class="roadmap-table">
-          <caption>Every row is proposed—not implemented. “Inspired by” does not mean reproduction.</caption>
-          <thead><tr><th>Family · candidate</th><th>Literature inspiration</th><th>Value to APEX</th><th>Feasibility</th><th>Main dependency / risk</th></tr></thead>
-          <tbody>
-            <tr><td>Patient · Minimal adaptive state</td><td>Lee et al. 2025 · Adaptive-VP</td><td>Affect/trust/disclosure respond across turns.</td><td><span class="status feature">Stretch</span></td><td>State rules + fixtures / demo distraction, reproducibility</td></tr>
-            <tr><td>Patient · Service-flow-aware</td><td>Bao et al. 2025 · SFMSS</td><td>Represent scenario phases and care-flow transitions.</td><td><span class="status">Post-EACL</span></td><td>Authorized flow schemas / clinical-fidelity overclaim</td></tr>
-            <tr><td>Patient · Emotion-aware</td><td>Feng et al. 2024</td><td>Make patient affect responsive to clinician behavior.</td><td><span class="status">Post-EACL</span></td><td>State policy / stereotyped or exaggerated affect</td></tr>
-            <tr><td>Patient · Mental-health-specific</td><td>Wang et al. 2024 · PATIENT-ψ; Atapattu et al. 2025</td><td>Support specialized training scenarios.</td><td><span class="status">Post-EACL</span></td><td>Clinical governance / high safety and representation risk</td></tr>
-            <tr><td>Patient · Speech-to-speech</td><td>Emerson et al. 2026</td><td>Natural spoken encounter; future timing/prosody signals.</td><td><span class="status">Post-EACL</span></td><td>Audio privacy + latency / cost, accessibility, validation</td></tr>
-            <tr><td>Evaluator · Empathy intent</td><td>Jiang et al. 2023</td><td>Add an intent-oriented lens beside AFCE.</td><td><span class="status feature">Stretch</span></td><td>Public operationalization + labels / inferred intent is not fact</td></tr>
-            <tr><td>Evaluator · Non-emotion-centric empathy</td><td>Huangfu et al. 2025; Lahnala et al. 2022</td><td>Broaden beyond emotion words to supportive behavior.</td><td><span class="status">Post-EACL</span></td><td>Construct boundary / double-counting and opaque scores</td></tr>
-            <tr><td>Evaluator · Patient-simulation quality</td><td>Shi et al. 2024; Bao et al. 2025</td><td>Check case, role, and flow consistency.</td><td><span class="status feature">Stretch</span></td><td>Case-grounded criteria / style rewarded over fidelity</td></tr>
-            <tr><td>Evaluator · Supervised ACE-CT regression</td><td>Public ACE-CT article; confidential direction label</td><td>Research baseline only if authorized labels exist.</td><td><span class="status">Post-EACL</span></td><td>Data rights + expert labels / leakage, reproduction claims</td></tr>
-            <tr><td>Evaluator · Transformer ACE-CT</td><td>Public ACE-CT article; confidential direction label</td><td>Task-specific research after governance and baselines.</td><td><span class="status">Post-EACL</span></td><td>Substantial authorized data / opacity, overfitting</td></tr>
-            <tr><td>Metrics · Transcript dynamics</td><td>Wang et al. 2025</td><td>Turn balance, cadence, adjacency, sequence features.</td><td><span class="status main">Before EACL</span></td><td>Definitions + fixtures / quantity mistaken for quality</td></tr>
-            <tr><td>Metrics · Jargon / readability</td><td>ACE-CT-inspired provisional direction · citation pending</td><td>Transparent terminology and readability signals.</td><td><span class="status main">Before EACL</span></td><td>Term policy / readability is not understanding</td></tr>
-            <tr><td>Metrics · Questions / understanding checks</td><td>Lahnala et al. 2024; ACE-CT-inspired provisional direction</td><td>Count invitations, checks, and teach-back sequences.</td><td><span class="status main">Before EACL</span></td><td>Rule review / a question mark is not a check</td></tr>
-            <tr><td>Metrics · Evidence grounding</td><td>Shi et al. 2024 survey; APEX engineering need</td><td>Validate turn references; flag duplicates/unsupported links.</td><td><span class="status main">Before EACL</span></td><td>Stable schema / valid coordinates do not prove interpretation</td></tr>
-            <tr><td>Metrics · Evaluator stability</td><td>Shi et al. 2024 survey; reproducibility objective</td><td>Repeated-run variance with frozen provenance.</td><td><span class="status feature">Stretch</span></td><td>Authorized call budget / small samples overstate stability</td></tr>
-            <tr><td>Metrics · Patient consistency</td><td>Adaptive-VP; PATIENT-ψ</td><td>Track contradictions against case and explicit state.</td><td><span class="status feature">Stretch</span></td><td>Structured case facts / flexibility misread as inconsistency</td></tr>
-            <tr><td>Metrics · Service-flow coverage</td><td>Bao et al. 2025 · SFMSS</td><td>Measure expected scenario phases without equating order to quality.</td><td><span class="status">Post-EACL</span></td><td>Flow annotations / rigid metrics punish adaptation</td></tr>
-            <tr><td>Metrics · Audio interaction</td><td>Emerson et al. 2026</td><td>Future latency, overlap, pause, delivery signals.</td><td><span class="status">Post-EACL</span></td><td>Consent + signal definitions / sensitive audio and proxy validity</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="source-note">Detailed citations, URLs, dependencies, and risks: <a href="assets/plugin-roadmap.json">assets/plugin-roadmap.json</a>. Proposals are inspired by the listed public works; no paper system, dataset, result, or model is claimed as reproduced.</p>
-    </section>
-
-    <section class="slide" id="pre-eacl-scope" data-title="Recommended scope" aria-labelledby="scope-title">
-      <p class="eyebrow">Recommendation</p>
-      <h2 id="scope-title">Build the smallest defensible comparison demo—and freeze it early</h2>
-      <div class="grid-2">
-        <ol class="priority-list">
-          <li><div><strong>Restore and verify the full application workflow.</strong><br><span class="muted small">Case → conversation → feedback → admin review.</span></div></li>
-          <li><div><strong>Obtain ACE-CT scientific and disclosure decisions.</strong></div></li>
-          <li><div><strong>Run minimal controlled Gemini / OpenAI smoke tests.</strong><br><span class="muted small">Only after authorization; capture exact provenance.</span></div></li>
-          <li><div><strong>Implement a read-only transcript-plus-comparison UI.</strong></div></li>
-          <li><div><strong>Add deterministic transcript / evidence metrics if time permits.</strong></div></li>
-          <li><div><strong>Establish a small expert-reviewed evaluation set.</strong></div></li>
-          <li><div><strong>Freeze prompts, rubric, provider/model, fixtures, and provenance.</strong></div></li>
-          <li><div><strong>Prepare paper, architecture figure, demo video, and offline fallback.</strong></div></li>
-        </ol>
-        <div>
-          <article class="card amber">
-            <p class="eyebrow">Stretch only</p>
-            <h3>Minimal adaptive-patient state</h3>
-            <p>Attempt only after the core demonstration works end to end and remains reproducible.</p>
-          </article>
-          <article class="card red" style="margin-top:16px">
-            <p class="eyebrow">Explicitly avoid before submission</p>
-            <h3>Several large new plugins</h3>
-            <p>Do not divide the remaining time across speech-to-speech, mental-health specialization, supervised ACE-CT models, or multiple new LLM evaluators.</p>
-          </article>
-          <div class="callout" style="margin-top:16px"><strong>Demo thesis:</strong> APEX is useful because it makes patient simulation, evaluator experimentation, evidence, provenance, and comparison inspectable—not because it maximizes plugin count.</div>
+    <section class="slide" id="extensibility-model" data-title="Extensibility model" aria-labelledby="extensibility-title">
+      <p class="eyebrow">Plugin architecture</p>
+      <h2 id="extensibility-title">APEX Core owns the workflow; three plugin families own bounded behavior</h2>
+      <div class="plugin-tree" role="img" aria-label="APEX Core branches to patient model, evaluator, and metrics plugin families, each with explicit inputs and outputs">
+        <div class="flow-node metrics-node tree-root">APEX Core<span class="flow-label">case · session · transcript · persistence · UI</span></div>
+        <div class="tree-branches">
+          <div class="tree-branch"><article class="interface-box"><h3>Patient-model plugin</h3><p><strong>Input</strong><br>Case + SPIKES stage + conversation history + clinician turn</p><p><strong>Output</strong><br>One simulated patient response</p><code>generate_response(state, clinician_input)</code></article></div>
+          <div class="tree-branch"><article class="interface-box evaluator"><h3>Evaluator plugin</h3><p><strong>Input</strong><br>Database context + completed session id</p><p><strong>Output</strong><br>Structured feedback response</p><code>evaluate(db, session_id)</code></article></div>
+          <div class="tree-branch"><article class="interface-box metrics"><h3>Metrics plugin</h3><p><strong>Input</strong><br>Database context + completed session id</p><p><strong>Output</strong><br>Research metrics dictionary</p><code>compute(db, session_id)</code></article></div>
         </div>
       </div>
+      <div class="grid-4"><article class="card soft"><h3>Deterministic registration</h3><p class="small">Known modules register class keys at startup; unknown keys fail explicitly.</p></article><article class="card soft"><h3>Frozen session selection</h3><p class="small">Plugin identifiers and versions are copied onto the session, preserving encounter provenance.</p></article><article class="card soft"><h3>Adapters are not plugins</h3><p class="small">OpenAI/Gemini and NLU adapters sit inside plugin implementations; they are not extra registry families.</p></article><article class="card amber"><h3>Experimental is opt-in</h3><p class="small">ACE-CT-inspired work is gated, non-default, and explicit in comparison.</p></article></div>
     </section>
 
-    <section class="slide" id="timeline" data-title="Timeline" aria-labelledby="timeline-title">
-      <p class="eyebrow">September 1–22</p>
-      <h2 id="timeline-title">Decide this week, validate next, then freeze for paper and demo production</h2>
-      <div class="timeline" aria-label="Eight phases from September 1 to September 22, 2026">
-        <article class="phase"><span class="phase-date">Sep 1–2</span><h3>Scientific decisions</h3><p>Rubric, naming, partial observability, projections, disclosure, validation plan.</p></article>
-        <article class="phase"><span class="phase-date">Sep 1–4</span><h3>Application restoration</h3><p>Verify the full learner/admin workflow and demo environment.</p></article>
-        <article class="phase"><span class="phase-date">Sep 3–5</span><h3>Live smoke tests</h3><p>Minimal authorized OpenAI/Gemini runs; capture failures and provenance.</p></article>
-        <article class="phase"><span class="phase-date">Sep 4–9</span><h3>Comparison UI</h3><p>Read-only transcript, evaluator tabs, evidence focus, export access.</p></article>
-        <article class="phase"><span class="phase-date">Sep 7–11</span><h3>Small validation</h3><p>Expert-reviewed synthetic/authorized set; document limitations.</p></article>
-        <article class="phase"><span class="phase-date">Sep 12</span><h3>Analysis freeze</h3><p>Freeze code, prompts, rubric, provider/model, fixtures, and provenance.</p></article>
-        <article class="phase"><span class="phase-date">Sep 12–18</span><h3>Paper + media</h3><p>System description, architecture figure, demo narrative/video, offline fallback.</p></article>
-        <article class="phase"><span class="phase-date">Sep 19–22</span><h3>Final review</h3><p>Claims, confidentiality, reproducibility, package checks, and submission.</p></article>
+    <section class="slide" id="implemented-plugins" data-title="Implemented plugins" aria-labelledby="implemented-title">
+      <p class="eyebrow">Concrete implementation</p>
+      <h2 id="implemented-title">What each implemented family actually does</h2>
+      <div class="implemented-lanes">
+        <article class="implemented-lane"><h3>Patient · blue</h3><div class="workflow" role="img" aria-label="Case, stage, and history go to DefaultLLMPatientModel, then provider adapter, then patient response"><div class="flow-node patient-node">Case + SPIKES stage + history</div><div class="flow-arrow"></div><div class="flow-node patient-node">DefaultLLMPatientModel</div><div class="flow-arrow"></div><div class="flow-node patient-node">OpenAI / Gemini adapter</div><div class="flow-arrow"></div><div class="flow-node patient-node">Patient response</div></div><div class="example-quote">“Yes, please. I need to know whether it can be treated.”</div><p class="source-note">One patient plugin. Providers are internal adapters, not separate patient plugins.</p></article>
+        <article class="implemented-lane"><h3>Evaluator · teal</h3><div class="workflow" role="img" aria-label="Stored spans and stage signals go to baseline or hybrid evaluators, producing feedback"><div class="flow-node evaluator-node">Transcript + stored signals</div><div class="flow-arrow"></div><div class="flow-column"><div class="flow-node evaluator-node">Baseline rule-only</div><div class="flow-node evaluator-node">Hybrid v1</div><div class="flow-node evaluator-node">Hybrid v2</div><div class="flow-node experimental-node">ACE-CT-inspired</div></div><div class="flow-arrow"></div><div class="flow-node evaluator-node">Feedback + evidence</div></div><div class="example-quote eval">T2 fear → T3 no response = missed; T4 fear → T5 acknowledgement = responded.</div><p class="source-note">AFCE is not a standalone evaluator. Its detectors/relations feed baseline and hybrid scoring.</p></article>
+        <article class="implemented-lane"><h3>Metrics · violet</h3><div class="workflow" role="img" aria-label="Stored turns go to ApexMetrics, which counts selected AFCE-aligned measures and SPIKES coverage"><div class="flow-node metrics-node">Stored turns + spans</div><div class="flow-arrow"></div><div class="flow-node metrics-node">ApexMetrics</div><div class="flow-arrow"></div><div class="flow-column"><div class="flow-node metrics-node">EO counts by dimension</div><div class="flow-node metrics-node">Response counts by type</div><div class="flow-node metrics-node">SPIKES coverage</div></div></div><div class="example-quote metric">Example output: Feeling EO count + understanding-response count + covered SPIKES stages.</div><p class="source-note">Selected measures only; these counts do not establish construct or clinical validity.</p></article>
       </div>
-      <div class="grid-2">
-        <div class="callout"><strong>Expected package:</strong> system-demonstration paper/system description, architecture figure, validation evidence, demonstration plan/video, and a reliable runnable or recorded fallback.</div>
-        <div class="callout warning"><strong>Authority:</strong> the official EACL 2027 System Demonstrations call controls required format, page limits, media, anonymity, and submission mechanics.</div>
-      </div>
+      <p class="source-note">SPIKES/AFCE direction is grounded in the original APEX literature. ACE-CT-inspired work draws high-level direction from the authorized manuscript and public article. No private data, models, results, or exact unpublished anchors were reproduced.</p>
     </section>
 
-    <section class="slide" id="decisions" data-title="Decisions today" aria-labelledby="decisions-title">
-      <p class="eyebrow">Meeting close</p>
-      <h2 id="decisions-title">Twelve decisions unblock a defensible EACL demonstration</h2>
-      <form class="decision-grid" aria-label="Printable decision prompts">
-        <div class="decision-card"><label>1. Four domains / 11 dimensions</label><div class="decision-options"><label><input type="checkbox"> Approve</label><label><input type="checkbox"> Correct</label></div><input type="text" aria-label="Notes for domain and dimension decision"></div>
-        <div class="decision-card"><label>2. Exact rubric language / controlling source</label><div class="decision-options"><label><input type="checkbox"> Approve draft</label><label><input type="checkbox"> Supply source</label></div><input type="text" aria-label="Notes for rubric source decision"></div>
-        <div class="decision-card"><label>3. Partially observable dimensions</label><div class="decision-options"><label><input type="checkbox"> Conservative score</label><label><input type="checkbox"> Always null</label></div><input type="text" aria-label="Notes for partial observability decision"></div>
-        <div class="decision-card"><label>4. Null scoring and aggregation</label><div class="decision-options"><label><input type="checkbox"> Exclude nulls</label><label><input type="checkbox"> Revise</label></div><input type="text" aria-label="Notes for null policy decision"></div>
-        <div class="decision-card"><label>5. APEX compatibility projection</label><div class="decision-options"><label><input type="checkbox"> Approve provisionally</label><label><input type="checkbox"> Reject</label></div><input type="text" aria-label="Notes for compatibility projection decision"></div>
-        <div class="decision-card"><label>6. Framework naming</label><div class="decision-options"><label><input type="checkbox"> ACE-CT-inspired</label><label><input type="checkbox"> Rename</label></div><input type="text" aria-label="Notes for framework naming decision"></div>
-        <div class="decision-card"><label>7. Confidential / public disclosure boundary</label><div class="decision-options"><label><input type="checkbox"> Approve boundary</label><label><input type="checkbox"> Narrow</label></div><input type="text" aria-label="Notes for disclosure boundary decision"></div>
-        <div class="decision-card"><label>8. First provider / model</label><div class="decision-options"><label><input type="checkbox"> OpenAI</label><label><input type="checkbox"> Gemini</label></div><input type="text" aria-label="Provider and model decision"></div>
-        <div class="decision-card"><label>9. Validation transcripts / expert reviewers</label><div class="decision-options"><label><input type="checkbox"> Identified</label><label><input type="checkbox"> Follow-up needed</label></div><input type="text" aria-label="Validation material and reviewer decision"></div>
-        <div class="decision-card"><label>10. EACL contribution framing</label><div class="decision-options"><label><input type="checkbox"> Comparison platform</label><label><input type="checkbox"> Revise</label></div><input type="text" aria-label="EACL contribution framing decision"></div>
-        <div class="decision-card"><label>11. Initial persistence scope</label><div class="decision-options"><label><input type="checkbox"> Comparison-only</label><label><input type="checkbox"> Allow selected persistence</label></div><input type="text" aria-label="Persistence scope decision"></div>
-        <div class="decision-card"><label>12. Next owners, dates, checkpoint</label><div class="decision-options"><label><input type="checkbox"> Recorded</label><label><input type="checkbox"> Follow-up needed</label></div><input type="text" aria-label="Owners dates and checkpoint decision"></div>
-      </form>
-      <div class="callout" style="margin-top:16px"><strong>Recommended default:</strong> keep ACE-CT-inspired output comparison-only, preserve visible limitations and provenance, and make no public or validation claim until the controlling rubric and disclosure boundaries are confirmed.</div>
-      <p class="source-note">Record outcomes in <a href="decision-record.md">decision-record.md</a>; leave owners and outcomes blank until the meeting.</p>
+    <section class="slide" id="literature-directions" data-title="Literature-inspired directions" aria-labelledby="literature-title">
+      <p class="eyebrow">Inspiration—not implementation commitments</p>
+      <h2 id="literature-title">Ten public sources suggest several coherent expansion directions</h2>
+      <div class="literature-scroll">
+        <div class="literature-grid">
+          <article class="paper-card"><h3>Adaptive-VP</h3><p class="citation"><a href="https://aclanthology.org/2025.findings-acl.118/">Lee et al. (2025)</a></p><p>Virtual-patient behavior adapts to trainee dialogue. Could inspire an explicit adaptive state in APEX.</p><div class="mini-flow"><span>Clinician behavior</span><b>→</b><span>trust · distress · understanding · disclosure</span><b>→</b><span>adapt response</span></div></article>
+          <article class="paper-card"><h3>SFMSS</h3><p class="citation"><a href="https://aclanthology.org/2025.findings-naacl.259/">Bao et al. (2025)</a></p><p>Medical simulation generation is guided by encounter/service flow. Could inspire phase-aware patient generation.</p><div class="mini-flow"><span>Encounter phase</span><b>→</b><span>permitted info + state</span><b>→</b><span>phase-aware response</span></div></article>
+          <article class="paper-card"><h3>PATIENT-ψ</h3><p class="citation"><a href="https://aclanthology.org/2024.emnlp-main.711/">Wang et al. (2024)</a></p><p>LLM virtual patients support structured mental-health training. Could inspire domain-bounded state and disclosure policies.</p><div class="mini-flow"><span>Mental-health case</span><b>→</b><span>state + disclosure policy</span><b>→</b><span>rapport-sensitive response</span></div></article>
+          <article class="paper-card"><h3>Emotion-aware task dialogue</h3><p class="citation"><a href="https://aclanthology.org/2024.sigdial-1.60/">Feng et al. (2024)</a></p><p>Emotion understanding, management, and generation are modeled across the dialogue loop. Could inspire explicit affect transitions.</p><div class="mini-flow"><span>Clinician turn</span><b>→</b><span>emotion-state update</span><b>→</b><span>strategy → language</span></div></article>
+          <article class="paper-card"><h3>Empathy intent</h3><p class="citation"><a href="https://aclanthology.org/2023.emnlp-main.386/">Jiang et al. (2023)</a></p><p>Empathy detection benefits from modeling communicative intent. Could inspire an intent-oriented evaluator beside observable AFCE signals.</p><div class="mini-flow"><span>Clinician response</span><b>→</b><span>intent classification</span><b>→</b><span>target + appropriateness + evidence</span></div></article>
+          <article class="paper-card"><h3>Non-emotion-centric empathy</h3><p class="citation"><a href="https://aclanthology.org/2025.coling-main.66/">Huangfu et al. (2025)</a></p><p>Empathic generation can draw on context and commonsense beyond predicted emotion labels. Could inspire broader cognitive/supportive behavior analysis.</p><div class="mini-flow"><span>Conversation</span><b>→</b><span>cognitive + supportive behavior</span><b>→</b><span>broader empathy analysis</span></div></article>
+          <article class="paper-card"><h3>Speech-to-speech VSP</h3><p class="citation"><a href="https://aclanthology.org/2026.iwsds-1.16/">Emerson et al. (2026)</a></p><p>Realtime speech interaction enables more natural virtual-patient encounters. Could inspire an audio-capable patient path and timing metrics.</p><div class="mini-flow"><span>Clinician speech</span><b>→</b><span>realtime dialogue</span><b>→</b><span>patient speech + audio metrics</span></div></article>
+          <article class="paper-card"><h3>Medical dialogue survey</h3><p class="citation"><a href="https://aclanthology.org/2024.findings-acl.167/">Shi et al. (2024)</a></p><p>The survey organizes medical dialogue systems, evaluation, and challenges. Could inspire a multi-criterion simulation-quality report.</p><div class="mini-flow"><span>Patient responses</span><b>→</b><span>consistency · relevance · safety · realism</span><b>→</b><span>quality report</span></div></article>
+          <article class="paper-card"><h3>Lahnala et al. 2022</h3><p class="citation"><a href="https://aclanthology.org/2022.findings-emnlp.157/">Critical Reflection on Empathy and NLP</a></p><p>Empathy NLP needs clear constructs, cognitive-empathy attention, and stronger construct validity. Could guide theory-to-measure alignment.</p><div class="mini-flow"><span>Theory</span><b>→</b><span>explicit construct</span><b>→</b><span>aligned detector / evaluator → validity</span></div></article>
+          <article class="paper-card"><h3>Lahnala et al. 2024</h3><p class="citation"><a href="https://aclanthology.org/2024.lrec-main.124/">Appraisal Framework for Clinical Empathy</a></p><p>AFCE and SPIKES support discourse-level analysis of empathy relations in breaking-bad-news conversations. Could deepen evidence-linked communication feedback.</p><div class="mini-flow"><span>Patient / clinician spans</span><b>→</b><span>relations + SPIKES</span><b>→</b><span>metrics + feedback</span></div></article>
+        </div>
+      </div>
+      <p class="source-note">All directions are inspired by the linked public works. They do not claim reproduction of any system, method, dataset, findings, or model.</p>
+    </section>
+
+    <section class="slide" id="next-plugins" data-title="Possible next plugins" aria-labelledby="next-title">
+      <p class="eyebrow">Open design space</p>
+      <h2 id="next-title">Possible additions attach cleanly by plugin family</h2>
+      <div class="family-lanes">
+        <article class="family-lane"><h3>Patient models</h3><ul><li>Adaptive patient state</li><li>Service-flow-aware patient</li><li>Emotion-aware patient</li><li>Mental-health patient</li><li>Speech-to-speech patient</li></ul><div class="mini-flow"><span>Case + history</span><b>→</b><span>new patient plugin</span><b>→</b><span>patient response</span></div></article>
+        <article class="family-lane evaluator"><h3>Evaluators</h3><ul><li>Empathy-intent evaluator</li><li>Non-emotion-centric empathy evaluator</li><li>Patient-simulation-quality evaluator</li><li>Future supervised ACE-CT regression evaluator</li><li>Future transformer ACE-CT evaluator</li></ul><div class="mini-flow"><span>Completed transcript</span><b>→</b><span>new evaluator plugin</span><b>→</b><span>feedback + evidence</span></div></article>
+        <article class="family-lane metrics"><h3>Metrics</h3><ul><li>Transcript dynamics</li><li>Jargon and readability</li><li>Question strategy and understanding checks</li><li>Evidence grounding</li><li>Evaluator stability</li><li>Patient consistency</li><li>Service-flow coverage</li><li>Future audio-interaction metrics</li></ul><div class="mini-flow"><span>Stored evidence</span><b>→</b><span>new metrics plugin</span><b>→</b><span>research measures</span></div></article>
+      </div>
+      <div class="closing-question">Which additions best match the intended research identity of APEX?</div>
+      <p class="source-note">Proposed only. No ranking, delivery date, or implementation approval is implied.</p>
+    </section>
+
+    <section class="slide" id="eacl-expectations" data-title="EACL expectations and preparation" aria-labelledby="eacl-title">
+      <p class="eyebrow">Official System Demonstrations call verified</p>
+      <h2 id="eacl-title">The submission needs a credible system, evidence, and a runnable demonstration package</h2>
+      <div class="eacl-layout">
+        <div><div class="expectations" aria-label="Verified EACL System Demonstrations requirements"><div class="expectation"><strong>System contribution</strong><br>Motivation, fit, novelty, related work.</div><div class="expectation"><strong>Technical paper</strong><br>Up to six pages + references/appendices; official style/PDF.</div><div class="expectation"><strong>Visual system description</strong><br>Architecture, functionality, UI, intended audience.</div><div class="expectation"><strong>Evidence</strong><br>Some validation of prototype usefulness/quality is required.</div><div class="expectation"><strong>Demo video</strong><br>Screencast at most 2.5 minutes.</div><div class="expectation"><strong>Runnable access</strong><br>Live site or installable package link is strict.</div><div class="expectation"><strong>Availability + licensing</strong><br>Explain access and license.</div><div class="expectation"><strong>Ethics + limitations</strong><br>ACL ethics compliance; sensitive work must discuss concerns.</div><div class="expectation"><strong>Reciprocal reviewer</strong><br>Nominate one author to review.</div><div class="expectation"><strong>If accepted</strong><br>Registered author presents live demo + poster.</div></div></div>
+        <div><div class="phase-grid" role="img" aria-label="Ten preparation phases from scientific decisions through final submission"><article class="phase-step"><h3>Scientific decisions</h3><p>Approved framing, rubric boundary, validation design.</p></article><article class="phase-step"><h3>Application restoration</h3><p>Core learner/admin workflow verified.</p></article><article class="phase-step"><h3>End-to-end testing</h3><p>Case-to-feedback path works reliably.</p></article><article class="phase-step"><h3>Controlled live tests</h3><p>Exact provider/model provenance inspected.</p></article><article class="phase-step"><h3>Evaluator refinement</h3><p>Experimental rubric and failure modes reviewed.</p></article><article class="phase-step"><h3>Comparison interface</h3><p>Transcript, results, evidence shown together.</p></article><article class="phase-step"><h3>Expert-reviewed evaluation</h3><p>Small authorized set reviewed by experts.</p></article><article class="phase-step"><h3>Freeze configuration</h3><p>Models, prompts, rubrics, settings recorded.</p></article><article class="phase-step"><h3>Submission package</h3><p>Paper, video, working demo, fallback ready.</p></article><article class="phase-step"><h3>Final review</h3><p>Claims, ethics, reproducibility, package aligned.</p></article></div></div>
+      </div>
+      <p class="source-note">Verified September 1, 2026 against the authoritative <a href="https://2027.eacl.org/calls/demos/">EACL 2027 Systems Demonstrations call</a>. The official submission deadline is September 22, 2026 (AoE); the slide intentionally assigns no internal dates or owners.</p>
+    </section>
+
+    <section class="slide" id="vision-discussion" data-title="Dr. Lahnala’s vision and discussion" aria-labelledby="vision-title">
+      <p class="eyebrow">Open discussion</p>
+      <h2 id="vision-title">Dr. Lahnala’s vision and priorities</h2>
+      <div class="discussion-grid">
+        <article class="discussion-group"><h3>Research direction</h3><ul><li>What should be APEX’s central EACL contribution?</li><li>Should the comparison platform or learner-training experience lead the story?</li><li>How should SPIKES, AFCE, and ACE-CT-inspired assessment fit together?</li></ul></article>
+        <article class="discussion-group"><h3>Scientific design</h3><ul><li>Is the AFCE-aligned description faithful?</li><li>Is the proposed ACE-CT-inspired structure appropriate?</li><li>Which evaluation framework should be developed most deeply?</li><li>What evidence would make the submission credible?</li></ul></article>
+        <article class="discussion-group"><h3>Application direction</h3><ul><li>Which patient-model capability would be most valuable?</li><li>Which evaluator or metrics extension should come next?</li><li>What should the administrator/research demonstration show?</li></ul></article>
+        <article class="discussion-group"><h3>Submission expectations</h3><ul><li>What level of empirical evaluation should we target?</li><li>What can be discussed publicly?</li><li>Who should contribute to the paper, evaluation, and demo?</li><li>What should be ready for the next walkthrough?</li></ul></article>
+      </div>
+      <div class="closing-question">What does the strongest realistic version of APEX look like for this EACL submission?</div>
+      <label for="meeting-notes" class="small"><strong>Local meeting notes</strong> (not saved or transmitted)</label><textarea id="meeting-notes" class="notes-field" aria-label="Unsaved local meeting notes" placeholder="Capture discussion locally; this field has no save or submit action."></textarea>
     </section>
   </main>
 
   <footer class="presentation-footer no-print" aria-label="Presentation navigation">
     <nav class="section-nav" aria-label="Sections">
-      <a href="#opening" data-slide-link="0" aria-label="Section 1: Opening">1</a>
-      <a href="#what-apex-does" data-slide-link="1" aria-label="Section 2: What APEX does">2</a>
+      <a href="#agenda" data-slide-link="0" aria-label="Section 1: Today’s walkthrough">1</a>
+      <a href="#apex-refresher" data-slide-link="1" aria-label="Section 2: Quick APEX refresher">2</a>
       <a href="#synthetic-transcript" data-slide-link="2" aria-label="Section 3: Synthetic transcript">3</a>
-      <a href="#foundations" data-slide-link="3" aria-label="Section 4: Foundations">4</a>
-      <a href="#plugin-architecture" data-slide-link="4" aria-label="Section 5: Plugin architecture">5</a>
-      <a href="#plugin-inventory" data-slide-link="5" aria-label="Section 6: Plugin inventory">6</a>
-      <a href="#comparison-infrastructure" data-slide-link="6" aria-label="Section 7: Comparison infrastructure">7</a>
-      <a href="#illustrative-comparison" data-slide-link="7" aria-label="Section 8: Mock comparison">8</a>
-      <a href="#framework-fit" data-slide-link="8" aria-label="Section 9: Framework fit">9</a>
-      <a href="#paper-boundary" data-slide-link="9" aria-label="Section 10: Manuscript boundary">10</a>
-      <a href="#engineering-status" data-slide-link="10" aria-label="Section 11: Engineering status">11</a>
-      <a href="#plugin-roadmap" data-slide-link="11" aria-label="Section 12: Plugin roadmap">12</a>
-      <a href="#pre-eacl-scope" data-slide-link="12" aria-label="Section 13: Recommended scope">13</a>
-      <a href="#timeline" data-slide-link="13" aria-label="Section 14: Timeline">14</a>
-      <a href="#decisions" data-slide-link="14" aria-label="Section 15: Decisions today">15</a>
+      <a href="#original-foundations" data-slide-link="3" aria-label="Section 4: Original foundations">4</a>
+      <a href="#system-architecture" data-slide-link="4" aria-label="Section 5: Original system architecture">5</a>
+      <a href="#ace-ct-evaluator" data-slide-link="5" aria-label="Section 6: ACE-CT-inspired evaluator">6</a>
+      <a href="#comparison-flow" data-slide-link="6" aria-label="Section 7: Non-persisting comparison flow">7</a>
+      <a href="#illustrative-comparison" data-slide-link="7" aria-label="Section 8: Illustrative comparison">8</a>
+      <a href="#three-lenses" data-slide-link="8" aria-label="Section 9: Three complementary lenses">9</a>
+      <a href="#extensibility-model" data-slide-link="9" aria-label="Section 10: Extensibility model">10</a>
+      <a href="#implemented-plugins" data-slide-link="10" aria-label="Section 11: Implemented plugins">11</a>
+      <a href="#literature-directions" data-slide-link="11" aria-label="Section 12: Literature-inspired directions">12</a>
+      <a href="#next-plugins" data-slide-link="12" aria-label="Section 13: Possible next plugins">13</a>
+      <a href="#eacl-expectations" data-slide-link="13" aria-label="Section 14: EACL expectations and preparation">14</a>
+      <a href="#vision-discussion" data-slide-link="14" aria-label="Section 15: Dr. Lahnala’s vision and discussion">15</a>
     </nav>
     <div class="progress-wrap"><progress id="progress" max="15" value="1" aria-label="Presentation progress"></progress><span id="progress-label">1 / 15</span></div>
     <div class="nav-controls"><button class="nav-button" id="previous" type="button">← Previous</button><button class="nav-button primary" id="next" type="button">Next →</button></div>
