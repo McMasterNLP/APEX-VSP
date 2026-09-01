@@ -13,7 +13,7 @@ logger = get_logger(__name__)
 
 class OpenAIAdapter:
     """Adapter for OpenAI API."""
-    
+
     ROLE_SWITCH_PATTERNS = [
         r"\bare you the doctor\b",
         r"\bare you my doctor\b",
@@ -36,11 +36,11 @@ class OpenAIAdapter:
         r"\bi recommend\b",
         r"\bi prescribe\b",
     ]
-    
-    def __init__(self):
+
+    def __init__(self, model_identifier: str | None = None):
         settings = get_settings()
         self.api_key = settings.openai_api_key
-        self.model_id = settings.openai_model_id
+        self.model_id = model_identifier or settings.openai_model_id
         self.client = AsyncOpenAI(api_key=self.api_key)
 
     def _is_role_switch_attempt(self, text: str) -> bool:
@@ -53,8 +53,10 @@ class OpenAIAdapter:
         """Detect whether generated text violates the patient persona."""
         if not text:
             return False
-        return any(re.search(pattern, text, re.I) for pattern in self.PATIENT_ROLE_VIOLATION_PATTERNS)
-    
+        return any(
+            re.search(pattern, text, re.I) for pattern in self.PATIENT_ROLE_VIOLATION_PATTERNS
+        )
+
     async def generate_response(
         self,
         prompt: str,
@@ -68,7 +70,7 @@ class OpenAIAdapter:
             if context:
                 messages.append({"role": "system", "content": context})
             messages.append({"role": "user", "content": prompt})
-            
+
             response = await self.client.chat.completions.create(
                 model=self.model_id,
                 messages=messages,
@@ -86,7 +88,7 @@ class OpenAIAdapter:
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             raise
-    
+
     async def generate_patient_response(
         self,
         case_script: str,
@@ -123,7 +125,7 @@ INSTRUCTIONS:
 - If receiving bad news, show appropriate emotional reactions
 
 Remember: You are receiving care, not providing it. Respond only as the patient character described above."""
-        
+
         latest_user_message = ""
         if conversation_history:
             latest_user_message = conversation_history[-1].get("content", "")
@@ -135,7 +137,7 @@ Remember: You are receiving care, not providing it. Respond only as the patient 
 
         messages = [{"role": "system", "content": system_prompt}]
         messages.extend(conversation_history)
-        
+
         try:
             response = await self.client.chat.completions.create(
                 model=self.model_id,
@@ -154,7 +156,7 @@ Remember: You are receiving care, not providing it. Respond only as the patient 
         except Exception as e:
             logger.error(f"OpenAI patient response error: {e}")
             raise
-    
+
     async def analyze_turn(
         self,
         user_text: str,
@@ -170,7 +172,7 @@ Remember: You are receiving care, not providing it. Respond only as the patient 
 User's message: "{user_text}"
 
 Respond in JSON format with keys: empathy_score, question_type, jargon_level, clarity_score"""
-        
+
         try:
             response = await self.client.chat.completions.create(
                 model=self.model_id,
@@ -178,8 +180,9 @@ Respond in JSON format with keys: empathy_score, question_type, jargon_level, cl
                 max_tokens=200,
                 temperature=0.3,
             )
-            
+
             import json
+
             result = json.loads(response.choices[0].message.content)
             return result
         except Exception as e:

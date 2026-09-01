@@ -1,10 +1,16 @@
 """Schemas for privacy-safe, non-persisting evaluator comparisons."""
 
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from domain.models.scoring import ComputedFeedback
+from schemas.ace_ct import (
+    ACECTDimensionResult,
+    ACECTDomainScore,
+    ACECTEvaluationLimitations,
+    ACECTRubricApprovalStatus,
+)
 
 
 class CanonicalTranscriptTurn(BaseModel):
@@ -24,7 +30,7 @@ class EvaluatorProvenance(BaseModel):
     plugin_identifier: str
     class_name: str
     version: str
-    evaluator_type: Literal["rule_based", "hybrid_llm"]
+    evaluator_type: Literal["rule_based", "hybrid_llm", "experimental_rubric_llm"]
     llm_provider: str | None = None
     model_identifier: str | None = None
     reviewer_version: str | None = None
@@ -44,6 +50,30 @@ class EvaluatorScores(BaseModel):
     model_config = ConfigDict(frozen=True)
 
 
+class ACECTCompatibilityScoreSources(BaseModel):
+    """Exact origins for APEX-shaped compatibility fields."""
+
+    empathy_score: Literal["ace_ct_inspired.dimension.respond_to_emotion.normalized_0_100"]
+    communication_score: Literal["ace_ct_inspired.mean_of_non_null_dimensions.normalized_0_100"]
+    overall_score: Literal["ace_ct_inspired.mean_of_non_null_dimensions.normalized_0_100"]
+    spikes_completion_score: Literal[
+        "apex_baseline.spikes_completion_score_not_ace_ct",
+        "unavailable_no_apex_baseline_spikes_score",
+    ]
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class ACECTCompatibilityProjection(BaseModel):
+    """Explicitly labeled bridge to the existing comparison score shape."""
+
+    scores: EvaluatorScores
+    score_sources: ACECTCompatibilityScoreSources
+    warnings: tuple[str, ...] = Field(min_length=1)
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+
 class SanitizedEvaluatorError(BaseModel):
     """Allowlisted failure detail that never contains a raw exception."""
 
@@ -51,6 +81,57 @@ class SanitizedEvaluatorError(BaseModel):
     message: str
 
     model_config = ConfigDict(frozen=True)
+
+
+class EvaluatorFrameworkAssessabilityCounts(BaseModel):
+    """Dimension availability counts retained in framework artifacts."""
+
+    text_assessable: int = Field(strict=True, ge=0, le=11)
+    partially_assessable: int = Field(strict=True, ge=0, le=11)
+    not_assessable: int = Field(strict=True, ge=0, le=11)
+    scored: int = Field(strict=True, ge=0, le=11)
+    insufficient_evidence: int = Field(strict=True, ge=0, le=11)
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def validate_totals(self) -> Self:
+        if self.text_assessable + self.partially_assessable + self.not_assessable != 11:
+            raise ValueError("Framework assessability counts must total 11 dimensions.")
+        if self.scored + self.insufficient_evidence != 11:
+            raise ValueError("Framework score availability counts must total 11 dimensions.")
+        return self
+
+
+class EvaluatorFrameworkResults(BaseModel):
+    """First-class framework output preserved independently of APEX compatibility scores."""
+
+    framework: Literal["ACE-CT-inspired"]
+    implementation_type: Literal["experimental_transcript_rubric"]
+    validation_status: Literal["experimental_unvalidated"]
+    publication_reproduction: Literal[False]
+    rubric_version: str = Field(min_length=1, max_length=50)
+    approval_status: ACECTRubricApprovalStatus
+    dimension_results: tuple[ACECTDimensionResult, ...]
+    domain_scores: tuple[ACECTDomainScore, ...]
+    assessability_counts: EvaluatorFrameworkAssessabilityCounts
+    score_sources: dict[str, str]
+    limitations: ACECTEvaluationLimitations
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def validate_complete_framework(self) -> Self:
+        if len(self.dimension_results) != 11:
+            raise ValueError("Framework results must contain exactly 11 dimension results.")
+        if len(self.domain_scores) != 4:
+            raise ValueError("Framework results must contain exactly four domain scores.")
+        if not self.score_sources or any(
+            not key.strip() or not value.strip() or len(key) > 100 or len(value) > 200
+            for key, value in self.score_sources.items()
+        ):
+            raise ValueError("Framework score sources must be non-empty bounded labels.")
+        return self
 
 
 class EvaluatorRunResult(BaseModel):
@@ -65,6 +146,7 @@ class EvaluatorRunResult(BaseModel):
     provenance: EvaluatorProvenance
     scores: EvaluatorScores | None = None
     structured_feedback: ComputedFeedback | None = None
+    framework_results: EvaluatorFrameworkResults | None = None
     error: SanitizedEvaluatorError | None = None
 
     model_config = ConfigDict(frozen=True)
@@ -166,6 +248,7 @@ class EvaluatorArtifactResult(BaseModel):
     provenance: EvaluatorProvenance
     scores: EvaluatorScores | None = None
     feedback: SanitizedFeedbackSummary | None = None
+    framework_results: EvaluatorFrameworkResults | None = None
     error: SanitizedEvaluatorError | None = None
 
     model_config = ConfigDict(frozen=True)

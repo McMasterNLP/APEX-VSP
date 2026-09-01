@@ -14,7 +14,9 @@ from core.deps import require_admin
 @pytest.fixture(autouse=True)
 def _overrides():
     """Override admin auth; endpoint does not use DB."""
-    dummy_admin = SimpleNamespace(id=1, email="admin@test.local", full_name="Test Admin", role="admin")
+    dummy_admin = SimpleNamespace(
+        id=1, email="admin@test.local", full_name="Test Admin", role="admin"
+    )
 
     async def _as_admin():
         return dummy_admin
@@ -54,6 +56,13 @@ async def test_plugin_registry_evaluators_have_version():
         assert "version" in entry
         assert isinstance(entry["name"], str)
         assert isinstance(entry["version"], str)
+
+    ace_ct = next(
+        entry
+        for entry in data["evaluators"]
+        if entry["name"].endswith(":ACECTInspiredRubricEvaluator")
+    )
+    assert ace_ct["version"] == "0.1.0-experimental"
 
 
 @pytest.mark.asyncio

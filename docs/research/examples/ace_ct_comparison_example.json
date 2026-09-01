@@ -1,0 +1,650 @@
+{
+  "example_classification": "synthetic_fake_model_output",
+  "experimental_evidence": false,
+  "public_synthetic_fixture": "difficult_diagnosis_strong",
+  "transcript_included": false,
+  "purpose": "Internal structural review only; not clinical validation or experimental evidence.",
+  "comparison_artifact": {
+    "schema_version": "1.0",
+    "run_id": "synthetic-ace-ct-review-example",
+    "generated_at": "2026-08-31T16:00:00Z",
+    "anonymized_session_id": "session-6f3a89b8074b9673",
+    "transcript_hash": "f845a8fb7530c2f9159e38b6628d8231b9195ba5aa44a4c9fdfd5442353b36a9",
+    "requested_evaluators": [
+      "baseline",
+      "ace_ct_inspired"
+    ],
+    "evaluator_provenance": [
+      {
+        "evaluator_identifier": "baseline",
+        "plugin_identifier": "plugins.evaluators.apex_baseline_evaluator:ApexBaselineEvaluator",
+        "class_name": "ApexBaselineEvaluator",
+        "version": "1.0",
+        "evaluator_type": "rule_based"
+      },
+      {
+        "evaluator_identifier": "ace_ct_inspired",
+        "plugin_identifier": "plugins.evaluators.ace_ct_inspired_evaluator:ACECTInspiredRubricEvaluator",
+        "class_name": "ACECTInspiredRubricEvaluator",
+        "version": "0.1.0-experimental",
+        "evaluator_type": "experimental_rubric_llm",
+        "llm_provider": "gemini",
+        "model_identifier": "synthetic-fake-model",
+        "reviewer_version": "ace-ct-inspired-v1",
+        "prompt_version": "ace-ct-inspired-prompt-v1"
+      }
+    ],
+    "observed_results": [
+      {
+        "evaluator_identifier": "baseline",
+        "evaluator_name": "ApexBaselineEvaluator",
+        "evaluator_version": "1.0",
+        "status": "success",
+        "runtime_ms": 0.0,
+        "transcript_hash": "f845a8fb7530c2f9159e38b6628d8231b9195ba5aa44a4c9fdfd5442353b36a9",
+        "provenance": {
+          "evaluator_identifier": "baseline",
+          "plugin_identifier": "plugins.evaluators.apex_baseline_evaluator:ApexBaselineEvaluator",
+          "class_name": "ApexBaselineEvaluator",
+          "version": "1.0",
+          "evaluator_type": "rule_based"
+        },
+        "scores": {
+          "empathy_score": 75.48,
+          "communication_score": 74.25,
+          "spikes_completion_score": 100.0,
+          "overall_score": 82.59
+        },
+        "feedback": {
+          "spikes_coverage": {
+            "covered": [
+              "setting",
+              "perception",
+              "invitation",
+              "knowledge",
+              "emotion",
+              "strategy"
+            ],
+            "percent": 1.0
+          },
+          "strengths": "Excellent use of empathetic language\nClear communication with balanced questioning and structured delivery\nStrong coverage of SPIKES stages across the conversation",
+          "missed_opportunities": [
+            {
+              "finding_type": "missed_opportunity",
+              "turn_number": 14,
+              "dimension": "Appreciation"
+            }
+          ],
+          "evidence": [
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 2,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 4,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 4,
+              "dimension": "Appreciation",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 8,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 10,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 14,
+              "dimension": "Appreciation",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 3,
+              "subtype": "understanding",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 5,
+              "subtype": "understanding",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 9,
+              "subtype": "understanding",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 11,
+              "subtype": "understanding",
+              "confidence": 0.85
+            }
+          ],
+          "linkage_stats": {
+            "total_eos": 6,
+            "addressed_count": 5,
+            "missed_count": 1,
+            "addressed_rate": 0.8333333333333334,
+            "missed_rate": 0.16666666666666666
+          },
+          "question_breakdown": {
+            "open": 6,
+            "closed": 0,
+            "eliciting": 1,
+            "ratio_open": 1.0
+          }
+        }
+      },
+      {
+        "evaluator_identifier": "ace_ct_inspired",
+        "evaluator_name": "ACECTInspiredRubricEvaluator",
+        "evaluator_version": "0.1.0-experimental",
+        "status": "success",
+        "runtime_ms": 0.0,
+        "transcript_hash": "f845a8fb7530c2f9159e38b6628d8231b9195ba5aa44a4c9fdfd5442353b36a9",
+        "provenance": {
+          "evaluator_identifier": "ace_ct_inspired",
+          "plugin_identifier": "plugins.evaluators.ace_ct_inspired_evaluator:ACECTInspiredRubricEvaluator",
+          "class_name": "ACECTInspiredRubricEvaluator",
+          "version": "0.1.0-experimental",
+          "evaluator_type": "experimental_rubric_llm",
+          "llm_provider": "gemini",
+          "model_identifier": "synthetic-fake-model",
+          "reviewer_version": "ace-ct-inspired-v1",
+          "prompt_version": "ace-ct-inspired-prompt-v1"
+        },
+        "scores": {
+          "empathy_score": 50.0,
+          "communication_score": 72.5,
+          "spikes_completion_score": 100.0,
+          "overall_score": 72.5
+        },
+        "feedback": {
+          "spikes_coverage": {
+            "covered": [
+              "setting",
+              "perception",
+              "invitation",
+              "knowledge",
+              "emotion",
+              "strategy"
+            ],
+            "percent": 1.0
+          },
+          "strengths": "Experimental transcript evidence was strongest for: elicit_person_perspective, avoid_interrupting_or_diverting, assess_understanding.",
+          "areas_for_improvement": "Proposed review areas from the experimental rubric: respond_to_emotion.",
+          "missed_opportunities": [
+            {
+              "finding_type": "missed_opportunity",
+              "turn_number": 14,
+              "dimension": "Appreciation"
+            }
+          ],
+          "evidence": [
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 2,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 4,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 4,
+              "dimension": "Appreciation",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 8,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 10,
+              "dimension": "Feeling",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "empathic_opportunity",
+              "turn_number": 14,
+              "dimension": "Appreciation",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 3,
+              "subtype": "understanding",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 5,
+              "subtype": "understanding",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 9,
+              "subtype": "understanding",
+              "confidence": 0.85
+            },
+            {
+              "finding_type": "response",
+              "turn_number": 11,
+              "subtype": "understanding",
+              "confidence": 0.85
+            }
+          ],
+          "linkage_stats": {
+            "total_eos": 6,
+            "addressed_count": 5,
+            "missed_count": 1,
+            "addressed_rate": 0.8333333333333334,
+            "missed_rate": 0.16666666666666666
+          },
+          "question_breakdown": {
+            "open": 6,
+            "closed": 0,
+            "eliciting": 1,
+            "ratio_open": 1.0
+          }
+        },
+        "framework_results": {
+          "framework": "ACE-CT-inspired",
+          "implementation_type": "experimental_transcript_rubric",
+          "validation_status": "experimental_unvalidated",
+          "publication_reproduction": false,
+          "rubric_version": "0.1.0-experimental",
+          "approval_status": "pending_expert_review",
+          "dimension_results": [
+            {
+              "dimension_id": "respond_to_emotion",
+              "domain": "respond",
+              "score": 3,
+              "insufficient_evidence": false,
+              "assessability": "partially_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Tone, gesture, facial expression, and silence duration are unavailable."
+              ]
+            },
+            {
+              "dimension_id": "elicit_person_perspective",
+              "domain": "listen",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Tone and meaningful silence are unavailable."
+              ]
+            },
+            {
+              "dimension_id": "avoid_interrupting_or_diverting",
+              "domain": "listen",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "partially_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Speech overlap, interruption timing, and pause duration are unavailable."
+              ]
+            },
+            {
+              "dimension_id": "assess_understanding",
+              "domain": "listen",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Non-verbal signs of confusion or comprehension are unavailable."
+              ]
+            },
+            {
+              "dimension_id": "discuss_hopes_priorities_worries_fears",
+              "domain": "listen",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Unspoken affect and visual cues are unavailable."
+              ]
+            },
+            {
+              "dimension_id": "ask_permission_to_progress",
+              "domain": "speak",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Prosody and non-verbal assent are unavailable."
+              ]
+            },
+            {
+              "dimension_id": "avoid_unexplained_clinical_terminology",
+              "domain": "speak",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Audience-specific prior knowledge is unknown unless stated."
+              ]
+            },
+            {
+              "dimension_id": "offer_question_opportunities",
+              "domain": "general",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Non-verbal invitation or discouragement is unavailable."
+              ]
+            },
+            {
+              "dimension_id": "summarize_conversation",
+              "domain": "general",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Non-verbal confirmation is unavailable."
+              ]
+            },
+            {
+              "dimension_id": "review_next_steps",
+              "domain": "general",
+              "score": 4,
+              "insufficient_evidence": false,
+              "assessability": "text_assessable",
+              "confidence": 0.8,
+              "evidence_turn_numbers": [
+                2,
+                3
+              ],
+              "reasoning": "Synthetic concise rationale.",
+              "improvement_recommendation": "Synthetic concise recommendation.",
+              "modality_limitation_notes": [
+                "Visual aids and off-record planning are unavailable."
+              ]
+            },
+            {
+              "dimension_id": "manage_conversation_pace",
+              "domain": "general",
+              "insufficient_evidence": true,
+              "assessability": "partially_assessable",
+              "confidence": 0.35,
+              "evidence_turn_numbers": [],
+              "reasoning": "Timing and delivery speed are absent from the transcript.",
+              "improvement_recommendation": "Review pacing with audio or video before assigning a native score.",
+              "modality_limitation_notes": [
+                "Timing, pause length, overlap, delivery speed, and video are unavailable."
+              ],
+              "score": null
+            }
+          ],
+          "domain_scores": [
+            {
+              "domain": "respond",
+              "mean_score": 3.0,
+              "scored_dimension_count": 1,
+              "insufficient_evidence_count": 0
+            },
+            {
+              "domain": "listen",
+              "mean_score": 4.0,
+              "scored_dimension_count": 4,
+              "insufficient_evidence_count": 0
+            },
+            {
+              "domain": "speak",
+              "mean_score": 4.0,
+              "scored_dimension_count": 2,
+              "insufficient_evidence_count": 0
+            },
+            {
+              "domain": "general",
+              "mean_score": 4.0,
+              "scored_dimension_count": 3,
+              "insufficient_evidence_count": 1
+            }
+          ],
+          "assessability_counts": {
+            "text_assessable": 8,
+            "partially_assessable": 3,
+            "not_assessable": 0,
+            "scored": 10,
+            "insufficient_evidence": 1
+          },
+          "score_sources": {
+            "dimension_scores": "experimental_llm_transcript_rubric",
+            "domain_scores": "arithmetic_mean_of_non_null_dimensions",
+            "compatibility.empathy_score": "ace_ct_inspired.dimension.respond_to_emotion.normalized_0_100",
+            "compatibility.communication_score": "ace_ct_inspired.mean_of_non_null_dimensions.normalized_0_100",
+            "compatibility.overall_score": "ace_ct_inspired.mean_of_non_null_dimensions.normalized_0_100",
+            "compatibility.spikes_completion_score": "apex_baseline.spikes_completion_score_not_ace_ct"
+          },
+          "limitations": {
+            "transcript_only": true,
+            "missing_modalities": [
+              "audio",
+              "video",
+              "timing",
+              "overlap"
+            ],
+            "notes": [
+              "Synthetic transcript-only result."
+            ],
+            "official_model_reproduction": false
+          }
+        }
+      }
+    ],
+    "derived_analysis": {
+      "successful_evaluator_count": 2,
+      "failed_evaluator_count": 0,
+      "score_metrics": {
+        "empathy_score": {
+          "minimum": 50.0,
+          "maximum": 75.48,
+          "mean": 62.74,
+          "range": 25.48,
+          "available_count": 2,
+          "missing_evaluators": []
+        },
+        "communication_score": {
+          "minimum": 72.5,
+          "maximum": 74.25,
+          "mean": 73.375,
+          "range": 1.75,
+          "available_count": 2,
+          "missing_evaluators": []
+        },
+        "spikes_completion_score": {
+          "minimum": 100.0,
+          "maximum": 100.0,
+          "mean": 100.0,
+          "range": 0.0,
+          "available_count": 2,
+          "missing_evaluators": []
+        },
+        "overall_score": {
+          "minimum": 72.5,
+          "maximum": 82.59,
+          "mean": 77.545,
+          "range": 10.09,
+          "available_count": 2,
+          "missing_evaluators": []
+        }
+      },
+      "runtime": {
+        "minimum": 0.0,
+        "maximum": 0.0,
+        "mean": 0.0,
+        "range": 0.0,
+        "available_count": 2,
+        "missing_evaluators": []
+      },
+      "pairwise_differences": [
+        {
+          "evaluator_a": "baseline",
+          "evaluator_b": "ace_ct_inspired",
+          "evaluator_a_status": "success",
+          "evaluator_b_status": "success",
+          "score_differences": {
+            "empathy_score": 25.48,
+            "communication_score": 1.75,
+            "spikes_completion_score": 0.0,
+            "overall_score": 10.09
+          },
+          "runtime_difference_ms": 0.0
+        }
+      ],
+      "spikes_stage_agreement": [
+        {
+          "evaluator_a": "baseline",
+          "evaluator_b": "ace_ct_inspired",
+          "comparable": true,
+          "intersection_count": 6,
+          "union_count": 6,
+          "jaccard": 1.0,
+          "shared": [
+            "emotion",
+            "invitation",
+            "knowledge",
+            "perception",
+            "setting",
+            "strategy"
+          ],
+          "only_a": [],
+          "only_b": []
+        }
+      ],
+      "evidence_agreement": [
+        {
+          "evaluator_a": "baseline",
+          "evaluator_b": "ace_ct_inspired",
+          "comparable": true,
+          "intersection_count": 11,
+          "union_count": 11,
+          "jaccard": 1.0,
+          "shared": [
+            "eo:turn:10:feeling",
+            "eo:turn:14:appreciation",
+            "eo:turn:2:feeling",
+            "eo:turn:4:appreciation",
+            "eo:turn:4:feeling",
+            "eo:turn:8:feeling",
+            "missed:turn:14",
+            "response:turn:11:understanding",
+            "response:turn:3:understanding",
+            "response:turn:5:understanding",
+            "response:turn:9:understanding"
+          ],
+          "only_a": [],
+          "only_b": []
+        }
+      ],
+      "unique_findings": {
+        "baseline": [],
+        "ace_ct_inspired": []
+      },
+      "limitations": [
+        "Agreement is descriptive and does not establish clinical correctness.",
+        "No evaluator is ranked without external reference labels.",
+        "Missing or failed evaluator outputs are excluded from numeric summaries."
+      ]
+    },
+    "warnings": [],
+    "limitations": [
+      "Agreement is descriptive and does not establish clinical correctness.",
+      "No evaluator is ranked without external reference labels.",
+      "Missing or failed evaluator outputs are excluded from numeric summaries.",
+      "This artifact is technical evidence, not clinical validation.",
+      "Generated feedback may require additional review before external publication."
+    ]
+  }
+}

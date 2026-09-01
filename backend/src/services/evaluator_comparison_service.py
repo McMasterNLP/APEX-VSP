@@ -5,7 +5,6 @@ from __future__ import annotations
 import csv
 import hashlib
 import io
-import json
 import math
 import time
 import uuid
@@ -17,10 +16,10 @@ from typing import Any, Literal
 from sqlalchemy.orm import Session
 
 from domain.models.evaluator_comparison import (
-    CanonicalTranscriptTurn,
     EvaluatorArtifactResult,
     EvaluatorComparisonAnalysis,
     EvaluatorComparisonArtifact,
+    EvaluatorFrameworkResults,
     EvaluatorProvenance,
     EvaluatorRunResult,
     EvaluatorScores,
@@ -37,7 +36,14 @@ from plugins.evaluators.apex_hybrid_evaluator import ApexHybridEvaluator
 from plugins.evaluators.apex_hybrid_v2_evaluator import ApexHybridV2Evaluator
 from repositories.session_repo import SessionRepository
 from repositories.turn_repo import TurnRepository
+from services.ace_ct_computation_service import compute_ace_ct_evaluation
+from services.ace_ct_results import sanitize_ace_ct_framework_results
 from services.scoring_service import ScoringService
+from services.transcript_identity import (
+    canonicalize_transcript,
+    hash_transcript,
+    serialize_canonical_transcript,  # noqa: F401 - compatibility re-export
+)
 
 
 @dataclass(frozen=True)
@@ -48,8 +54,10 @@ class EvaluatorDefinition:
     plugin_identifier: str
     class_name: str
     version: str
-    evaluator_type: Literal["rule_based", "hybrid_llm"]
-    llm_provider: str | None = None
+    evaluator_type: Literal["rule_based", "hybrid_llm", "experimental_rubric_llm"]
+    requires_llm: bool = False
+    supported_providers: tuple[Literal["openai", "gemini"], ...] = ()
+    default_llm_provider: Literal["openai", "gemini"] | None = None
     reviewer_version: str | None = None
     prompt_version: str | None = None
 
@@ -68,7 +76,9 @@ EVALUATOR_DEFINITIONS: dict[str, EvaluatorDefinition] = {
         class_name=ApexHybridEvaluator.__name__,
         version=ApexHybridEvaluator.version,
         evaluator_type="hybrid_llm",
-        llm_provider="openai",
+        requires_llm=True,
+        supported_providers=("openai",),
+        default_llm_provider="openai",
         reviewer_version="v1",
         prompt_version="v1",
     ),
@@ -78,11 +88,30 @@ EVALUATOR_DEFINITIONS: dict[str, EvaluatorDefinition] = {
         class_name=ApexHybridV2Evaluator.__name__,
         version=ApexHybridV2Evaluator.version,
         evaluator_type="hybrid_llm",
-        llm_provider="openai",
+        requires_llm=True,
+        supported_providers=("openai",),
+        default_llm_provider="openai",
         reviewer_version="v2",
         prompt_version="v2",
     ),
+    "ace_ct_inspired": EvaluatorDefinition(
+        identifier="ace_ct_inspired",
+        plugin_identifier=(
+            "plugins.evaluators.ace_ct_inspired_evaluator:ACECTInspiredRubricEvaluator"
+        ),
+        class_name="ACECTInspiredRubricEvaluator",
+        version="0.1.0-experimental",
+        evaluator_type="experimental_rubric_llm",
+        requires_llm=True,
+        supported_providers=("openai", "gemini"),
+        default_llm_provider="openai",
+        reviewer_version="ace-ct-inspired-v1",
+        prompt_version="ace-ct-inspired-prompt-v1",
+    ),
 }
+
+# Preserve the historical meaning of ``all`` so it never adds a paid experimental call.
+DEFAULT_EVALUATOR_IDENTIFIERS = ("baseline", "hybrid_v1", "hybrid_v2")
 
 SCORE_METRICS = (
     "empathy_score",
@@ -109,44 +138,10 @@ CSV_SUMMARY_COLUMNS = (
 )
 
 
-def _turn_value(turn: Any, field: str) -> Any:
-    if isinstance(turn, dict):
-        return turn.get(field)
-    return getattr(turn, field)
-
-
-def canonicalize_transcript(turns: Iterable[Any]) -> list[CanonicalTranscriptTurn]:
-    """Return the minimal transcript in stable turn-number order."""
-    canonical = [
-        CanonicalTranscriptTurn(
-            turn_number=int(_turn_value(turn, "turn_number")),
-            role=str(_turn_value(turn, "role")),
-            text=str(_turn_value(turn, "text") or ""),
-        )
-        for turn in turns
-    ]
-    return sorted(canonical, key=lambda turn: turn.turn_number)
-
-
-def serialize_canonical_transcript(turns: Iterable[Any]) -> bytes:
-    """Serialize canonical turns as deterministic, compact UTF-8 JSON."""
-    payload = [turn.model_dump(mode="json") for turn in canonicalize_transcript(turns)]
-    return json.dumps(
-        payload,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-    ).encode("utf-8")
-
-
-def hash_transcript(turns: Iterable[Any]) -> str:
-    """Return a SHA-256 hex digest, including the explicit empty transcript ``[]``."""
-    return hashlib.sha256(serialize_canonical_transcript(turns)).hexdigest()
-
-
 def build_evaluator_provenance(
     evaluator_identifier: str,
     *,
+    llm_provider: str | None = None,
     model_identifier: str | None = None,
 ) -> EvaluatorProvenance:
     """Build allowlisted provenance without inspecting environment or adapter state."""
@@ -158,17 +153,71 @@ def build_evaluator_provenance(
             f"Unknown evaluator identifier '{evaluator_identifier}'. Expected one of: {allowed}."
         ) from exc
 
+    resolved_provider: str | None = None
+    if definition.requires_llm:
+        resolved_provider = llm_provider or definition.default_llm_provider
+        if resolved_provider not in definition.supported_providers:
+            supported = ", ".join(definition.supported_providers)
+            raise ValueError(
+                f"Evaluator '{evaluator_identifier}' does not support provider "
+                f"'{resolved_provider}'. Expected one of: {supported}."
+            )
+
     return EvaluatorProvenance(
         evaluator_identifier=definition.identifier,
         plugin_identifier=definition.plugin_identifier,
         class_name=definition.class_name,
         version=definition.version,
         evaluator_type=definition.evaluator_type,
-        llm_provider=definition.llm_provider,
-        model_identifier=model_identifier if definition.llm_provider else None,
+        llm_provider=resolved_provider,
+        model_identifier=model_identifier if definition.requires_llm else None,
         reviewer_version=definition.reviewer_version,
         prompt_version=definition.prompt_version,
     )
+
+
+def evaluators_require_llm(evaluator_identifiers: Iterable[str]) -> bool:
+    """Return whether any validated evaluator needs a model adapter."""
+
+    return any(
+        EVALUATOR_DEFINITIONS[identifier].requires_llm
+        for identifier in validate_evaluator_identifiers(evaluator_identifiers)
+    )
+
+
+def resolve_evaluator_llm_provider(
+    evaluator_identifiers: Iterable[str],
+    requested_provider: str | None = None,
+) -> str | None:
+    """Resolve one provider supported by every selected LLM evaluator."""
+
+    requested = validate_evaluator_identifiers(evaluator_identifiers)
+    llm_definitions = [
+        EVALUATOR_DEFINITIONS[identifier]
+        for identifier in requested
+        if EVALUATOR_DEFINITIONS[identifier].requires_llm
+    ]
+    if not llm_definitions:
+        return None
+
+    provider = requested_provider.strip().lower() if requested_provider else None
+    if provider is None:
+        defaults = {definition.default_llm_provider for definition in llm_definitions}
+        if len(defaults) != 1:
+            raise ValueError("Selected evaluators do not share one default LLM provider.")
+        provider = defaults.pop()
+
+    unsupported = [
+        definition.identifier
+        for definition in llm_definitions
+        if provider not in definition.supported_providers
+    ]
+    if unsupported:
+        raise ValueError(
+            f"LLM provider '{provider}' is not supported by evaluator(s): "
+            f"{', '.join(unsupported)}."
+        )
+    return provider
 
 
 def _normalize_number(value: Any) -> float | None:
@@ -436,6 +485,13 @@ def sanitize_evaluator_result(
             linkage_stats=feedback.linkage_stats,
             question_breakdown=feedback.question_breakdown,
         )
+    safe_framework: EvaluatorFrameworkResults | None = None
+    if result.status == "success" and result.framework_results is not None:
+        safe_framework = sanitize_ace_ct_framework_results(
+            result.framework_results,
+            raw_turn_texts=raw_turn_texts or set(),
+        )
+
     return EvaluatorArtifactResult(
         evaluator_identifier=result.evaluator_identifier,
         evaluator_name=result.evaluator_name,
@@ -446,6 +502,7 @@ def sanitize_evaluator_result(
         provenance=result.provenance,
         scores=result.scores,
         feedback=safe_feedback,
+        framework_results=safe_framework,
         error=result.error,
     )
 
@@ -555,9 +612,20 @@ def validate_evaluator_identifiers(evaluator_identifiers: Iterable[str]) -> list
 class EvaluatorComparisonService:
     """Run supported evaluators independently without invoking persistence entrypoints."""
 
-    def __init__(self, db: Session, *, model_identifier: str | None = None):
+    def __init__(
+        self,
+        db: Session,
+        *,
+        llm_provider: str | None = None,
+        model_identifier: str | None = None,
+        llm_adapter: Any | None = None,
+        allow_experimental_override: bool = False,
+    ):
         self.db = db
+        self.llm_provider = llm_provider
         self.model_identifier = model_identifier
+        self.llm_adapter = llm_adapter
+        self.allow_experimental_override = allow_experimental_override
         self.session_repo = SessionRepository(db)
         self.turn_repo = TurnRepository(db)
         self.scoring_service = ScoringService(db)
@@ -565,7 +633,7 @@ class EvaluatorComparisonService:
     async def run_evaluators(
         self,
         session_id: int,
-        evaluator_identifiers: Iterable[str] = tuple(EVALUATOR_DEFINITIONS),
+        evaluator_identifiers: Iterable[str] = DEFAULT_EVALUATOR_IDENTIFIERS,
         *,
         require_completed: bool = True,
     ) -> list[EvaluatorRunResult]:
@@ -604,10 +672,43 @@ class EvaluatorComparisonService:
         definition = EVALUATOR_DEFINITIONS[evaluator_identifier]
         provenance = build_evaluator_provenance(
             evaluator_identifier,
+            llm_provider=self.llm_provider,
             model_identifier=self.model_identifier,
         )
         started = time.perf_counter()
         try:
+            if evaluator_identifier == "ace_ct_inspired":
+                computation = await compute_ace_ct_evaluation(
+                    self.db,
+                    session_id,
+                    llm_provider=(self.llm_provider or definition.default_llm_provider or "openai"),
+                    model_identifier=self.model_identifier,
+                    llm_adapter=self.llm_adapter,
+                    allow_experimental_override=self.allow_experimental_override,
+                )
+                if computation.transcript_hash != transcript_hash:
+                    raise RuntimeError(
+                        "ACE-CT-inspired transcript hash did not match comparison input."
+                    )
+                runtime_ms = max(0.0, round((time.perf_counter() - started) * 1000.0, 3))
+                provenance = build_evaluator_provenance(
+                    evaluator_identifier,
+                    llm_provider=computation.llm_provider,
+                    model_identifier=computation.model_identifier,
+                )
+                return EvaluatorRunResult(
+                    evaluator_identifier=evaluator_identifier,
+                    evaluator_name=definition.class_name,
+                    evaluator_version=definition.version,
+                    status="success",
+                    runtime_ms=runtime_ms,
+                    transcript_hash=transcript_hash,
+                    provenance=provenance,
+                    scores=computation.compatibility_projection.scores,
+                    structured_feedback=computation.computed_feedback,
+                    framework_results=computation.framework_results,
+                )
+
             feedback = await self._compute(evaluator_identifier, session_id)
             runtime_ms = max(0.0, round((time.perf_counter() - started) * 1000.0, 3))
             meta = feedback.evaluator_meta or {}

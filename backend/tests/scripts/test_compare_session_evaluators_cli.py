@@ -20,8 +20,10 @@ from scripts.compare_session_evaluators import (
     EXIT_SUCCESS,
     build_parser,
     execute_command,
+    parse_evaluator_selection,
 )
 from services.scoring_service import ScoringService
+from tests.utils.ace_ct import FakeACECTAdapter
 from tests.utils.transcript_runner import create_all_for_test_engine
 
 
@@ -117,6 +119,9 @@ def _args(session_id: int, output, **updates) -> Namespace:
         "include_transcript": False,
         "allow_active_session": False,
         "csv_summary": None,
+        "llm_provider": None,
+        "model_identifier": None,
+        "llm_adapter": None,
     }
     values.update(updates)
     return Namespace(**values)
@@ -179,6 +184,117 @@ def _patch_hybrids(monkeypatch, *, fail_v1: bool = False) -> None:
 def test_argument_validation_requires_session_and_output() -> None:
     with pytest.raises(SystemExit):
         build_parser().parse_args([])
+
+
+def test_all_remains_backward_compatible_and_ace_ct_is_explicit() -> None:
+    assert parse_evaluator_selection("all") == ["baseline", "hybrid_v1", "hybrid_v2"]
+    assert parse_evaluator_selection("baseline,ace_ct_inspired") == [
+        "baseline",
+        "ace_ct_inspired",
+    ]
+
+
+def test_parser_accepts_provider_and_safe_model_override(tmp_path) -> None:
+    args = build_parser().parse_args(
+        [
+            "--session-id",
+            "1",
+            "--evaluators",
+            "ace_ct_inspired",
+            "--llm-provider",
+            "gemini",
+            "--model-identifier",
+            "gemini-test",
+            "--output",
+            str(tmp_path / "out.json"),
+        ]
+    )
+
+    assert args.llm_provider == "gemini"
+    assert args.model_identifier == "gemini-test"
+
+
+@pytest.mark.asyncio
+async def test_baseline_comparison_does_not_load_model_settings(
+    test_db, completed_session, tmp_path, monkeypatch
+) -> None:
+    def forbidden(*args, **kwargs):
+        raise AssertionError("baseline comparison must not load model settings")
+
+    monkeypatch.setattr(
+        "scripts.compare_session_evaluators.get_configured_model_identifier",
+        forbidden,
+    )
+
+    code = await execute_command(
+        _args(completed_session.id, tmp_path / "baseline.json"),
+        test_db,
+    )
+
+    assert code == EXIT_SUCCESS
+
+
+@pytest.mark.asyncio
+async def test_cli_runs_explicit_ace_ct_with_fake_gemini_and_no_mutation(
+    test_db, completed_session, tmp_path
+) -> None:
+    output = tmp_path / "ace-ct-comparison.json"
+    before = _snapshot(test_db, completed_session.id)
+
+    code = await execute_command(
+        _args(
+            completed_session.id,
+            output,
+            evaluators="baseline,ace_ct_inspired",
+            llm_provider="gemini",
+            model_identifier="synthetic-fake-model",
+            llm_adapter=FakeACECTAdapter(),
+        ),
+        test_db,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    serialized = json.dumps(payload)
+    assert code == EXIT_SUCCESS
+    assert _snapshot(test_db, completed_session.id) == before
+    assert [result["status"] for result in payload["observed_results"]] == [
+        "success",
+        "success",
+    ]
+    ace_ct = payload["observed_results"][1]
+    assert ace_ct["provenance"]["llm_provider"] == "gemini"
+    assert ace_ct["provenance"]["model_identifier"] == "synthetic-fake-model"
+    assert len(ace_ct["framework_results"]["dimension_results"]) == 11
+    assert payload["observed_results"][0]["transcript_hash"] == ace_ct["transcript_hash"]
+    assert "This exact private clinician sentence" not in serialized
+    assert "This exact private patient sentence" not in serialized
+
+
+@pytest.mark.asyncio
+async def test_cli_writes_valid_partial_artifact_when_ace_ct_fails(
+    test_db, completed_session, tmp_path
+) -> None:
+    output = tmp_path / "ace-ct-partial.json"
+
+    code = await execute_command(
+        _args(
+            completed_session.id,
+            output,
+            evaluators="baseline,ace_ct_inspired",
+            llm_provider="openai",
+            model_identifier="synthetic-fake-model",
+            llm_adapter=FakeACECTAdapter(raw_response="private-invalid-output"),
+        ),
+        test_db,
+    )
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert code == EXIT_PARTIAL_FAILURE
+    assert [result["status"] for result in payload["observed_results"]] == [
+        "success",
+        "failed",
+    ]
+    assert "private-invalid-output" not in json.dumps(payload)
 
 
 @pytest.mark.asyncio

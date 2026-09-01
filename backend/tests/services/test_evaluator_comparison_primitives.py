@@ -8,9 +8,12 @@ import json
 import pytest
 
 from services.evaluator_comparison_service import (
+    DEFAULT_EVALUATOR_IDENTIFIERS,
     build_evaluator_provenance,
     canonicalize_transcript,
+    evaluators_require_llm,
     hash_transcript,
+    resolve_evaluator_llm_provider,
     serialize_canonical_transcript,
 )
 
@@ -109,3 +112,31 @@ def test_rule_provenance_omits_llm_details() -> None:
 def test_unknown_provenance_identifier_is_rejected() -> None:
     with pytest.raises(ValueError, match="Unknown evaluator identifier"):
         build_evaluator_provenance("unknown")
+
+
+@pytest.mark.parametrize("provider", ["openai", "gemini"])
+def test_ace_ct_provenance_records_selected_provider(provider: str) -> None:
+    provenance = build_evaluator_provenance(
+        "ace_ct_inspired",
+        llm_provider=provider,
+        model_identifier=f"{provider}-test-model",
+    )
+
+    assert provenance.evaluator_type == "experimental_rubric_llm"
+    assert provenance.llm_provider == provider
+    assert provenance.model_identifier == f"{provider}-test-model"
+    assert provenance.version == "0.1.0-experimental"
+
+
+def test_evaluator_llm_requirements_are_metadata_driven() -> None:
+    assert evaluators_require_llm(["ace_ct_inspired"])
+    assert evaluators_require_llm(["baseline", "hybrid_v1"])
+    assert not evaluators_require_llm(["baseline"])
+    assert resolve_evaluator_llm_provider(["ace_ct_inspired"], "gemini") == "gemini"
+    assert resolve_evaluator_llm_provider(["baseline"]) is None
+    assert DEFAULT_EVALUATOR_IDENTIFIERS == ("baseline", "hybrid_v1", "hybrid_v2")
+
+
+def test_existing_hybrids_reject_unsupported_gemini_provider() -> None:
+    with pytest.raises(ValueError, match="not supported"):
+        resolve_evaluator_llm_provider(["hybrid_v1"], "gemini")

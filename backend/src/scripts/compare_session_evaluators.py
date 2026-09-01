@@ -12,15 +12,17 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from config.settings import get_settings
 from repositories.turn_repo import TurnRepository
 from services.evaluator_comparison_service import (
-    EVALUATOR_DEFINITIONS,
+    DEFAULT_EVALUATOR_IDENTIFIERS,
     EvaluatorComparisonService,
     build_comparison_artifact,
+    evaluators_require_llm,
     render_csv_summary,
+    resolve_evaluator_llm_provider,
     validate_evaluator_identifiers,
 )
+from services.evaluator_llm_adapter_factory import get_configured_model_identifier
 
 EXIT_SUCCESS = 0
 EXIT_INVALID_INPUT = 2
@@ -35,7 +37,19 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--evaluators",
         default="all",
-        help="'all' or a comma-separated selection: baseline,hybrid_v1,hybrid_v2",
+        help=(
+            "'all' (the three established evaluators) or a comma-separated selection: "
+            "baseline,hybrid_v1,hybrid_v2,ace_ct_inspired"
+        ),
+    )
+    parser.add_argument(
+        "--llm-provider",
+        choices=("openai", "gemini"),
+        help="Provider for explicitly selected LLM evaluators.",
+    )
+    parser.add_argument(
+        "--model-identifier",
+        help="Optional safe model override used for evaluator calls and provenance.",
     )
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--overwrite", action="store_true")
@@ -52,7 +66,7 @@ def build_parser() -> argparse.ArgumentParser:
 def parse_evaluator_selection(raw: str) -> list[str]:
     value = str(raw).strip()
     if value == "all":
-        return list(EVALUATOR_DEFINITIONS)
+        return list(DEFAULT_EVALUATOR_IDENTIFIERS)
     if "all" in {part.strip() for part in value.split(",")}:
         raise ValueError("'all' cannot be combined with individual evaluator identifiers.")
     return validate_evaluator_identifiers(value.split(","))
@@ -105,12 +119,25 @@ async def execute_command(args: argparse.Namespace, db: Session) -> int:
             if args.csv_summary.exists() and not args.overwrite:
                 raise FileExistsError("CSV summary already exists; pass --overwrite to replace it.")
 
-        model_identifier = None
-        if any(identifier.startswith("hybrid_") for identifier in evaluators):
-            model_identifier = get_settings().openai_model_id
+        requires_llm = evaluators_require_llm(evaluators)
+        llm_provider = resolve_evaluator_llm_provider(
+            evaluators,
+            getattr(args, "llm_provider", None),
+        )
+        model_identifier = getattr(args, "model_identifier", None)
+        if requires_llm and model_identifier is None and llm_provider is not None:
+            try:
+                model_identifier = get_configured_model_identifier(llm_provider)
+            except (ValueError, RuntimeError):
+                # Per-evaluator execution will produce a safe failure artifact if the
+                # application configuration is unavailable or invalid.
+                model_identifier = None
         service = EvaluatorComparisonService(
             db,
+            llm_provider=llm_provider,
             model_identifier=model_identifier,
+            llm_adapter=getattr(args, "llm_adapter", None),
+            allow_experimental_override="ace_ct_inspired" in evaluators,
         )
         results = await service.run_evaluators(
             args.session_id,
