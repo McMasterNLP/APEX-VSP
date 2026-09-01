@@ -4,6 +4,13 @@
 import api from '@/api/client'
 import { useAuthStore } from '@/store/authStore'
 import type { AxiosError } from 'axios'
+import type {
+  ResearchEvaluationEnvelope,
+  ResearchEvaluationResponse,
+  ResearchEvaluationRunRequest,
+  ResearchEvaluatorDescriptorsResponse,
+  ResearchExportProfile,
+} from '@/types/researchEvaluation'
 
 const BASE = '/v1/research'
 
@@ -253,6 +260,60 @@ export async function fetchResearchData(): Promise<ResearchData> {
       // Backend does not provide fairness metrics; omit so UI hides that section
       fairnessMetrics: undefined,
     }
+  } catch (err) {
+    if (isForbidden(err)) {
+      throw new Error('Access denied. Admin privileges required.')
+    }
+    throw err
+  }
+}
+
+/** Fetches the explicit research evaluator/capability registry (admin only). */
+export async function fetchResearchEvaluatorDescriptors(): Promise<ResearchEvaluatorDescriptorsResponse> {
+  try {
+    const { data } = await api.get<ResearchEvaluatorDescriptorsResponse>(`${BASE}/evaluators`)
+    return data
+  } catch (err) {
+    if (isForbidden(err)) {
+      throw new Error('Access denied. Admin privileges required.')
+    }
+    throw err
+  }
+}
+
+/** Executes one or more research evaluators without changing saved session data. */
+export async function runResearchEvaluations(
+  sessionId: number,
+  request: ResearchEvaluationRunRequest
+): Promise<ResearchEvaluationResponse> {
+  try {
+    const { data } = await api.post<ResearchEvaluationResponse>(
+      `${BASE}/sessions/${sessionId}/evaluations`,
+      request
+    )
+    return data
+  } catch (err) {
+    if (isForbidden(err)) {
+      throw new Error('Access denied. Admin privileges required.')
+    }
+    throw err
+  }
+}
+
+/** Downloads a sanitized JSON profile or multi-table CSV ZIP for existing run envelopes. */
+export async function downloadResearchEvaluationExport(
+  sessionId: number,
+  profile: ResearchExportProfile,
+  envelopes: ResearchEvaluationEnvelope[]
+): Promise<void> {
+  try {
+    const { data } = await api.post<Blob>(
+      `${BASE}/sessions/${sessionId}/evaluation-exports`,
+      { profile, envelopes, include_transcript_content: false },
+      { responseType: 'blob' }
+    )
+    const extension = profile === 'tabular' ? 'zip' : 'json'
+    triggerBlobDownload(data, `apex_research_${profile}.${extension}`)
   } catch (err) {
     if (isForbidden(err)) {
       throw new Error('Access denied. Admin privileges required.')

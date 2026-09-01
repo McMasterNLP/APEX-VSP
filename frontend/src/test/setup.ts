@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { vi } from 'vitest'
 import {
   apiGet,
+  apiPost,
   mockGetSession,
   mockOnAuthStateChange,
   mockSignOut,
@@ -21,5 +22,6 @@ vi.mock('@/lib/supabase', () => ({
 vi.mock('@/api/client', () => ({
   default: {
     get: (...args: unknown[]) => apiGet(...args),
+    post: (...args: unknown[]) => apiPost(...args),
   },
 }))
