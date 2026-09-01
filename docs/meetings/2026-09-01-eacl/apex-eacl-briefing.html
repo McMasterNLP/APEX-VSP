@@ -1,0 +1,1190 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>APEX — EACL 2027 Systems Demonstration Planning</title>
+  <style>
+    :root {
+      --ink: #13233a;
+      --muted: #53657a;
+      --line: #d8e2ec;
+      --surface: #ffffff;
+      --surface-soft: #f4f8fb;
+      --surface-blue: #eef5ff;
+      --blue: #155aa8;
+      --blue-deep: #0c3f7a;
+      --teal: #357f6b;
+      --teal-bright: #50bc9c;
+      --teal-soft: #eaf7f2;
+      --amber: #a25b08;
+      --amber-soft: #fff6df;
+      --red: #9b2c2c;
+      --red-soft: #fff0f0;
+      --shadow: 0 14px 36px rgba(30, 55, 80, .10);
+      --radius: 18px;
+      --header-h: 78px;
+      --footer-h: 62px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: #eaf0f5;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.48;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, textarea { font: inherit; }
+    button, a, input, textarea { -webkit-tap-highlight-color: transparent; }
+    a { color: var(--blue); text-underline-offset: 3px; }
+    a:hover { color: var(--blue-deep); }
+    :focus-visible { outline: 3px solid #f0a43a; outline-offset: 3px; }
+    .skip-link {
+      position: fixed;
+      z-index: 100;
+      left: 16px;
+      top: -80px;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: var(--ink);
+      color: #fff;
+    }
+    .skip-link:focus { top: 12px; }
+
+    .presentation-header {
+      position: fixed;
+      z-index: 20;
+      inset: 0 0 auto 0;
+      height: var(--header-h);
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 22px;
+      padding: 12px 28px;
+      border-bottom: 1px solid rgba(216, 226, 236, .95);
+      background: rgba(255, 255, 255, .96);
+      backdrop-filter: blur(14px);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Avenir Next", sans-serif;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    .brand-mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, var(--blue) 0 48%, var(--teal-bright) 48% 100%);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+    }
+    .header-title { min-width: 0; }
+    .header-title strong {
+      display: block;
+      overflow: hidden;
+      color: var(--blue-deep);
+      font-size: .96rem;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .header-title span { color: var(--muted); font-size: .78rem; }
+    .review-badge {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 11px;
+      border: 1px solid #e6c57d;
+      border-radius: 999px;
+      background: var(--amber-soft);
+      color: #784103;
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+    }
+    .review-badge::before {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #d58316;
+      content: "";
+    }
+
+    main {
+      min-height: 100vh;
+      padding: calc(var(--header-h) + 18px) 24px calc(var(--footer-h) + 18px);
+    }
+    .slide {
+      width: min(1360px, 100%);
+      min-height: calc(100vh - var(--header-h) - var(--footer-h) - 36px);
+      margin: 0 auto 26px;
+      padding: clamp(28px, 4vw, 58px);
+      overflow: auto;
+      border: 1px solid rgba(216, 226, 236, .9);
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 100% 0, rgba(80,188,156,.10), transparent 24%),
+        var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .js .slide { display: none; }
+    .js .slide.active { display: block; animation: slide-in .22s ease-out; }
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--teal);
+      font-size: .78rem;
+      font-weight: 800;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 { margin-top: 0; color: var(--ink); line-height: 1.12; }
+    h1 {
+      max-width: 920px;
+      margin-bottom: 18px;
+      font-family: "Trebuchet MS", "Avenir Next", sans-serif;
+      font-size: clamp(2.65rem, 5.7vw, 5.4rem);
+      letter-spacing: -.045em;
+    }
+    h2 {
+      max-width: 1000px;
+      margin-bottom: 22px;
+      font-family: "Trebuchet MS", "Avenir Next", sans-serif;
+      font-size: clamp(2rem, 3.7vw, 3.45rem);
+      letter-spacing: -.035em;
+    }
+    h3 { margin-bottom: 10px; font-size: 1.08rem; }
+    p { margin: 0 0 14px; }
+    .lede {
+      max-width: 940px;
+      color: #334b65;
+      font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+    }
+    .muted { color: var(--muted); }
+    .small { font-size: .82rem; }
+    .tight { margin-bottom: 5px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .source-note {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      color: #607287;
+      font-size: .72rem;
+    }
+
+    .grid-2, .grid-3, .grid-4 {
+      display: grid;
+      gap: 18px;
+    }
+    .grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card {
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+    .card.soft { background: var(--surface-soft); }
+    .card.blue { border-color: #cbdcf0; background: var(--surface-blue); }
+    .card.teal { border-color: #c6e5da; background: var(--teal-soft); }
+    .card.amber { border-color: #e9cc8c; background: var(--amber-soft); }
+    .card.red { border-color: #efc3c3; background: var(--red-soft); }
+    .card > :last-child { margin-bottom: 0; }
+    .status-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #fff;
+      color: #41536a;
+      font-size: .7rem;
+      font-weight: 800;
+      letter-spacing: .025em;
+      text-transform: uppercase;
+    }
+    .status.main { border-color: #b8dfd1; background: var(--teal-soft); color: #255e50; }
+    .status.feature { border-color: #e5c174; background: var(--amber-soft); color: #794504; }
+    .status.blocked { border-color: #edbcbc; background: var(--red-soft); color: var(--red); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .callout {
+      padding: 14px 17px;
+      border-left: 5px solid var(--teal);
+      border-radius: 8px 14px 14px 8px;
+      background: var(--teal-soft);
+      color: #274c43;
+    }
+    .callout.warning { border-left-color: var(--amber); background: var(--amber-soft); color: #70430b; }
+    .callout.boundary { border-left-color: var(--red); background: var(--red-soft); color: #6f2929; }
+    ul, ol { margin: 8px 0 0; padding-left: 21px; }
+    li { margin: 5px 0; }
+
+    .opening-layout {
+      display: grid;
+      min-height: 610px;
+      grid-template-columns: minmax(0, 1.65fr) minmax(300px, .75fr);
+      align-items: center;
+      gap: clamp(30px, 6vw, 86px);
+    }
+    .opening-meta {
+      padding-left: 22px;
+      border-left: 2px solid var(--teal-bright);
+    }
+    .date-lockup { margin-bottom: 22px; color: var(--blue-deep); font-size: 1.14rem; font-weight: 800; }
+    .big-date { display: block; font-size: 2.2rem; letter-spacing: -.04em; }
+
+    .process {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      align-items: stretch;
+      margin: 30px 0;
+      padding: 0;
+      list-style: none;
+    }
+    .process li {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 122px;
+      margin: 0 8px 0 0;
+      padding: 16px 22px 16px 16px;
+      border: 1px solid #cbd9e7;
+      border-radius: 15px;
+      background: #f8fbfd;
+      color: #233e5c;
+      font-weight: 800;
+      text-align: center;
+    }
+    .process li:not(:last-child)::after {
+      position: absolute;
+      z-index: 2;
+      right: -17px;
+      top: 50%;
+      width: 24px;
+      height: 24px;
+      transform: translateY(-50%) rotate(45deg);
+      border-top: 3px solid var(--teal);
+      border-right: 3px solid var(--teal);
+      background: #f8fbfd;
+      content: "";
+    }
+
+    .transcript {
+      display: grid;
+      gap: 9px;
+      max-height: 510px;
+      padding: 2px 6px 8px 2px;
+      overflow: auto;
+    }
+    .turn {
+      display: grid;
+      grid-template-columns: 44px minmax(0, 1fr);
+      gap: 10px;
+      align-items: start;
+      width: min(88%, 940px);
+      padding: 11px 14px;
+      border: 1px solid #cadbea;
+      border-radius: 16px 16px 16px 5px;
+      background: var(--surface-blue);
+      transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+    }
+    .turn.patient {
+      justify-self: end;
+      border-color: #c7e5da;
+      border-radius: 16px 16px 5px 16px;
+      background: var(--teal-soft);
+    }
+    .turn.highlight {
+      border-color: #dc8c20;
+      box-shadow: 0 0 0 3px rgba(220, 140, 32, .22);
+      transform: translateY(-1px);
+    }
+    .turn-number {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      background: #fff;
+      color: var(--blue-deep);
+      font-weight: 900;
+    }
+    .turn.patient .turn-number { color: #276454; }
+    .turn-role { display: block; margin-bottom: 3px; color: var(--muted); font-size: .69rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .turn p { margin: 0; }
+
+    .framework-columns { display: grid; grid-template-columns: 1fr 1fr .9fr; gap: 18px; }
+    .framework-card { min-height: 330px; }
+    .framework-name { color: var(--blue-deep); font-size: 1.65rem; }
+    .stage-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+    .stage-list span { padding: 7px 9px; border-radius: 9px; background: #fff; color: #344b64; font-size: .77rem; font-weight: 750; }
+
+    .plugin-flow {
+      display: grid;
+      grid-template-columns: 1fr 54px 1fr 54px 1fr;
+      align-items: center;
+      gap: 10px;
+      margin: 26px 0;
+    }
+    .plugin-arrow { color: var(--teal); font-size: 2.2rem; font-weight: 300; text-align: center; }
+    .plugin-type { min-height: 220px; }
+    .verb {
+      display: inline-block;
+      margin: 9px 0 12px;
+      padding: 6px 9px;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .table-wrap {
+      max-height: 480px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+    table { width: 100%; border-collapse: collapse; background: #fff; font-size: .83rem; }
+    caption { padding: 12px; color: var(--muted); text-align: left; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: top; text-align: left; }
+    th { position: sticky; z-index: 1; top: 0; background: #edf3f8; color: #2c455f; font-size: .7rem; letter-spacing: .055em; text-transform: uppercase; }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #f8fbfd; }
+
+    .comparison-flow {
+      display: grid;
+      grid-template-columns: 1.1fr 56px 1.7fr 56px 1.25fr;
+      align-items: stretch;
+      gap: 10px;
+      margin: 24px 0;
+    }
+    .comparison-stack { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+    .comparison-stack span { display: grid; place-items: center; padding: 12px 8px; border: 1px solid #cddcea; border-radius: 11px; background: #fff; font-size: .78rem; font-weight: 850; text-align: center; }
+
+    .comparison-demo { display: grid; grid-template-columns: minmax(310px, .8fr) minmax(470px, 1.2fr); gap: 20px; align-items: start; }
+    .mini-transcript { max-height: 520px; padding-right: 7px; overflow: auto; }
+    .mini-turn {
+      margin: 0 0 6px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f7fafc;
+      font-size: .76rem;
+      transition: box-shadow .18s ease, background .18s ease;
+    }
+    .mini-turn.patient { margin-left: 22px; background: var(--teal-soft); }
+    .mini-turn.clinician { margin-right: 22px; background: var(--surface-blue); }
+    .mini-turn.highlight { border-color: #db8b1c; background: var(--amber-soft); box-shadow: 0 0 0 2px rgba(219,139,28,.18); }
+    .mini-turn b { display: inline-block; min-width: 78px; color: #41566e; }
+    .tablist { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .tab {
+      padding: 8px 12px;
+      border: 1px solid #c7d5e4;
+      border-radius: 999px;
+      background: #fff;
+      color: #354e68;
+      cursor: pointer;
+      font-size: .76rem;
+      font-weight: 850;
+    }
+    .tab[aria-selected="true"] { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .comparison-panel {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .no-js .comparison-panel[hidden] { display: block; margin-bottom: 12px; }
+    .js .comparison-panel[hidden] { display: none; }
+    .score-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin: 12px 0; }
+    .score {
+      padding: 10px;
+      border-radius: 11px;
+      background: #edf4fa;
+      text-align: center;
+    }
+    .score strong { display: block; color: var(--blue-deep); font-size: 1.4rem; }
+    .score span { display: block; color: var(--muted); font-size: .62rem; font-weight: 800; text-transform: uppercase; }
+    .evidence-buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .evidence-button {
+      min-width: 34px;
+      padding: 5px 8px;
+      border: 1px solid #d6b166;
+      border-radius: 8px;
+      background: var(--amber-soft);
+      color: #78470a;
+      cursor: pointer;
+      font-size: .72rem;
+      font-weight: 850;
+    }
+    .domain-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 12px 0; }
+    .domain { padding: 10px; border: 1px solid #c9ded7; border-radius: 10px; background: var(--teal-soft); text-align: center; }
+    .domain strong { display: block; color: #285e50; font-size: 1.14rem; }
+    .dimension-list { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+    .dimension {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #f8fafc;
+      font-size: .7rem;
+    }
+    .dimension.partial { border-color: #e7c47c; background: var(--amber-soft); }
+    .dimension.null { border-style: dashed; color: var(--muted); }
+
+    .vennish { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+    .lens { min-height: 250px; padding: 22px; border-radius: 42px 14px 42px 14px; }
+    .lens:nth-child(1) { border: 2px solid #7ea7d6; background: rgba(238,245,255,.9); }
+    .lens:nth-child(2) { border: 2px solid #85c7b1; background: rgba(234,247,242,.9); }
+    .lens:nth-child(3) { border: 2px solid #d9b460; background: rgba(255,246,223,.9); }
+    .lens h3 { font-size: 1.55rem; }
+
+    .boundary-compare { display: grid; grid-template-columns: 1fr 72px 1fr; gap: 14px; align-items: stretch; }
+    .boundary-divider { display: grid; place-items: center; color: var(--red); font-weight: 900; writing-mode: vertical-rl; text-transform: uppercase; letter-spacing: .1em; }
+
+    .status-group { padding: 20px; border-radius: var(--radius); }
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { position: relative; padding-left: 27px; }
+    .checklist li::before { position: absolute; left: 0; color: var(--teal); content: "✓"; font-weight: 900; }
+    .feature-list li::before { color: var(--amber); content: "◆"; }
+
+    .priority-list { counter-reset: priority; padding: 0; list-style: none; }
+    .priority-list li {
+      counter-increment: priority;
+      display: grid;
+      grid-template-columns: 38px 1fr;
+      gap: 13px;
+      align-items: start;
+      margin: 0;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .priority-list li::before {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 9px;
+      background: var(--blue);
+      color: #fff;
+      content: counter(priority);
+      font-weight: 900;
+    }
+
+    .timeline { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; margin: 24px 0; }
+    .phase { min-height: 220px; padding: 14px 12px; border-top: 5px solid var(--teal); border-radius: 10px; background: #f5f9fc; }
+    .phase:nth-child(2n) { border-top-color: var(--blue); }
+    .phase-date { display: block; margin-bottom: 14px; color: var(--teal); font-size: .72rem; font-weight: 900; text-transform: uppercase; }
+    .phase h3 { font-size: .95rem; }
+    .phase p { color: var(--muted); font-size: .73rem; }
+
+    .decision-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 11px; }
+    .decision-card { padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: #fbfdfe; }
+    .decision-card label { display: block; color: #29425d; font-size: .76rem; font-weight: 850; }
+    .decision-options { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 8px; color: var(--muted); font-size: .7rem; }
+    .decision-options label { display: inline-flex; gap: 5px; align-items: center; font-weight: 600; }
+    .decision-card input[type="text"] {
+      width: 100%;
+      margin-top: 8px;
+      padding: 7px 8px;
+      border: 1px solid #b8c7d6;
+      border-radius: 7px;
+      background: #fff;
+    }
+
+    .presentation-footer {
+      position: fixed;
+      z-index: 20;
+      inset: auto 0 0 0;
+      min-height: var(--footer-h);
+      display: grid;
+      grid-template-columns: minmax(190px, 1fr) auto minmax(190px, 1fr);
+      align-items: center;
+      gap: 14px;
+      padding: 9px 22px;
+      border-top: 1px solid rgba(216, 226, 236, .96);
+      background: rgba(255,255,255,.97);
+    }
+    .section-nav { display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+    .section-nav::-webkit-scrollbar { display: none; }
+    .section-nav a {
+      flex: 0 0 auto;
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #cbd8e5;
+      border-radius: 7px;
+      color: #4e6379;
+      font-size: .66rem;
+      font-weight: 850;
+      text-decoration: none;
+    }
+    .section-nav a[aria-current="page"] { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .progress-wrap { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: .72rem; }
+    progress { width: 150px; height: 8px; overflow: hidden; border: 0; border-radius: 999px; background: #dfe8f0; }
+    progress::-webkit-progress-bar { background: #dfe8f0; }
+    progress::-webkit-progress-value { background: linear-gradient(90deg, var(--blue), var(--teal-bright)); }
+    progress::-moz-progress-bar { background: linear-gradient(90deg, var(--blue), var(--teal-bright)); }
+    .nav-controls { display: flex; justify-content: flex-end; gap: 8px; }
+    .nav-button {
+      min-width: 92px;
+      padding: 8px 12px;
+      border: 1px solid #c3d2df;
+      border-radius: 9px;
+      background: #fff;
+      color: var(--blue-deep);
+      cursor: pointer;
+      font-size: .75rem;
+      font-weight: 850;
+    }
+    .nav-button.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .nav-button:disabled { cursor: not-allowed; opacity: .4; }
+    .no-js-note { margin: 90px 24px 0; padding: 12px; border: 1px solid #e0bd70; border-radius: 10px; background: var(--amber-soft); color: #70430b; }
+
+    @media (max-width: 1100px) {
+      :root { --header-h: 72px; }
+      .slide { padding: 30px; }
+      .grid-4 { grid-template-columns: repeat(2, 1fr); }
+      .process { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .process li { margin: 0; min-height: 96px; }
+      .process li::after { display: none; }
+      .plugin-flow, .comparison-flow { grid-template-columns: 1fr; }
+      .plugin-arrow { transform: rotate(90deg); }
+      .comparison-demo { grid-template-columns: .85fr 1.15fr; }
+      .timeline { grid-template-columns: repeat(4, 1fr); }
+      .phase { min-height: 160px; }
+      .decision-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 760px) {
+      :root { --header-h: 102px; --footer-h: 72px; }
+      .presentation-header { height: var(--header-h); grid-template-columns: auto 1fr; padding: 10px 14px; }
+      .review-badge { grid-column: 1 / -1; justify-self: start; padding: 4px 8px; }
+      main { padding-left: 9px; padding-right: 9px; }
+      .slide { min-height: calc(100vh - var(--header-h) - var(--footer-h) - 26px); padding: 24px 18px; border-radius: 16px; }
+      .opening-layout, .grid-2, .grid-3, .framework-columns, .comparison-demo, .vennish, .boundary-compare { grid-template-columns: 1fr; }
+      .opening-layout { min-height: 0; }
+      .opening-meta { border-left: 0; border-top: 2px solid var(--teal-bright); padding: 18px 0 0; }
+      .process, .grid-4, .timeline, .decision-grid, .score-grid, .domain-grid, .dimension-list { grid-template-columns: 1fr 1fr; }
+      .boundary-divider { min-height: 36px; writing-mode: initial; }
+      .turn { width: 97%; grid-template-columns: 38px 1fr; }
+      .mini-transcript { max-height: 330px; }
+      .presentation-footer { grid-template-columns: 1fr auto; padding: 8px 10px; }
+      .section-nav { display: none; }
+      progress { width: 92px; }
+      .nav-button { min-width: 68px; padding: 7px 8px; }
+    }
+    @media (max-width: 480px) {
+      .process, .grid-4, .timeline, .decision-grid, .score-grid, .domain-grid, .dimension-list { grid-template-columns: 1fr; }
+      .header-title strong { font-size: .82rem; }
+      .header-title span { font-size: .68rem; }
+      .phase { min-height: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+    }
+    @media print {
+      @page { size: landscape; margin: 9mm; }
+      body { background: #fff; font-size: 10pt; }
+      .presentation-header { position: static; height: auto; padding: 8px 0 12px; border-bottom: 1px solid #aaa; }
+      .presentation-footer, .tablist, .evidence-button, .no-print, .skip-link, .no-js-note { display: none !important; }
+      main { padding: 0; }
+      .slide, .js .slide, .js .slide.active {
+        display: block !important;
+        min-height: 0;
+        margin: 0;
+        padding: 10mm 8mm;
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        break-after: page;
+      }
+      .slide:last-child { break-after: auto; }
+      h1 { font-size: 36pt; }
+      h2 { font-size: 25pt; }
+      h3 { font-size: 13pt; }
+      .lede { font-size: 13pt; }
+      .transcript, .mini-transcript, .table-wrap { max-height: none; overflow: visible; }
+      .comparison-panel, .js .comparison-panel[hidden] { display: block !important; margin-bottom: 8px; }
+      .comparison-demo { grid-template-columns: .8fr 1.2fr; }
+      .timeline { grid-template-columns: repeat(4, 1fr); }
+      .phase { min-height: 0; }
+      th { position: static; }
+      a { color: inherit; text-decoration: none; }
+      input[type="text"] { border: 0 !important; border-bottom: 1px solid #555 !important; border-radius: 0 !important; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#opening">Skip to presentation content</a>
+  <header class="presentation-header">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"></span><span>APEX</span></div>
+    <div class="header-title">
+      <strong>EACL 2027 Systems Demonstration Planning</strong>
+      <span>September 1, 2026</span>
+    </div>
+    <span class="review-badge">Internal review</span>
+  </header>
+
+  <noscript><p class="no-js-note">JavaScript is unavailable. All sections are shown in order; navigation links and printing still work.</p></noscript>
+
+  <main id="presentation" tabindex="-1">
+    <section class="slide active" id="opening" data-title="Opening" aria-labelledby="opening-title">
+      <div class="opening-layout">
+        <div>
+          <p class="eyebrow">Internal scientific and product review</p>
+          <h1 id="opening-title">APEX: Virtual-Patient Communication Training and Evaluator Experimentation</h1>
+          <p class="lede">A decision-focused briefing for a credible, reproducible EACL 2027 Systems Demonstration target.</p>
+          <div class="status-row" aria-label="Current status">
+            <span class="status main"><span class="dot"></span>Comparison infrastructure complete</span>
+            <span class="status feature"><span class="dot"></span>ACE-CT-inspired evaluator experimental</span>
+            <span class="status blocked"><span class="dot"></span>Review and validation remain</span>
+          </div>
+          <div class="callout warning">
+            <strong>Target—not acceptance:</strong> submission preparation is underway for the September 22, 2026 deadline. Scientific review, live validation, UI integration, and submission work are not complete.
+          </div>
+        </div>
+        <aside class="opening-meta" aria-label="Meeting and target dates">
+          <p class="date-lockup"><span class="big-date">Sep 1</span>Internal review</p>
+          <p class="date-lockup"><span class="big-date">Sep 22</span>Submission deadline</p>
+          <p><strong>Today’s outcome</strong></p>
+          <p class="muted">Agree on scientific boundaries, comparison-only scope, validation material, and the smallest defensible demonstration.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="slide" id="what-apex-does" data-title="What APEX does" aria-labelledby="workflow-title">
+      <p class="eyebrow">Current product</p>
+      <h2 id="workflow-title">APEX turns a difficult-conversation practice session into structured feedback</h2>
+      <ol class="process" aria-label="APEX workflow from case selection to review">
+        <li>Select a case</li>
+        <li>Conduct clinician–patient conversation</li>
+        <li>Store ordered transcript</li>
+        <li>Evaluate communication</li>
+        <li>Generate feedback + metrics</li>
+        <li>Learner / admin review</li>
+      </ol>
+      <div class="grid-2">
+        <article class="card blue">
+          <h3>Trainee perspective</h3>
+          <p>Choose a training case, communicate with a virtual patient, then review strengths, missed empathic opportunities, SPIKES coverage, and suggested improvements.</p>
+        </article>
+        <article class="card teal">
+          <h3>Administrator / researcher perspective</h3>
+          <p>Manage cases and plugin selections, inspect frozen session provenance, review aggregate analytics, and produce controlled research exports.</p>
+        </article>
+      </div>
+      <p class="source-note">Repository basis: <span class="mono">README.md</span>, session/dialogue/scoring services, and <span class="mono">frontend/src/pages/Admin.tsx</span>. The comparison UI shown later is a meeting mockup, not the current production frontend.</p>
+    </section>
+
+    <section class="slide" id="synthetic-transcript" data-title="Synthetic transcript" aria-labelledby="transcript-title">
+      <p class="eyebrow">Walkthrough case</p>
+      <h2 id="transcript-title">One conversation contains both effective communication and repairable misses</h2>
+      <div class="callout warning"><strong>Synthetic demonstration transcript — not clinical data.</strong> Entirely fictional; no person, medical record, private transcript, or confidential source example is represented.</div>
+      <div class="transcript" aria-label="Twelve-turn synthetic clinician and patient conversation">
+        <article class="turn clinician" id="transcript-turn-1"><span class="turn-number">1</span><div><span class="turn-role">Clinician</span><p>Thank you for meeting with me. Before we discuss the biopsy, could you tell me what you understand about the tests so far?</p></div></article>
+        <article class="turn patient" id="transcript-turn-2"><span class="turn-number">2</span><div><span class="turn-role">Patient</span><p>I know the scan found something unusual. I am scared it might be cancer, and I keep thinking about what that would mean for my daughter.</p></div></article>
+        <article class="turn clinician" id="transcript-turn-3"><span class="turn-number">3</span><div><span class="turn-role">Clinician</span><p>The biopsy shows lymphoma. It is a malignancy involving cells in the lymphatic system, and we will need immunophenotyping before choosing treatment.</p></div></article>
+        <article class="turn patient" id="transcript-turn-4"><span class="turn-number">4</span><div><span class="turn-role">Patient</span><p>Malignancy means cancer, right? I feel like we moved past how frightening this is.</p></div></article>
+        <article class="turn clinician" id="transcript-turn-5"><span class="turn-number">5</span><div><span class="turn-role">Clinician</span><p>You are right, and I am sorry I moved too quickly. This is frightening news. Would it be okay if I pause and then explain what lymphoma means in plain language?</p></div></article>
+        <article class="turn patient" id="transcript-turn-6"><span class="turn-number">6</span><div><span class="turn-role">Patient</span><p>Yes, please. I need to know whether it can be treated.</p></div></article>
+        <article class="turn clinician" id="transcript-turn-7"><span class="turn-number">7</span><div><span class="turn-role">Clinician</span><p>Lymphoma is a cancer that starts in part of the immune system. There are different types, and many can be treated. The next test identifies the type. Does that explanation make sense, and what are you taking from it?</p></div></article>
+        <article class="turn patient" id="transcript-turn-8"><span class="turn-number">8</span><div><span class="turn-role">Patient</span><p>I understand that it is cancer and that the next test tells us the type. I am still scared about caring for my daughter and missing work.</p></div></article>
+        <article class="turn clinician" id="transcript-turn-9"><span class="turn-number">9</span><div><span class="turn-role">Clinician</span><p>I hear that your daughter and work are central concerns. Before we make a plan, what matters most to you over the next few weeks?</p></div></article>
+        <article class="turn patient" id="transcript-turn-10"><span class="turn-number">10</span><div><span class="turn-role">Patient</span><p>I want to stay well enough to care for her, and I would like my sister with me for the specialist visit.</p></div></article>
+        <article class="turn clinician" id="transcript-turn-11"><span class="turn-number">11</span><div><span class="turn-role">Clinician</span><p>Let me summarize: the biopsy confirms lymphoma, the next test identifies the type, and then the specialist will discuss treatment. We will arrange that visit, include your sister, and give you the terms in writing. What questions would you like us to address first?</p></div></article>
+        <article class="turn patient" id="transcript-turn-12"><span class="turn-number">12</span><div><span class="turn-role">Patient</span><p>Can we discuss the likely timeline and who I should call if the worry becomes overwhelming?</p></div></article>
+      </div>
+      <p class="source-note">Canonical meeting asset: <a href="assets/synthetic-transcript.json">assets/synthetic-transcript.json</a>. Turn numbers remain stable for evidence linking.</p>
+    </section>
+
+    <section class="slide" id="foundations" data-title="Foundations" aria-labelledby="foundations-title">
+      <p class="eyebrow">Original APEX foundations</p>
+      <h2 id="foundations-title">SPIKES structures the conversation; AFCE locates empathic opportunities and responses</h2>
+      <div class="framework-columns">
+        <article class="card blue framework-card">
+          <p class="eyebrow">Conversation structure</p>
+          <h3 class="framework-name">SPIKES</h3>
+          <p>Tracks the structure of breaking-bad-news communication and supports stage-aware patient behavior and learner feedback.</p>
+          <div class="stage-list" aria-label="SPIKES stages"><span>Setting</span><span>Perception</span><span>Invitation</span><span>Knowledge</span><span>Emotion</span><span>Strategy / Summary</span></div>
+        </article>
+        <article class="card teal framework-card">
+          <p class="eyebrow">Empathy discourse</p>
+          <h3 class="framework-name">AFCE</h3>
+          <p>Represents emotional and appraisal spans, elicitations, empathic responses, missed opportunities, and relevant discourse-level span/relation concepts.</p>
+          <div class="stage-list" aria-label="AFCE concepts"><span>Feeling</span><span>Judgment</span><span>Appreciation</span><span>Elicitation</span><span>Response</span><span>Missed opportunity</span></div>
+        </article>
+        <aside class="card amber framework-card">
+          <p class="eyebrow">Experimental complement</p>
+          <h3 class="framework-name">ACE-CT-inspired</h3>
+          <p>Explores broader communication-quality dimensions in the same transcript. It does <strong>not</strong> replace SPIKES or AFCE, and it is not an official or validated ACE-CT model.</p>
+        </aside>
+      </div>
+      <p class="source-note">Repository references: <a href="../../../docs/research/spikes_protocol.md">SPIKES protocol</a> and <a href="../../../docs/research/afce_framework.md">AFCE framework</a>.</p>
+    </section>
+
+    <section class="slide" id="plugin-architecture" data-title="Plugin architecture" aria-labelledby="plugins-title">
+      <p class="eyebrow">Extensibility model</p>
+      <h2 id="plugins-title">Generate, interpret, and measure are intentionally separate responsibilities</h2>
+      <div class="plugin-flow" role="img" aria-label="Patient model generates dialogue behavior, evaluator interprets a completed session, and metrics plugin measures observable features. Fixed imports register classes, then settings or case selections are frozen on the session.">
+        <article class="card blue plugin-type">
+          <h3>Patient-model plugin</h3><span class="verb">Generates behavior</span>
+          <p>Async <span class="mono">generate_response(state, clinician_input)</span> produces a virtual-patient turn during the encounter.</p>
+        </article>
+        <div class="plugin-arrow" aria-hidden="true">→</div>
+        <article class="card amber plugin-type">
+          <h3>Evaluator plugin</h3><span class="verb">Interprets behavior</span>
+          <p>Async <span class="mono">evaluate(db, session_id)</span> interprets a completed session and returns the feedback contract.</p>
+        </article>
+        <div class="plugin-arrow" aria-hidden="true">→</div>
+        <article class="card teal plugin-type">
+          <h3>Metrics plugin</h3><span class="verb">Measures behavior</span>
+          <p>Sync <span class="mono">compute(db, session_id)</span> calculates observable research or analytics measurements.</p>
+        </article>
+      </div>
+      <div class="callout"><strong>Lifecycle:</strong> startup imports a fixed module list → modules register classes in the in-memory <span class="mono">PluginRegistry</span> → configuration/case choices resolve to registry keys → selections freeze on the session → core services invoke the selected interfaces.</div>
+      <p class="source-note">Repository basis: <span class="mono">backend/src/plugins/load_plugins.py</span>, <span class="mono">registry.py</span>, the three <span class="mono">interfaces/</span> protocols, and session/scoring/dialogue services. There is no filesystem plugin discovery.</p>
+    </section>
+
+    <section class="slide" id="plugin-inventory" data-title="Plugin inventory" aria-labelledby="inventory-title">
+      <p class="eyebrow">Actual registry on this branch</p>
+      <h2 id="inventory-title">Six implemented plugins; only one is feature-branch-only</h2>
+      <div class="table-wrap">
+        <table>
+          <caption>Current fixed plugin registry. Provider adapters are not separate patient-model plugins.</caption>
+          <thead><tr><th>Family / plugin</th><th>Version &amp; behavior</th><th>Status</th><th>Produces</th><th>Important limitation</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Patient</strong><br>DefaultLLMPatientModel</td><td>1.0 · case/SPIKES-aware prompt; OpenAI or Gemini adapter</td><td><span class="status main">main · default</span></td><td>Simulated patient response</td><td>General case-script patient; provider adapters remain inside one plugin.</td></tr>
+            <tr><td><strong>Evaluator</strong><br>ApexBaselineEvaluator</td><td>1.0 · rule-only</td><td><span class="status main">main · comparison</span></td><td>APEX feedback and scores</td><td>Rules can miss context and indirect language.</td></tr>
+            <tr><td><strong>Evaluator</strong><br>ApexHybridEvaluator</td><td>1.0 · rule core + optional LLM merge</td><td><span class="status main">main · default</span></td><td>Persistable APEX feedback</td><td>Real LLM review requires configured OpenAI/model.</td></tr>
+            <tr><td><strong>Evaluator</strong><br>ApexHybridV2Evaluator</td><td>2.0 · rule core + three focused reviews + 70/30 merge</td><td><span class="status main">main · comparison</span></td><td>APEX feedback with focused review</td><td>Comparison definition is currently OpenAI-only.</td></tr>
+            <tr><td><strong>Evaluator</strong><br>ACECTInspiredRubricEvaluator</td><td>0.1.0-experimental · strict provider-neutral transcript rubric</td><td><span class="status feature">feature · gated · unmerged</span></td><td>4 domains, 11 dimensions, evidence, compatibility projection</td><td>Pending expert review; transcript-only; experimental and unvalidated.</td></tr>
+            <tr><td><strong>Metrics</strong><br>ApexMetrics</td><td>1.0 · reuses span/SPIKES scoring helpers</td><td><span class="status main">main · default</span></td><td>AFCE counts and SPIKES coverage</td><td>Observable rule-derived measures are not validation.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="source-note">Confirmed against <span class="mono">PLUGIN_MODULES</span>, registry calls, class metadata, and settings defaults on <span class="mono">presentation/september-1-eacl-briefing</span>. Full inventory: <a href="assets/plugin-roadmap.json">assets/plugin-roadmap.json</a>.</p>
+    </section>
+
+    <section class="slide" id="comparison-infrastructure" data-title="Comparison infrastructure" aria-labelledby="comparison-infra-title">
+      <p class="eyebrow">Completed on main</p>
+      <h2 id="comparison-infra-title">One frozen transcript can be evaluated several ways without changing the learner record</h2>
+      <div class="comparison-flow" role="img" aria-label="The same completed stored transcript is hashed, then passed independently to baseline, hybrid version one, hybrid version two, and an optional explicitly selected ACE-CT-inspired evaluator. Sanitized results are combined into JSON and CSV artifacts without persistence.">
+        <article class="card blue"><h3>Completed session</h3><p>Ordered transcript</p><p class="mono small">SHA-256 canonical hash</p></article>
+        <div class="plugin-arrow" aria-hidden="true">→</div>
+        <div class="comparison-stack"><span>Baseline</span><span>Hybrid v1</span><span>Hybrid v2</span><span>ACE-CT-inspired<br><small>explicit only</small></span></div>
+        <div class="plugin-arrow" aria-hidden="true">→</div>
+        <article class="card teal"><h3>Comparison artifact</h3><p>Per-evaluator provenance, runtime, scores, evidence, failures, and descriptive analysis</p><p class="mono small">JSON canonical · CSV summary</p></article>
+      </div>
+      <div class="grid-4">
+        <div class="card soft"><h3>No overwrite</h3><p class="small">No saved feedback, metrics, session fields, or turns are changed.</p></div>
+        <div class="card soft"><h3>Deterministic identity</h3><p class="small">Transcript hash detects any mid-comparison change.</p></div>
+        <div class="card soft"><h3>Failure isolation</h3><p class="small">A sanitized failure result does not discard successful evaluators.</p></div>
+        <div class="card soft"><h3>Safe exports</h3><p class="small">Transcript text is omitted unless explicitly included; CSV omits evidence blobs.</p></div>
+      </div>
+      <p class="source-note">Merged into <span class="mono">main</span> via PR #1. Repository source: <a href="../../../docs/research/evaluator_comparison.md">evaluator comparison guide</a> and <span class="mono">backend/src/services/evaluator_comparison_service.py</span>.</p>
+    </section>
+
+    <section class="slide" id="illustrative-comparison" data-title="Mock comparison" aria-labelledby="mock-title">
+      <p class="eyebrow">UI concept · interaction specification</p>
+      <h2 id="mock-title">Different evaluators can inspect the same evidence without pretending their constructs are equivalent</h2>
+      <div class="callout warning"><strong>Illustrative mock output — not an experimental result.</strong> No evaluator or provider was run; values are arbitrary interface examples and do not rank evaluator validity.</div>
+      <div class="comparison-demo">
+        <div>
+          <h3>Synthetic transcript</h3>
+          <p class="small muted">Choose an evidence turn to highlight it.</p>
+          <div class="mini-transcript" id="comparison-transcript" aria-label="Compact synthetic transcript for comparison evidence">
+            <p class="mini-turn clinician" data-turn="1"><b>1 · Clinician</b> What do you understand about the tests?</p>
+            <p class="mini-turn patient" data-turn="2"><b>2 · Patient</b> I am scared it might be cancer.</p>
+            <p class="mini-turn clinician" data-turn="3"><b>3 · Clinician</b> The biopsy shows lymphoma… malignancy… immunophenotyping.</p>
+            <p class="mini-turn patient" data-turn="4"><b>4 · Patient</b> We moved past how frightening this is.</p>
+            <p class="mini-turn clinician" data-turn="5"><b>5 · Clinician</b> You are right. I am sorry. Would it be okay if I explain?</p>
+            <p class="mini-turn patient" data-turn="6"><b>6 · Patient</b> Yes, please.</p>
+            <p class="mini-turn clinician" data-turn="7"><b>7 · Clinician</b> Plain-language explanation + understanding check.</p>
+            <p class="mini-turn patient" data-turn="8"><b>8 · Patient</b> Teach-back + concern about daughter and work.</p>
+            <p class="mini-turn clinician" data-turn="9"><b>9 · Clinician</b> Acknowledges concern + asks what matters most.</p>
+            <p class="mini-turn patient" data-turn="10"><b>10 · Patient</b> Names priority and support preference.</p>
+            <p class="mini-turn clinician" data-turn="11"><b>11 · Clinician</b> Summary, next steps, and question invitation.</p>
+            <p class="mini-turn patient" data-turn="12"><b>12 · Patient</b> Asks about timing and emotional support.</p>
+          </div>
+        </div>
+        <div>
+          <div class="tablist" role="tablist" aria-label="Illustrative evaluator result">
+            <button class="tab" id="tab-baseline" role="tab" aria-selected="true" aria-controls="panel-baseline" data-panel="baseline">Baseline</button>
+            <button class="tab" id="tab-hybrid-v1" role="tab" aria-selected="false" aria-controls="panel-hybrid-v1" data-panel="hybrid-v1">Hybrid v1</button>
+            <button class="tab" id="tab-hybrid-v2" role="tab" aria-selected="false" aria-controls="panel-hybrid-v2" data-panel="hybrid-v2">Hybrid v2</button>
+            <button class="tab" id="tab-ace" role="tab" aria-selected="false" aria-controls="panel-ace" data-panel="ace">ACE-CT-inspired</button>
+          </div>
+          <article class="comparison-panel" id="panel-baseline" role="tabpanel" aria-labelledby="tab-baseline">
+            <div class="status-row"><span class="status main">Rule-only · v1.0</span><span class="status">Runtime unavailable</span></div>
+            <div class="score-grid"><div class="score"><strong>57</strong><span>Empathy</span></div><div class="score"><strong>69</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>68</strong><span>Overall</span></div></div>
+            <p><strong>Strength:</strong> perception check, later emotional acknowledgement, understanding check, and summary.</p>
+            <p><strong>Improve:</strong> turn 3 misses fear and introduces dense terminology.</p>
+            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="1">1</button><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="11">11</button></div>
+          </article>
+          <article class="comparison-panel" id="panel-hybrid-v1" role="tabpanel" aria-labelledby="tab-hybrid-v1" hidden>
+            <div class="status-row"><span class="status main">Rule + optional LLM · v1.0 · default</span><span class="status">Provider not run</span></div>
+            <div class="score-grid"><div class="score"><strong>65</strong><span>Empathy</span></div><div class="score"><strong>74</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>73</strong><span>Overall</span></div></div>
+            <p><strong>Strength:</strong> contextualizes the repair after the initial missed cue.</p>
+            <p><strong>Improve:</strong> acknowledge fear before diagnosis and technical language.</p>
+            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="4">4</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button></div>
+          </article>
+          <article class="comparison-panel" id="panel-hybrid-v2" role="tabpanel" aria-labelledby="tab-hybrid-v2" hidden>
+            <div class="status-row"><span class="status main">Three focused reviews · v2.0</span><span class="status">Provider not run</span></div>
+            <div class="score-grid"><div class="score"><strong>70</strong><span>Empathy</span></div><div class="score"><strong>78</strong><span>Communication</span></div><div class="score"><strong>83</strong><span>SPIKES</span></div><div class="score"><strong>77</strong><span>Overall</span></div></div>
+            <p><strong>Strength:</strong> separates empathy, communication, and sequencing observations.</p>
+            <p><strong>Improve:</strong> surface both the missed cue and an explicit support contact.</p>
+            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button><button class="evidence-button" data-evidence="11">11</button><button class="evidence-button" data-evidence="12">12</button></div>
+          </article>
+          <article class="comparison-panel" id="panel-ace" role="tabpanel" aria-labelledby="tab-ace" hidden>
+            <div class="status-row"><span class="status feature">Experimental · unmerged · v0.1.0</span><span class="status">Provider not selected/run</span></div>
+            <div class="score-grid"><div class="score"><strong>50</strong><span>Empathy*</span></div><div class="score"><strong>65</strong><span>Communication*</span></div><div class="score"><strong>83</strong><span>SPIKES†</span></div><div class="score"><strong>65</strong><span>Overall*</span></div></div>
+            <div class="domain-grid" aria-label="Four proposed ACE-CT-inspired domains"><div class="domain"><strong>3.0</strong>Respond</div><div class="domain"><strong>3.5</strong>Listen</div><div class="domain"><strong>3.5</strong>Speak</div><div class="domain"><strong>4.0</strong>General‡</div></div>
+            <div class="dimension-list" aria-label="All eleven ACE-CT-inspired dimensions">
+              <div class="dimension partial"><span>Respond to emotion</span><b>3 / 5</b></div>
+              <div class="dimension"><span>Elicit perspective</span><b>4 / 5</b></div>
+              <div class="dimension partial"><span>Avoid interruption / diversion</span><b>2 / 5</b></div>
+              <div class="dimension"><span>Assess understanding</span><b>4 / 5</b></div>
+              <div class="dimension"><span>Discuss hopes / priorities / fears</span><b>4 / 5</b></div>
+              <div class="dimension"><span>Ask permission to progress</span><b>4 / 5</b></div>
+              <div class="dimension"><span>Avoid unexplained terminology</span><b>3 / 5</b></div>
+              <div class="dimension"><span>Offer question opportunities</span><b>4 / 5</b></div>
+              <div class="dimension"><span>Summarize conversation</span><b>4 / 5</b></div>
+              <div class="dimension"><span>Review next steps</span><b>4 / 5</b></div>
+              <div class="dimension partial null"><span>Manage pace · insufficient text evidence</span><b>Null</b></div>
+            </div>
+            <p class="small"><strong>*</strong> Provisional engineering projection, not an official ACE-CT mapping. <strong>†</strong> External APEX baseline field. <strong>‡</strong> Formal fourth-domain status requires expert confirmation.</p>
+            <p class="small muted">Evidence turns</p><div class="evidence-buttons"><button class="evidence-button" data-evidence="2">2</button><button class="evidence-button" data-evidence="3">3</button><button class="evidence-button" data-evidence="4">4</button><button class="evidence-button" data-evidence="5">5</button><button class="evidence-button" data-evidence="7">7</button><button class="evidence-button" data-evidence="8">8</button><button class="evidence-button" data-evidence="9">9</button><button class="evidence-button" data-evidence="10">10</button><button class="evidence-button" data-evidence="11">11</button><button class="evidence-button" data-evidence="12">12</button></div>
+          </article>
+        </div>
+      </div>
+      <p class="source-note">Full explicit mock asset: <a href="assets/illustrative-comparison.json">assets/illustrative-comparison.json</a>. The values are invented for interface discussion; higher numbers do not imply better validity.</p>
+    </section>
+
+    <section class="slide" id="framework-fit" data-title="Framework fit" aria-labelledby="fit-title">
+      <p class="eyebrow">Complementary lenses</p>
+      <h2 id="fit-title">Three views answer different questions about the same conversation</h2>
+      <div class="vennish" role="img" aria-label="SPIKES assesses difficult-conversation structure, AFCE identifies empathic opportunities and responses, and ACE-CT-inspired explores broader communication-quality dimensions. The lenses overlap but are not equivalent.">
+        <article class="lens"><h3>SPIKES</h3><p><strong>Question:</strong> Did the conversation follow a useful difficult-news structure?</p><p class="muted">Setting · Perception · Invitation · Knowledge · Emotion · Strategy/Summary</p></article>
+        <article class="lens"><h3>AFCE</h3><p><strong>Question:</strong> Where were emotional/appraisal opportunities, elicitations, responses, and misses?</p><p class="muted">Feeling · Judgment · Appreciation · discourse relations</p></article>
+        <article class="lens"><h3>ACE-CT-inspired</h3><p><strong>Question:</strong> What broader communication behaviors are visible—and which are not observable—in this transcript?</p><p class="muted">Respond · Listen · Speak · proposed General group</p></article>
+      </div>
+      <div class="callout warning"><strong>Compatibility is not equivalence.</strong> Projecting ACE-CT-inspired results into APEX <span class="mono">empathy</span>, <span class="mono">communication</span>, <span class="mono">overall</span>, and external <span class="mono">SPIKES</span> fields is provisional engineering compatibility—not an official ACE-CT mapping.</div>
+    </section>
+
+    <section class="slide" id="paper-boundary" data-title="Manuscript boundary" aria-labelledby="boundary-title">
+      <p class="eyebrow">Provenance and confidentiality</p>
+      <h2 id="boundary-title">We adopted a framework direction—not a private research system</h2>
+      <div class="boundary-compare">
+        <article class="card red">
+          <p class="eyebrow">Authorized anonymous manuscript · high-level only</p>
+          <h3>Research benchmarking architecture</h3>
+          <ul>
+            <li>Private ACE-CT encounters and human ratings</li>
+            <li>Transcript preprocessing</li>
+            <li>Embedding/regression, transformer, and general-LLM research directions</li>
+            <li>Predictions compared against human ratings</li>
+          </ul>
+        </article>
+        <div class="boundary-divider" aria-hidden="true">boundary</div>
+        <article class="card teal">
+          <p class="eyebrow">APEX feature branch</p>
+          <h3>Experimental integration architecture</h3>
+          <ul>
+            <li>Learner selects a synthetic case and converses with a virtual patient</li>
+            <li>Strict interleaved transcript projection + deterministic hash</li>
+            <li>Versioned provisional rubric + provider-independent service</li>
+            <li>Structured evidence-backed output + non-persisting comparison</li>
+            <li>Sanitized research artifact + planned read-only UI</li>
+          </ul>
+        </article>
+      </div>
+      <div class="callout boundary" style="margin-top:18px"><strong>Boundary:</strong> We adopted the framework direction, not private data, trained models, model weights, private examples, reported results, or exact unpublished scoring anchors. APEX does not claim reproduction of the manuscript’s model.</div>
+      <p class="source-note">Provenance label: <strong>authorized confidential manuscript; public citation pending expert confirmation</strong>. Separate public attribution: Arora et al. (2026), <a href="https://doi.org/10.1016/j.pec.2025.109465">public ACE-CT article</a>.</p>
+    </section>
+
+    <section class="slide" id="engineering-status" data-title="Engineering status" aria-labelledby="status-title">
+      <p class="eyebrow">What is complete</p>
+      <h2 id="status-title">The comparison spine is merged; ACE-CT experimentation remains isolated on its feature branch</h2>
+      <div class="grid-2">
+        <article class="status-group card teal">
+          <div class="status-row"><span class="status main">Merged into main · PR #1</span></div>
+          <ul class="checklist">
+            <li>Non-persisting scoring core</li>
+            <li>Baseline / hybrid v1 / hybrid v2 comparison</li>
+            <li>Canonical JSON and compact CSV exports</li>
+            <li>Deterministic transcript hashing</li>
+            <li>Evaluator/model provenance and runtime</li>
+            <li>Per-evaluator failure isolation</li>
+            <li>Seeded offline case-study command and artifact path</li>
+            <li>Automated tests and research documentation</li>
+          </ul>
+        </article>
+        <article class="status-group card amber">
+          <div class="status-row"><span class="status feature">ACE feature branch · not merged</span></div>
+          <ul class="checklist feature-list">
+            <li>Strict transcript projection and role mapping</li>
+            <li>Versioned provisional rubric; 4 groups / 11 dimensions</li>
+            <li>Typed framework result and explicit limitations</li>
+            <li>Provider-independent evaluator service</li>
+            <li>OpenAI / Gemini selection for ACE only</li>
+            <li>Experimental gating; no surprise call in “all”</li>
+            <li>Comparison integration + compatibility source labels</li>
+            <li>Synthetic fake-adapter review artifact and guide</li>
+            <li>Non-live automated verification</li>
+          </ul>
+        </article>
+      </div>
+      <p class="source-note">Status derived from <span class="mono">main..ace-ct-inspired-evaluator</span> commit history and current source. No production frontend comparison interface exists in <span class="mono">Admin.tsx</span>.</p>
+    </section>
+
+    <section class="slide" id="plugin-roadmap" data-title="Plugin roadmap" aria-labelledby="roadmap-title">
+      <p class="eyebrow">Literature-backed candidates</p>
+      <h2 id="roadmap-title">The roadmap is broad; the pre-EACL implementation should remain narrow</h2>
+      <div class="table-wrap">
+        <table class="roadmap-table">
+          <caption>Every row is proposed—not implemented. “Inspired by” does not mean reproduction.</caption>
+          <thead><tr><th>Family · candidate</th><th>Literature inspiration</th><th>Value to APEX</th><th>Feasibility</th><th>Main dependency / risk</th></tr></thead>
+          <tbody>
+            <tr><td>Patient · Minimal adaptive state</td><td>Lee et al. 2025 · Adaptive-VP</td><td>Affect/trust/disclosure respond across turns.</td><td><span class="status feature">Stretch</span></td><td>State rules + fixtures / demo distraction, reproducibility</td></tr>
+            <tr><td>Patient · Service-flow-aware</td><td>Bao et al. 2025 · SFMSS</td><td>Represent scenario phases and care-flow transitions.</td><td><span class="status">Post-EACL</span></td><td>Authorized flow schemas / clinical-fidelity overclaim</td></tr>
+            <tr><td>Patient · Emotion-aware</td><td>Feng et al. 2024</td><td>Make patient affect responsive to clinician behavior.</td><td><span class="status">Post-EACL</span></td><td>State policy / stereotyped or exaggerated affect</td></tr>
+            <tr><td>Patient · Mental-health-specific</td><td>Wang et al. 2024 · PATIENT-ψ; Atapattu et al. 2025</td><td>Support specialized training scenarios.</td><td><span class="status">Post-EACL</span></td><td>Clinical governance / high safety and representation risk</td></tr>
+            <tr><td>Patient · Speech-to-speech</td><td>Emerson et al. 2026</td><td>Natural spoken encounter; future timing/prosody signals.</td><td><span class="status">Post-EACL</span></td><td>Audio privacy + latency / cost, accessibility, validation</td></tr>
+            <tr><td>Evaluator · Empathy intent</td><td>Jiang et al. 2023</td><td>Add an intent-oriented lens beside AFCE.</td><td><span class="status feature">Stretch</span></td><td>Public operationalization + labels / inferred intent is not fact</td></tr>
+            <tr><td>Evaluator · Non-emotion-centric empathy</td><td>Huangfu et al. 2025; Lahnala et al. 2022</td><td>Broaden beyond emotion words to supportive behavior.</td><td><span class="status">Post-EACL</span></td><td>Construct boundary / double-counting and opaque scores</td></tr>
+            <tr><td>Evaluator · Patient-simulation quality</td><td>Shi et al. 2024; Bao et al. 2025</td><td>Check case, role, and flow consistency.</td><td><span class="status feature">Stretch</span></td><td>Case-grounded criteria / style rewarded over fidelity</td></tr>
+            <tr><td>Evaluator · Supervised ACE-CT regression</td><td>Public ACE-CT article; confidential direction label</td><td>Research baseline only if authorized labels exist.</td><td><span class="status">Post-EACL</span></td><td>Data rights + expert labels / leakage, reproduction claims</td></tr>
+            <tr><td>Evaluator · Transformer ACE-CT</td><td>Public ACE-CT article; confidential direction label</td><td>Task-specific research after governance and baselines.</td><td><span class="status">Post-EACL</span></td><td>Substantial authorized data / opacity, overfitting</td></tr>
+            <tr><td>Metrics · Transcript dynamics</td><td>Wang et al. 2025</td><td>Turn balance, cadence, adjacency, sequence features.</td><td><span class="status main">Before EACL</span></td><td>Definitions + fixtures / quantity mistaken for quality</td></tr>
+            <tr><td>Metrics · Jargon / readability</td><td>Public ACE-CT direction</td><td>Transparent terminology and readability signals.</td><td><span class="status main">Before EACL</span></td><td>Term policy / readability is not understanding</td></tr>
+            <tr><td>Metrics · Questions / understanding checks</td><td>Lahnala et al. 2024; public ACE-CT direction</td><td>Count invitations, checks, and teach-back sequences.</td><td><span class="status main">Before EACL</span></td><td>Rule review / a question mark is not a check</td></tr>
+            <tr><td>Metrics · Evidence grounding</td><td>APEX engineering need</td><td>Validate turn references; flag duplicates/unsupported links.</td><td><span class="status main">Before EACL</span></td><td>Stable schema / valid coordinates do not prove interpretation</td></tr>
+            <tr><td>Metrics · Evaluator stability</td><td>Reproducibility objective</td><td>Repeated-run variance with frozen provenance.</td><td><span class="status feature">Stretch</span></td><td>Authorized call budget / small samples overstate stability</td></tr>
+            <tr><td>Metrics · Patient consistency</td><td>Adaptive-VP; PATIENT-ψ</td><td>Track contradictions against case and explicit state.</td><td><span class="status feature">Stretch</span></td><td>Structured case facts / flexibility misread as inconsistency</td></tr>
+            <tr><td>Metrics · Service-flow coverage</td><td>Bao et al. 2025 · SFMSS</td><td>Measure expected scenario phases without equating order to quality.</td><td><span class="status">Post-EACL</span></td><td>Flow annotations / rigid metrics punish adaptation</td></tr>
+            <tr><td>Metrics · Audio interaction</td><td>Emerson et al. 2026</td><td>Future latency, overlap, pause, delivery signals.</td><td><span class="status">Post-EACL</span></td><td>Consent + signal definitions / sensitive audio and proxy validity</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="source-note">Detailed citations, URLs, dependencies, and risks: <a href="assets/plugin-roadmap.json">assets/plugin-roadmap.json</a>. Proposals are inspired by the listed public works; no paper system, dataset, result, or model is claimed as reproduced.</p>
+    </section>
+
+    <section class="slide" id="pre-eacl-scope" data-title="Recommended scope" aria-labelledby="scope-title">
+      <p class="eyebrow">Recommendation</p>
+      <h2 id="scope-title">Build the smallest defensible comparison demo—and freeze it early</h2>
+      <div class="grid-2">
+        <ol class="priority-list">
+          <li><div><strong>Restore and verify the full application workflow.</strong><br><span class="muted small">Case → conversation → feedback → admin review.</span></div></li>
+          <li><div><strong>Obtain ACE-CT scientific and disclosure decisions.</strong></div></li>
+          <li><div><strong>Run minimal controlled Gemini / OpenAI smoke tests.</strong><br><span class="muted small">Only after authorization; capture exact provenance.</span></div></li>
+          <li><div><strong>Implement a read-only transcript-plus-comparison UI.</strong></div></li>
+          <li><div><strong>Add deterministic transcript / evidence metrics if time permits.</strong></div></li>
+          <li><div><strong>Establish a small expert-reviewed evaluation set.</strong></div></li>
+          <li><div><strong>Freeze prompts, rubric, provider/model, fixtures, and provenance.</strong></div></li>
+          <li><div><strong>Prepare paper, architecture figure, demo video, and offline fallback.</strong></div></li>
+        </ol>
+        <div>
+          <article class="card amber">
+            <p class="eyebrow">Stretch only</p>
+            <h3>Minimal adaptive-patient state</h3>
+            <p>Attempt only after the core demonstration works end to end and remains reproducible.</p>
+          </article>
+          <article class="card red" style="margin-top:16px">
+            <p class="eyebrow">Explicitly avoid before submission</p>
+            <h3>Several large new plugins</h3>
+            <p>Do not divide the remaining time across speech-to-speech, mental-health specialization, supervised ACE-CT models, or multiple new LLM evaluators.</p>
+          </article>
+          <div class="callout" style="margin-top:16px"><strong>Demo thesis:</strong> APEX is useful because it makes patient simulation, evaluator experimentation, evidence, provenance, and comparison inspectable—not because it maximizes plugin count.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="slide" id="timeline" data-title="Timeline" aria-labelledby="timeline-title">
+      <p class="eyebrow">September 1–22</p>
+      <h2 id="timeline-title">Decide this week, validate next, then freeze for paper and demo production</h2>
+      <div class="timeline" aria-label="Eight phases from September 1 to September 22, 2026">
+        <article class="phase"><span class="phase-date">Sep 1–2</span><h3>Scientific decisions</h3><p>Rubric, naming, partial observability, projections, disclosure, validation plan.</p></article>
+        <article class="phase"><span class="phase-date">Sep 1–4</span><h3>Application restoration</h3><p>Verify the full learner/admin workflow and demo environment.</p></article>
+        <article class="phase"><span class="phase-date">Sep 3–5</span><h3>Live smoke tests</h3><p>Minimal authorized OpenAI/Gemini runs; capture failures and provenance.</p></article>
+        <article class="phase"><span class="phase-date">Sep 4–9</span><h3>Comparison UI</h3><p>Read-only transcript, evaluator tabs, evidence focus, export access.</p></article>
+        <article class="phase"><span class="phase-date">Sep 7–11</span><h3>Small validation</h3><p>Expert-reviewed synthetic/authorized set; document limitations.</p></article>
+        <article class="phase"><span class="phase-date">Sep 12</span><h3>Analysis freeze</h3><p>Freeze code, prompts, rubric, provider/model, fixtures, and provenance.</p></article>
+        <article class="phase"><span class="phase-date">Sep 12–18</span><h3>Paper + media</h3><p>System description, architecture figure, demo narrative/video, offline fallback.</p></article>
+        <article class="phase"><span class="phase-date">Sep 19–22</span><h3>Final review</h3><p>Claims, confidentiality, reproducibility, package checks, and submission.</p></article>
+      </div>
+      <div class="grid-2">
+        <div class="callout"><strong>Expected package:</strong> system-demonstration paper/system description, architecture figure, validation evidence, demonstration plan/video, and a reliable runnable or recorded fallback.</div>
+        <div class="callout warning"><strong>Authority:</strong> the official EACL 2027 System Demonstrations call controls required format, page limits, media, anonymity, and submission mechanics.</div>
+      </div>
+    </section>
+
+    <section class="slide" id="decisions" data-title="Decisions today" aria-labelledby="decisions-title">
+      <p class="eyebrow">Meeting close</p>
+      <h2 id="decisions-title">Twelve decisions unblock a defensible EACL demonstration</h2>
+      <form class="decision-grid" aria-label="Printable decision prompts">
+        <div class="decision-card"><label>1. Four domains / 11 dimensions</label><div class="decision-options"><label><input type="checkbox"> Approve</label><label><input type="checkbox"> Correct</label></div><input type="text" aria-label="Notes for domain and dimension decision"></div>
+        <div class="decision-card"><label>2. Exact rubric language / controlling source</label><div class="decision-options"><label><input type="checkbox"> Approve draft</label><label><input type="checkbox"> Supply source</label></div><input type="text" aria-label="Notes for rubric source decision"></div>
+        <div class="decision-card"><label>3. Partially observable dimensions</label><div class="decision-options"><label><input type="checkbox"> Conservative score</label><label><input type="checkbox"> Always null</label></div><input type="text" aria-label="Notes for partial observability decision"></div>
+        <div class="decision-card"><label>4. Null scoring and aggregation</label><div class="decision-options"><label><input type="checkbox"> Exclude nulls</label><label><input type="checkbox"> Revise</label></div><input type="text" aria-label="Notes for null policy decision"></div>
+        <div class="decision-card"><label>5. APEX compatibility projection</label><div class="decision-options"><label><input type="checkbox"> Approve provisionally</label><label><input type="checkbox"> Reject</label></div><input type="text" aria-label="Notes for compatibility projection decision"></div>
+        <div class="decision-card"><label>6. Framework naming</label><div class="decision-options"><label><input type="checkbox"> ACE-CT-inspired</label><label><input type="checkbox"> Rename</label></div><input type="text" aria-label="Notes for framework naming decision"></div>
+        <div class="decision-card"><label>7. Confidential / public disclosure boundary</label><div class="decision-options"><label><input type="checkbox"> Approve boundary</label><label><input type="checkbox"> Narrow</label></div><input type="text" aria-label="Notes for disclosure boundary decision"></div>
+        <div class="decision-card"><label>8. First provider / model</label><div class="decision-options"><label><input type="checkbox"> OpenAI</label><label><input type="checkbox"> Gemini</label></div><input type="text" aria-label="Provider and model decision"></div>
+        <div class="decision-card"><label>9. Validation transcripts / expert reviewers</label><div class="decision-options"><label><input type="checkbox"> Identified</label><label><input type="checkbox"> Follow-up needed</label></div><input type="text" aria-label="Validation material and reviewer decision"></div>
+        <div class="decision-card"><label>10. EACL contribution framing</label><div class="decision-options"><label><input type="checkbox"> Comparison platform</label><label><input type="checkbox"> Revise</label></div><input type="text" aria-label="EACL contribution framing decision"></div>
+        <div class="decision-card"><label>11. Initial persistence scope</label><div class="decision-options"><label><input type="checkbox"> Comparison-only</label><label><input type="checkbox"> Allow selected persistence</label></div><input type="text" aria-label="Persistence scope decision"></div>
+        <div class="decision-card"><label>12. Next owners, dates, checkpoint</label><div class="decision-options"><label><input type="checkbox"> Recorded</label><label><input type="checkbox"> Follow-up needed</label></div><input type="text" aria-label="Owners dates and checkpoint decision"></div>
+      </form>
+      <div class="callout" style="margin-top:16px"><strong>Recommended default:</strong> keep ACE-CT-inspired output comparison-only, preserve visible limitations and provenance, and make no public or validation claim until the controlling rubric and disclosure boundaries are confirmed.</div>
+      <p class="source-note">Record outcomes in <a href="decision-record.md">decision-record.md</a>; leave owners and outcomes blank until the meeting.</p>
+    </section>
+  </main>
+
+  <footer class="presentation-footer no-print" aria-label="Presentation navigation">
+    <nav class="section-nav" aria-label="Sections">
+      <a href="#opening" data-slide-link="0" aria-label="Section 1: Opening">1</a>
+      <a href="#what-apex-does" data-slide-link="1" aria-label="Section 2: What APEX does">2</a>
+      <a href="#synthetic-transcript" data-slide-link="2" aria-label="Section 3: Synthetic transcript">3</a>
+      <a href="#foundations" data-slide-link="3" aria-label="Section 4: Foundations">4</a>
+      <a href="#plugin-architecture" data-slide-link="4" aria-label="Section 5: Plugin architecture">5</a>
+      <a href="#plugin-inventory" data-slide-link="5" aria-label="Section 6: Plugin inventory">6</a>
+      <a href="#comparison-infrastructure" data-slide-link="6" aria-label="Section 7: Comparison infrastructure">7</a>
+      <a href="#illustrative-comparison" data-slide-link="7" aria-label="Section 8: Mock comparison">8</a>
+      <a href="#framework-fit" data-slide-link="8" aria-label="Section 9: Framework fit">9</a>
+      <a href="#paper-boundary" data-slide-link="9" aria-label="Section 10: Manuscript boundary">10</a>
+      <a href="#engineering-status" data-slide-link="10" aria-label="Section 11: Engineering status">11</a>
+      <a href="#plugin-roadmap" data-slide-link="11" aria-label="Section 12: Plugin roadmap">12</a>
+      <a href="#pre-eacl-scope" data-slide-link="12" aria-label="Section 13: Recommended scope">13</a>
+      <a href="#timeline" data-slide-link="13" aria-label="Section 14: Timeline">14</a>
+      <a href="#decisions" data-slide-link="14" aria-label="Section 15: Decisions today">15</a>
+    </nav>
+    <div class="progress-wrap"><progress id="progress" max="15" value="1" aria-label="Presentation progress"></progress><span id="progress-label">1 / 15</span></div>
+    <div class="nav-controls"><button class="nav-button" id="previous" type="button">← Previous</button><button class="nav-button primary" id="next" type="button">Next →</button></div>
+  </footer>
+
+  <script>
+    (() => {
+      document.documentElement.classList.replace('no-js', 'js');
+
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const links = Array.from(document.querySelectorAll('[data-slide-link]'));
+      const previous = document.getElementById('previous');
+      const next = document.getElementById('next');
+      const progress = document.getElementById('progress');
+      const progressLabel = document.getElementById('progress-label');
+      let current = 0;
+
+      const indexFromHash = () => {
+        const id = window.location.hash.slice(1);
+        const index = slides.findIndex((slide) => slide.id === id);
+        return index >= 0 ? index : 0;
+      };
+
+      const showSlide = (index, updateHash = true) => {
+        current = Math.max(0, Math.min(index, slides.length - 1));
+        slides.forEach((slide, slideIndex) => {
+          const active = slideIndex === current;
+          slide.classList.toggle('active', active);
+          slide.setAttribute('aria-hidden', active ? 'false' : 'true');
+        });
+        links.forEach((link, linkIndex) => {
+          if (linkIndex === current) link.setAttribute('aria-current', 'page');
+          else link.removeAttribute('aria-current');
+        });
+        previous.disabled = current === 0;
+        next.disabled = current === slides.length - 1;
+        progress.value = current + 1;
+        progressLabel.textContent = `${current + 1} / ${slides.length}`;
+        document.title = `${current + 1}. ${slides[current].dataset.title} — APEX EACL 2027`;
+        if (updateHash) history.replaceState(null, '', `#${slides[current].id}`);
+        slides[current].scrollTop = 0;
+      };
+
+      links.forEach((link) => link.addEventListener('click', (event) => {
+        event.preventDefault();
+        showSlide(Number(link.dataset.slideLink));
+      }));
+      previous.addEventListener('click', () => showSlide(current - 1));
+      next.addEventListener('click', () => showSlide(current + 1));
+      window.addEventListener('hashchange', () => showSlide(indexFromHash(), false));
+      document.addEventListener('keydown', (event) => {
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        if (event.key === 'ArrowRight' || event.key === 'PageDown') {
+          event.preventDefault();
+          showSlide(current + 1);
+        }
+        if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+          event.preventDefault();
+          showSlide(current - 1);
+        }
+        if (event.key === 'Home') {
+          event.preventDefault();
+          showSlide(0);
+        }
+        if (event.key === 'End') {
+          event.preventDefault();
+          showSlide(slides.length - 1);
+        }
+      });
+
+      const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
+      const panels = Array.from(document.querySelectorAll('[role="tabpanel"]'));
+      const selectTab = (tab) => {
+        tabs.forEach((candidate) => candidate.setAttribute('aria-selected', String(candidate === tab)));
+        panels.forEach((panel) => { panel.hidden = panel.id !== `panel-${tab.dataset.panel}`; });
+        document.querySelectorAll('.mini-turn.highlight').forEach((turn) => turn.classList.remove('highlight'));
+      };
+      tabs.forEach((tab, tabIndex) => {
+        tab.addEventListener('click', () => selectTab(tab));
+        tab.addEventListener('keydown', (event) => {
+          if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+          event.preventDefault();
+          const offset = event.key === 'ArrowRight' ? 1 : -1;
+          const target = tabs[(tabIndex + offset + tabs.length) % tabs.length];
+          selectTab(target);
+          target.focus();
+        });
+      });
+
+      document.querySelectorAll('[data-evidence]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const turnNumber = button.dataset.evidence;
+          document.querySelectorAll('.mini-turn').forEach((turn) => {
+            turn.classList.toggle('highlight', turn.dataset.turn === turnNumber);
+          });
+          const target = document.querySelector(`.mini-turn[data-turn="${turnNumber}"]`);
+          const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          target?.scrollIntoView({ block: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
+        });
+      });
+
+      showSlide(indexFromHash(), false);
+    })();
+  </script>
+</body>
+</html>
