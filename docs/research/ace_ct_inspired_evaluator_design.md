@@ -412,6 +412,12 @@ require the independent `--allow-live-llm` authorization before model configurat
 execution. Baseline success is retained when ACE-CT fails, and partial artifacts contain only
 allowlisted errors.
 
+Checkpoint 12 adds a deterministic structural review example and review guide. The example is
+generated from the public synthetic `difficult_diagnosis_strong` fixture with a fake adapter,
+uses fixed runtime and timestamp values, omits transcript text, demonstrates turn-number evidence
+and an insufficient-evidence pace result, and is explicitly labeled
+`synthetic_fake_model_output` and `experimental_evidence: false`.
+
 ## Failure behavior
 
 - Invalid transcript structure fails before a provider call.
