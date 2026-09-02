@@ -139,4 +139,3 @@ participant transcript.
 Record the tested commit, browser, session fixture identifier, screenshots,
 commands, results, and measured timings in the paper evidence log. Do not report
 an unchecked manual step as passed.
-

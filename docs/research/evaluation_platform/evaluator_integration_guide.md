@@ -160,4 +160,3 @@ Researcher models are integrated through the same reviewed wrapper/adapter
 path. Item 1 does not provide arbitrary uploads, arbitrary code execution,
 dynamic imports, runtime package installation, or automatic production
 registration.
-

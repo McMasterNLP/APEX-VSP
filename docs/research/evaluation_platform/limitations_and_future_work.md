@@ -70,4 +70,3 @@ allowlisted egress, secrets separation, licensing, vulnerability scanning,
 timeouts/quotas, output schemas, data-processing agreements, and rollback. Item
 1 deliberately provides a code-reviewed built-in path instead of implementing
 this prematurely.
-

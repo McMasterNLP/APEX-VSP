@@ -109,4 +109,3 @@ transcript-only constructs partially or wholly unassessable.
 - membership inference or reconstruction attacks against future trained models;
 - human-review disagreement and adjudication, which belong to Item 2;
 - empirical accuracy/agreement validation, which belongs to Item 3.
-

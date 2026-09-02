@@ -93,4 +93,3 @@ definition requires a framework/rubric version change. A model change requires
 evaluator and model provenance review. Older native results should remain
 readable through their declared discriminator and version; consumers must not
 silently reinterpret them as a newer contract.
-

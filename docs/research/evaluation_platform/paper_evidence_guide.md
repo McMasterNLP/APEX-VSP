@@ -33,9 +33,78 @@ the final incremental series. The implementation began with these checkpoints:
 | `b0af045` | admin API boundary |
 | `520816a` | admin selection/execution workspace |
 | `08dc62c` | capability-driven visualization and accessibility tests |
+| `febc393` | complete documentation and deployment notes |
+| `ed10fff` | regression-test alignment with the current auth-store boundary |
 
-Add final documentation/regression commit hashes after validation. Cite a tag
-or immutable commit in the paper, not a moving branch name.
+Cite a tag or immutable commit in the paper, not a moving branch name.
+
+## Captured software verification
+
+The following results were captured on 2026-09-01 from code commit `ed10fff` on
+macOS. Test credentials were inert local values and no live/paid provider call
+was made.
+
+| Check | Exact scope | Result | Measured time |
+| --- | --- | --- | --- |
+| Backend regression | `.venv/bin/python -m pytest -q --ignore=tests/services/test_seeded_evaluator_validation.py` with the four documented test environment variables | 644 passed, 5 deprecation warnings | pytest 8.18 s; wall 9.25 s |
+| Item 1 backend | five paths in `testing_and_validation.md` | 70 passed, 2 deprecation warnings | pytest 1.71 s; wall 2.34 s |
+| Changed backend lint | exact Ruff command in `testing_and_validation.md` | passed, no findings | included directly after focused suite |
+| Frontend regression | `npm run test:run` | 103 passed in 11 files | Vitest 4.33 s; wall 5.21 s |
+| Item 1 frontend | API, panel, and result-view test paths | 13 passed in 3 files | Vitest 1.97 s; wall 3.32 s |
+| Frontend production build | `npm run build` | TypeScript and Vite passed; existing chunk-size warnings | Vite 3.11 s; wall 7.10 s |
+| Changed frontend lint | ESLint paths in `testing_and_validation.md` | passed, no findings | run after build |
+
+The backend exclusion is necessary because the legacy
+`test_seeded_evaluator_validation.py` module explicitly performs unmocked paid
+OpenAI calls and has no pytest marker. All other backend tests ran. The observed
+times above are software-verification timings, not evaluator latency benchmarks.
+
+No browser connection was available in the validation environment. Therefore
+the manual synthetic-session checklist and screenshots below are **not
+captured** and must not be reported as passed. Component/API tests cover the
+same states synthetically, but they do not substitute for visual acceptance.
+
+Exact captured commands:
+
+```bash
+cd backend
+DATABASE_URL='postgresql+psycopg2://u:p@localhost:5432/db' \
+SUPABASE_JWT_SECRET='test-secret' OPENAI_API_KEY='test-key' \
+GEMINI_API_KEY='test-key' .venv/bin/python -m pytest -q \
+  --ignore=tests/services/test_seeded_evaluator_validation.py
+
+DATABASE_URL='postgresql+psycopg2://u:p@localhost:5432/db' \
+SUPABASE_JWT_SECRET='test-secret' OPENAI_API_KEY='test-key' \
+GEMINI_API_KEY='test-key' .venv/bin/python -m pytest -q \
+  tests/schemas/test_research_evaluation.py \
+  tests/services/test_research_adapter_registry.py \
+  tests/services/test_research_adapters.py \
+  tests/services/test_research_evaluation_service.py \
+  tests/api/test_research_api.py
+
+.venv/bin/ruff check \
+  src/domain/models/research_evaluation.py \
+  src/services/research_adapters \
+  src/services/research_evaluation_service.py \
+  src/services/research_export_service.py \
+  src/controllers/research_controller.py \
+  tests/schemas/test_research_evaluation.py \
+  tests/services/test_research_adapter_registry.py \
+  tests/services/test_research_adapters.py \
+  tests/services/test_research_evaluation_service.py \
+  tests/api/test_research_api.py
+
+cd ../frontend
+npm run test:run
+npm run test:run -- \
+  src/api/researchEvaluation.api.test.ts \
+  src/components/admin/research/ResearchEvaluationPanel.test.tsx \
+  src/components/admin/research/ResearchResultView.test.tsx
+npm run build
+npx eslint src/components/admin/research \
+  src/types/researchEvaluation.ts src/api/research.api.ts \
+  src/api/research.api.test.ts src/api/researchEvaluation.api.test.ts
+```
 
 ## Test evidence to archive
 
@@ -87,6 +156,11 @@ and large synthetic sessions. The implemented service limits are 1,000,000
 transcript characters and 5,000,000 validated response bytes; do not present
 those limits as observed throughput.
 
+No evaluator-latency benchmark was collected in this implementation run. The
+runtime fields are implemented and exercised structurally, but a 20-run study
+requires explicit authorization for live-provider cost and a frozen benchmark
+environment.
+
 ## Statements that must remain qualified
 
 - “AFCE-aligned, rule-based operationalization of selected constructs,” not
@@ -108,4 +182,3 @@ fixtures, schema documentation, mapping tables, screenshots, timing scripts and
 raw timing CSV, and an artifact manifest with SHA-256 checksums. Do not include
 credentials, `.env`, real transcripts, raw provider responses, or confidential
 manuscript content.
-
