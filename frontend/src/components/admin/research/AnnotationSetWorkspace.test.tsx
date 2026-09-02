@@ -7,6 +7,7 @@ import {
   downloadResearchAnnotationExport,
   fetchResearchAnnotationSet,
   reopenResearchAnnotationSet,
+  reviseHumanAnnotation,
   saveResearchReviewDecision,
 } from '@/api/research.api'
 import type {
@@ -38,6 +39,7 @@ const mockedDownload = vi.mocked(downloadResearchAnnotationExport)
 const mockedFetchSet = vi.mocked(fetchResearchAnnotationSet)
 const mockedReopen = vi.mocked(reopenResearchAnnotationSet)
 const mockedSave = vi.mocked(saveResearchReviewDecision)
+const mockedReviseHuman = vi.mocked(reviseHumanAnnotation)
 
 const sourceReference = {
   native_result_type: 'apex_feedback' as const,
@@ -224,13 +226,53 @@ function makeAuthoringSet() {
         supported: true, offset_convention: 'unicode_code_point_half_open' as const,
         overlap_policy: 'allow' as const, contiguous_only: true as const, single_turn_only: true as const,
         exhaustive_annotation_meaningful: true,
-        guideline_help_text: 'Select the exact evidence.', attribute_policies: [],
+        guideline_help_text: 'Select the exact evidence.',
+        attribute_policies: [
+          {
+            identifier: 'explicit_or_implicit',
+            display_name: 'Expression',
+            allowed_values: ['explicit', 'implicit'],
+            allowed_for_labels: ['empathic_opportunity'],
+            required_for_labels: ['empathic_opportunity'],
+          },
+        ],
       },
       coverage: {
         supported_values: ['not_assessed', 'prediction_review_only', 'exhaustive'] as const,
         exhaustive_span_annotations: true, exhaustive_relations: true,
       },
     },
+  }
+}
+
+const humanAnnotation = {
+  revision_uuid: 'human-rev-1',
+  annotation_id: 'human-1',
+  revision_number: 1,
+  set_revision: 3,
+  operation: 'create' as const,
+  status: 'active' as const,
+  origin: 'human_added' as const,
+  transcript_hash: 'a'.repeat(64),
+  turn_number: 1,
+  speaker: 'clinician' as const,
+  start_offset: 0,
+  end_offset: 4,
+  selected_text: 'That',
+  label: 'empathic_response',
+  dimension: null,
+  attributes: [],
+  reviewer_reference: 'reviewer_123',
+  guideline_identifier: 'test-guideline',
+  guideline_version: '1.0',
+  created_at: '2026-09-02T00:00:00Z',
+}
+
+function makeAuthoringSetWithHumanAnnotation() {
+  return {
+    ...makeAuthoringSet(),
+    human_annotation_revisions: [humanAnnotation],
+    active_human_annotations: [humanAnnotation],
   }
 }
 
@@ -559,5 +601,72 @@ describe('AnnotationSetWorkspace', () => {
     fireEvent.change(screen.getByLabelText('Annotation coverage'), { target: { value: 'prediction_review_only' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save coverage' }))
     await waitFor(() => expect(mockedCoverage).toHaveBeenCalledWith('set-uuid', 3, 'prediction_review_only'))
+  })
+
+  it('relabels into an attribute-requiring label with a default attribute value', async () => {
+    // Regression test: relabeling into a label like empathic_opportunity that requires an
+    // explicit_or_implicit attribute used to omit attributes entirely, which the server
+    // rejects when the annotation's existing attributes don't already satisfy the new label.
+    mockedReviseHuman.mockResolvedValue(makeAuthoringSetWithHumanAnnotation())
+    const annotationSet = makeAuthoringSetWithHumanAnnotation()
+    render(<AnnotationSetWorkspace run={makeRun([spanPrediction])} annotationSet={annotationSet} onChange={vi.fn()} />)
+
+    fireEvent.change(screen.getByLabelText('Relabel empathic_response'), { target: { value: 'empathic_opportunity' } })
+    await waitFor(() => expect(mockedReviseHuman).toHaveBeenCalledWith('set-uuid', 'human-1', expect.objectContaining({
+      operation: 'relabel',
+      label: 'empathic_opportunity',
+      attributes: [{ identifier: 'explicit_or_implicit', value: 'explicit' }],
+    })))
+  })
+
+  it('corrects the model prediction, not a previously adjusted human annotation, after switching modes', async () => {
+    // Regression test: using a human item's "Adjust boundaries" button used to leave stale
+    // component state that silently redirected a later, unrelated "Adjust span" (toolbar)
+    // selection onto that same human annotation instead of the model prediction being viewed.
+    mockedReviseHuman.mockResolvedValue(makeAuthoringSetWithHumanAnnotation())
+    const annotationSet = makeAuthoringSetWithHumanAnnotation()
+    const onChange = vi.fn()
+    render(<AnnotationSetWorkspace run={makeRun([spanPrediction])} annotationSet={annotationSet} onChange={onChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust boundaries' }))
+    const paragraph = document.querySelector<HTMLElement>('[data-turn-text="1"]')!
+    const selectWord = (word: string) => {
+      const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT)
+      let selectedNode: Text | null = null
+      let index = -1
+      while (walker.nextNode()) {
+        const text = walker.currentNode.textContent ?? ''
+        index = text.indexOf(word)
+        if (index !== -1) { selectedNode = walker.currentNode as Text; break }
+      }
+      const range = document.createRange()
+      range.setStart(selectedNode!, index)
+      range.setEnd(selectedNode!, index + word.length)
+      const selection = window.getSelection()!
+      selection.removeAllRanges(); selection.addRange(range)
+    }
+
+    selectWord('sounds')
+    fireEvent.mouseUp(paragraph)
+    fireEvent.click(screen.getByRole('button', { name: 'Save adjusted span' }))
+    await waitFor(() => expect(mockedReviseHuman).toHaveBeenCalledWith('set-uuid', 'human-1', expect.objectContaining({
+      operation: 'adjust_span',
+    })))
+
+    // Switch to plain "Adjust span" mode via the toolbar (not a specific human item) and
+    // correct the model-predicted span shown in the review queue.
+    fireEvent.click(screen.getByRole('button', { name: 'Adjust span', exact: true }))
+    selectWord('difficult')
+    fireEvent.mouseUp(paragraph)
+    fireEvent.click(screen.getByRole('button', { name: 'Save adjusted span' }))
+
+    await waitFor(() => expect(mockedSave).toHaveBeenCalledWith('set-uuid', 'span-1', expect.objectContaining({
+      decision: 'corrected',
+      correction: expect.objectContaining({
+        correction_type: 'span_annotation',
+        corrected_text: 'difficult',
+      }),
+    })))
+    expect(mockedReviseHuman).toHaveBeenCalledTimes(1)
   })
 })

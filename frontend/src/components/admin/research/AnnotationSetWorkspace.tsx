@@ -122,18 +122,31 @@ export function AnnotationSetWorkspace({
 
   const chooseMode = (next: typeof mode) => {
     if (next !== mode) setPendingSelection(null)
+    setAdjustHumanId(null)
     setMode(next)
     setAnnouncement(`${next.replace('_', ' ')} mode active.`)
   }
 
   const onSpanSelection = (selection: CanonicalSpanSelection) => {
     setPendingSelection(selection)
-    setAuthoringLabel(
-      mode === 'adjust' && prediction?.original_prediction.projection_type === 'span_annotation'
-        ? prediction.original_prediction.label
-        : spanPolicy?.allowed_labels[0] ?? ''
-    )
-    setAuthoringDimension('')
+    if (mode === 'adjust') {
+      // Adjust mode only corrects offsets; the label/dimension are carried over unchanged
+      // from whichever span (human-added or model-predicted) is being adjusted.
+      const human = adjustHumanId ? activeHuman.find((item) => item.annotation_id === adjustHumanId) : null
+      if (human) {
+        setAuthoringLabel(human.label)
+        setAuthoringDimension(human.dimension ?? '')
+      } else if (prediction?.original_prediction.projection_type === 'span_annotation') {
+        setAuthoringLabel(prediction.original_prediction.label)
+        setAuthoringDimension(prediction.original_prediction.dimension ?? '')
+      } else {
+        setAuthoringLabel('')
+        setAuthoringDimension('')
+      }
+    } else {
+      setAuthoringLabel(spanPolicy?.allowed_labels[0] ?? '')
+      setAuthoringDimension('')
+    }
     setAnnouncement('Selection ready. Choose a label and save, or press Escape to cancel.')
   }
 
@@ -198,12 +211,20 @@ export function AnnotationSetWorkspace({
   const relabelHuman = async (annotationId: string, label: string) => {
     const current = activeHuman.find((item) => item.annotation_id === annotationId)
     if (!current) return
+    // The new label may require an attribute the annotation's current attributes don't
+    // satisfy (e.g. relabeling into empathic_opportunity, which requires
+    // explicit_or_implicit); carry a default value so the relabel itself stays valid
+    // rather than deadlocking between relabel and edit_attributes.
+    const attributePolicy = annotationSet.annotation_policy.span_authoring?.attribute_policies.find(
+      (item) => item.required_for_labels.includes(label)
+    )
     try {
       const next = await reviseHumanAnnotation(annotationSet.annotation_set_uuid, annotationId, {
         expected_set_revision: annotationSet.revision,
         expected_annotation_revision: current.revision_number,
         operation: 'relabel', label,
         dimension: label === 'empathic_opportunity' ? current.dimension ?? spanPolicy?.allowed_dimensions[0] ?? null : null,
+        attributes: attributePolicy ? [{ identifier: attributePolicy.identifier, value: attributePolicy.allowed_values[0] }] : undefined,
       })
       onChange(next); setAnnouncement('Human annotation relabeled.')
     } catch (caught) { setError(getResearchApiMessage(caught, 'The label revision could not be saved.')) }
@@ -364,7 +385,7 @@ export function AnnotationSetWorkspace({
       <section aria-labelledby="human-annotations-heading" className="space-y-2 rounded-md border p-3">
         <h6 id="human-annotations-heading" className="font-semibold">Human-added annotations</h6>
         {(annotationSet.human_annotation_revisions ?? []).length === 0 && <p className="text-sm text-gray-600">None added.</p>}
-        {activeHuman.map((item) => <div key={item.annotation_id} className="rounded border border-emerald-300 bg-emerald-50 p-2 text-sm"><div className="flex flex-wrap items-center justify-between gap-2"><span><strong>{item.label}</strong> · turn {item.turn_number} [{item.start_offset}, {item.end_offset}) · revision {item.revision_number}</span><div className="flex flex-wrap gap-2"><label className="sr-only" htmlFor={`relabel-${item.annotation_id}`}>Relabel {item.label}</label><select id={`relabel-${item.annotation_id}`} aria-label={`Relabel ${item.label}`} value={item.label} onChange={(event) => void relabelHuman(item.annotation_id, event.target.value)} className="rounded border bg-white px-2">{spanPolicy?.allowed_labels.map((label) => <option key={label}>{label}</option>)}</select><Button type="button" size="sm" variant="outline" onClick={() => { setAdjustHumanId(item.annotation_id); chooseMode('adjust') }}>Adjust boundaries</Button><Button type="button" size="sm" variant="outline" onClick={() => void lifecycleHuman(item.annotation_id, 'retire')}>Retire</Button></div></div><details className="mt-2"><summary className="cursor-pointer font-medium">Revision history and provenance</summary><ul className="mt-1 list-disc pl-5">{(annotationSet.human_annotation_revisions ?? []).filter((revision) => revision.annotation_id === item.annotation_id).map((revision) => <li key={revision.revision_uuid}>{revision.operation} · revision {revision.revision_number} · {revision.guideline_identifier} v{revision.guideline_version} · {revision.reviewer_reference}</li>)}</ul></details></div>)}
+        {activeHuman.map((item) => <div key={item.annotation_id} className="rounded border border-emerald-300 bg-emerald-50 p-2 text-sm"><div className="flex flex-wrap items-center justify-between gap-2"><span><strong>{item.label}</strong> · turn {item.turn_number} [{item.start_offset}, {item.end_offset}) · revision {item.revision_number}</span><div className="flex flex-wrap gap-2"><label className="sr-only" htmlFor={`relabel-${item.annotation_id}`}>Relabel {item.label}</label><select id={`relabel-${item.annotation_id}`} aria-label={`Relabel ${item.label}`} value={item.label} onChange={(event) => void relabelHuman(item.annotation_id, event.target.value)} className="rounded border bg-white px-2">{spanPolicy?.allowed_labels.map((label) => <option key={label}>{label}</option>)}</select><Button type="button" size="sm" variant="outline" onClick={() => { chooseMode('adjust'); setAdjustHumanId(item.annotation_id) }}>Adjust boundaries</Button><Button type="button" size="sm" variant="outline" onClick={() => void lifecycleHuman(item.annotation_id, 'retire')}>Retire</Button></div></div><details className="mt-2"><summary className="cursor-pointer font-medium">Revision history and provenance</summary><ul className="mt-1 list-disc pl-5">{(annotationSet.human_annotation_revisions ?? []).filter((revision) => revision.annotation_id === item.annotation_id).map((revision) => <li key={revision.revision_uuid}>{revision.operation} · revision {revision.revision_number} · {revision.guideline_identifier} v{revision.guideline_version} · {revision.reviewer_reference}</li>)}</ul></details></div>)}
         {(annotationSet.human_annotation_revisions ?? []).filter((item, index, all) => item.status === 'retired' && !all.slice(index + 1).some((candidate) => candidate.annotation_id === item.annotation_id)).map((item) => <div key={item.annotation_id} className="flex justify-between rounded border border-dashed p-2 text-sm"><span>Retired: {item.label} · revision {item.revision_number}</span><Button type="button" size="sm" variant="outline" onClick={() => void lifecycleHuman(item.annotation_id, 'restore')}>Restore</Button></div>)}
       </section>
       {mode === 'relation' && <section aria-label="Relation composer" className="grid gap-2 rounded-md border border-violet-300 p-3 sm:grid-cols-3"><label className="text-sm">Source<select aria-label="Relation source" className="block w-full rounded border p-2" value={relationSource} onChange={(event) => setRelationSource(event.target.value)}><option value="">Choose…</option>{resolvedSpans.map((item) => <option value={item.prediction_id} key={item.prediction_id}>{item.label} · turn {item.turn_number}</option>)}</select></label><label className="text-sm">Target<select aria-label="Relation target" className="block w-full rounded border p-2" value={relationTarget} onChange={(event) => setRelationTarget(event.target.value)}><option value="">Choose…</option>{resolvedSpans.map((item) => <option value={item.prediction_id} key={item.prediction_id}>{item.label} · turn {item.turn_number}</option>)}</select></label><label className="text-sm">Type<select aria-label="Relation type" className="block w-full rounded border p-2" value={relationType} onChange={(event) => setRelationType(event.target.value)}><option value="">Choose…</option>{annotationSet.annotation_policy.relation_types?.map((item) => <option key={item.relation_type}>{item.relation_type}</option>)}</select></label><Button type="button" size="sm" disabled={!relationSource || !relationTarget || !relationType} onClick={() => void saveRelation()}>Save relation</Button><ul className="sm:col-span-3">{(annotationSet.active_authored_relations ?? []).map((item) => <li key={item.relation_id} className="text-sm">{item.relation_type}: {item.source_annotation_id} → {item.target_annotation_id} · revision {item.revision_number}</li>)}</ul></section>}

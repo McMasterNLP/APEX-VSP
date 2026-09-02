@@ -20,6 +20,7 @@ import type {
   ResearchEvaluatorDescriptorsResponse,
   ResearchExportProfile,
   ReviewDecisionWriteRequest,
+  SpanAttributeValue,
 } from '@/types/researchEvaluation'
 
 const BASE = '/v1/research'
@@ -417,6 +418,7 @@ export async function reviseHumanAnnotation(
     selection?: CanonicalSpanSelection
     label?: string
     dimension?: string | null
+    attributes?: SpanAttributeValue[]
     reviewer_note?: string | null
   }
 ): Promise<AnnotationSetRecord> {
