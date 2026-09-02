@@ -19,10 +19,16 @@ from domain.models.research_annotation import (
     AnnotationSetCompleteRequest,
     AnnotationSetCreateRequest,
     AnnotationSetReopenRequest,
+    AuthoredRelationCreateRequest,
+    CanonicalSpanSelection,
+    CoverageDeclarationWriteRequest,
     DimensionRatingCorrection,
+    HumanAnnotationCreateRequest,
+    HumanAnnotationRevisionRequest,
     ResearchEvaluationRunSaveRequest,
     ReviewDecisionWriteRequest,
     SpanCorrection,
+    SpanAttributeValue,
 )
 from schemas.ace_ct import ACECTEvaluationResult
 from services.ace_ct_results import (
@@ -504,3 +510,154 @@ async def test_completion_rejects_relation_with_rejected_endpoint(annotation_con
         )
     assert incoherent.value.category == "completion_blocked"
     assert "rejected endpoint" in str(incoherent.value).lower()
+
+
+@pytest.mark.asyncio
+async def test_human_span_unicode_overlap_lifecycle_relation_and_coverage(annotation_context):
+    service, annotation_set, reviewers = annotation_context
+    run = service.run_service.get_run(annotation_set.evaluation_run_uuid)
+    turn = run.transcript_snapshot[0]
+    text = turn.text[: max(1, min(8, len(turn.text)))]
+
+    def selection(selected=text):
+        return CanonicalSpanSelection(
+            transcript_hash=annotation_set.transcript_hash,
+            start_turn_number=turn.turn_number,
+            end_turn_number=turn.turn_number,
+            speaker=turn.role,
+            start_offset=0,
+            end_offset=len(selected),
+            selected_text=selected,
+        )
+
+    current = service.create_human_annotation(
+        annotation_set.annotation_set_uuid,
+        HumanAnnotationCreateRequest(
+            expected_set_revision=0,
+            selection=selection(),
+            label="empathic_opportunity",
+            dimension="Feeling",
+            attributes=(SpanAttributeValue(identifier="explicit_or_implicit", value="explicit"),),
+        ),
+        reviewers[0],
+    )
+    source = current.active_human_annotations[0]
+    current = service.create_human_annotation(
+        annotation_set.annotation_set_uuid,
+        HumanAnnotationCreateRequest(
+            expected_set_revision=current.revision,
+            selection=selection(),
+            label="empathic_response",
+        ),
+        reviewers[0],
+    )
+    target = next(item for item in current.active_human_annotations if item.annotation_id != source.annotation_id)
+    assert len(current.active_human_annotations) == 2  # overlapping spans stay distinct
+
+    current = service.create_authored_relation(
+        annotation_set.annotation_set_uuid,
+        AuthoredRelationCreateRequest(
+            expected_set_revision=current.revision,
+            source_annotation_id=source.annotation_id,
+            target_annotation_id=target.annotation_id,
+            relation_type="responds_to",
+        ),
+        reviewers[0],
+    )
+    assert current.active_authored_relations[0].source_annotation_id == source.annotation_id
+    current = service.revise_human_annotation(
+        annotation_set.annotation_set_uuid,
+        target.annotation_id,
+        HumanAnnotationRevisionRequest(
+            expected_set_revision=current.revision,
+            expected_annotation_revision=1,
+            operation="retire",
+        ),
+        reviewers[0],
+    )
+    assert target.annotation_id not in {item.annotation_id for item in current.active_human_annotations}
+    current = service.revise_human_annotation(
+        annotation_set.annotation_set_uuid,
+        target.annotation_id,
+        HumanAnnotationRevisionRequest(
+            expected_set_revision=current.revision,
+            expected_annotation_revision=2,
+            operation="restore",
+        ),
+        reviewers[0],
+    )
+    current = service.declare_coverage(
+        annotation_set.annotation_set_uuid,
+        CoverageDeclarationWriteRequest(
+            expected_set_revision=current.revision,
+            coverage="prediction_review_only",
+        ),
+        reviewers[0],
+    )
+    assert current.coverage_level == "prediction_review_only"
+    assert "span_precision" in current.validation_eligibility.eligible_metric_identifiers
+    assert "span_recall" in current.validation_eligibility.ineligible_metric_identifiers
+    assert any(item.provenance.method == "human_annotation" for item in current.resolved_projection.spans)
+
+
+@pytest.mark.asyncio
+async def test_server_rejects_stale_text_and_resolves_model_boundary_correction(annotation_context):
+    service, annotation_set, reviewers = annotation_context
+    run = service.run_service.get_run(annotation_set.evaluation_run_uuid)
+    turn = run.transcript_snapshot[0]
+    with pytest.raises(ResearchAnnotationServiceError) as stale:
+        service.create_human_annotation(
+            annotation_set.annotation_set_uuid,
+            HumanAnnotationCreateRequest(
+                expected_set_revision=0,
+                selection=CanonicalSpanSelection(
+                    transcript_hash="0" * 64,
+                    start_turn_number=turn.turn_number,
+                    end_turn_number=turn.turn_number,
+                    speaker=turn.role,
+                    start_offset=0,
+                    end_offset=1,
+                    selected_text=turn.text[:1],
+                ),
+                label="elicitation",
+            ),
+            reviewers[0],
+        )
+    assert stale.value.category == "invalid_selection"
+
+    prediction = next(
+        item for item in annotation_set.eligible_predictions
+        if item.projection_type == "span_annotation"
+    )
+    original = prediction.original_prediction
+    source_turn = next(item for item in run.transcript_snapshot if item.turn_number == original.turn_number)
+    start = original.start_offset
+    end = original.end_offset
+    if end < len(source_turn.text):
+        end += 1
+    else:
+        start -= 1
+    selected = source_turn.text[start:end]
+    corrected = service.record_decision(
+        annotation_set.annotation_set_uuid,
+        prediction.prediction_id,
+        ReviewDecisionWriteRequest(
+            expected_set_revision=0,
+            decision="corrected",
+            correction=SpanCorrection(
+                corrected_label=original.label,
+                corrected_dimension=original.dimension,
+                corrected_start_char=start,
+                corrected_end_char=end,
+                corrected_text=selected,
+                transcript_hash=annotation_set.transcript_hash,
+                corrected_turn_number=original.turn_number,
+                corrected_speaker=source_turn.role,
+            ),
+        ),
+        reviewers[0],
+    )
+    resolved = next(item for item in corrected.resolved_projection.spans if item.prediction_id == prediction.prediction_id)
+    assert resolved.quoted_text == selected
+    assert resolved.provenance.method == "human_correction"
+    assert prediction.original_prediction.quoted_text == original.quoted_text

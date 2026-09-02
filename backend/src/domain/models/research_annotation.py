@@ -31,8 +31,9 @@ REVIEWED_PROJECTION_LIMITATION = (
     "dataset; human-added false negatives are unsupported."
 )
 REFERENCE_PROJECTION_LIMITATION = (
-    "Item 2B creates a versioned reference projection whose supported validation "
-    "uses depend on audited coverage; it is not an adjudicated gold standard."
+    "Item 2B extends the human-reviewed prediction set into a versioned reference "
+    "projection whose supported validation uses depend on audited coverage; it is "
+    "not a complete gold-standard or an adjudicated gold standard."
 )
 
 ReviewProjectionType = Literal[
