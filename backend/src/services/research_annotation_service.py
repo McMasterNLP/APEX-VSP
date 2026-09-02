@@ -37,7 +37,6 @@ from domain.models.research_annotation import (
 from domain.models.research_evaluation import (
     DimensionRating,
     ProjectedRelation,
-    ResearchProjection,
     SpanAnnotation,
     TurnLabel,
 )
@@ -48,6 +47,7 @@ from services.research_annotation_policy import (
     policy_for_envelope,
     validate_requested_guideline,
 )
+from services.research_annotation_resolution import resolve_annotation_projection
 from services.research_evaluation_run_service import (
     ResearchEvaluationRunService,
     ResearchEvaluationRunServiceError,
@@ -633,7 +633,7 @@ class ResearchAnnotationService:
             effective_decisions=effective,
             transitions=transitions,
             progress=progress,
-            resolved_projection=ResearchProjection(),
+            resolved_projection=resolve_annotation_projection(inventory, effective),
             set_note=entity.set_note,
             created_at=entity.created_at,
             updated_at=entity.updated_at,
