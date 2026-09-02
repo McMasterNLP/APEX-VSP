@@ -320,6 +320,99 @@ async def test_admin_run_save_create_review_conflict_complete_reopen_and_exports
 
 
 @pytest.mark.anyio
+async def test_admin_authors_spans_relations_lifecycle_and_coverage_over_http(
+    users, completed_session, db_session
+):
+    _as_admin(users[0])
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, created = await _save_and_create(client, completed_session.id)
+        run_body = run.json()
+        current = created.json()
+        turn = run_body["transcript_snapshot"][0]
+        selected_text = turn["text"][:5]
+        selection = {
+            "transcript_hash": current["transcript_hash"],
+            "start_turn_number": turn["turn_number"],
+            "end_turn_number": turn["turn_number"],
+            "speaker": turn["role"],
+            "start_offset": 0,
+            "end_offset": len(selected_text),
+            "selected_text": selected_text,
+        }
+        source_response = await client.post(
+            f"/v1/research/annotation-sets/{current['annotation_set_uuid']}/annotations",
+            json={
+                "expected_set_revision": current["revision"],
+                "selection": selection,
+                "label": "empathic_opportunity",
+                "dimension": "Feeling",
+                "attributes": [
+                    {"identifier": "explicit_or_implicit", "value": "explicit"}
+                ],
+            },
+        )
+        assert source_response.status_code == 200, source_response.text
+        current = source_response.json()
+        source = current["active_human_annotations"][0]
+        target_response = await client.post(
+            f"/v1/research/annotation-sets/{current['annotation_set_uuid']}/annotations",
+            json={
+                "expected_set_revision": current["revision"],
+                "selection": selection,
+                "label": "empathic_response",
+                "attributes": [],
+            },
+        )
+        current = target_response.json()
+        target = next(
+            item
+            for item in current["active_human_annotations"]
+            if item["annotation_id"] != source["annotation_id"]
+        )
+        relation = await client.post(
+            f"/v1/research/annotation-sets/{current['annotation_set_uuid']}/relations",
+            json={
+                "expected_set_revision": current["revision"],
+                "source_annotation_id": source["annotation_id"],
+                "target_annotation_id": target["annotation_id"],
+                "relation_type": "responds_to",
+            },
+        )
+        assert relation.status_code == 200, relation.text
+        current = relation.json()
+        retired = await client.post(
+            f"/v1/research/annotation-sets/{current['annotation_set_uuid']}/annotations/{target['annotation_id']}/revisions",
+            json={
+                "expected_set_revision": current["revision"],
+                "expected_annotation_revision": 1,
+                "operation": "retire",
+            },
+        )
+        assert retired.status_code == 200
+        current = retired.json()
+        restored = await client.post(
+            f"/v1/research/annotation-sets/{current['annotation_set_uuid']}/annotations/{target['annotation_id']}/revisions",
+            json={
+                "expected_set_revision": current["revision"],
+                "expected_annotation_revision": 2,
+                "operation": "restore",
+            },
+        )
+        current = restored.json()
+        coverage = await client.post(
+            f"/v1/research/annotation-sets/{current['annotation_set_uuid']}/coverage",
+            json={
+                "expected_set_revision": current["revision"],
+                "coverage": "prediction_review_only",
+            },
+        )
+        assert coverage.status_code == 200, coverage.text
+        assert coverage.json()["coverage_level"] == "prediction_review_only"
+        assert "span_precision" in coverage.json()["validation_eligibility"]["eligible_metric_identifiers"]
+
+
+@pytest.mark.anyio
 async def test_annotation_routes_reject_trainee_and_unauthenticated(users, completed_session):
     transport = ASGITransport(app=app)
     _as_admin(users[0])
