@@ -373,9 +373,17 @@ class ResearchAnnotationService:
             self._validate_selection(selection, annotation_set.transcript_hash, run.transcript_snapshot)
         label = request.label if request.operation == "relabel" else current.label
         dimension = request.dimension if request.operation == "relabel" else current.dimension
-        attributes = request.attributes if request.operation == "edit_attributes" else tuple(
-            SpanAttributeValue.model_validate(item)
-            for item in json.loads(current.attributes_json)
+        # A relabel may optionally carry a replacement attribute set: validating the new
+        # label against the *previous* label's attributes would make it impossible to ever
+        # relabel into a label with different required attributes (and edit_attributes alone
+        # cannot fix this either, since it validates against the *current*, pre-relabel label).
+        attributes = (
+            request.attributes
+            if request.operation in {"edit_attributes", "relabel"} and request.attributes is not None
+            else tuple(
+                SpanAttributeValue.model_validate(item)
+                for item in json.loads(current.attributes_json)
+            )
         )
         self._validate_authored_label(policy, label, dimension, attributes)
         now = utc_now()

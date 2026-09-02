@@ -601,6 +601,71 @@ async def test_human_span_unicode_overlap_lifecycle_relation_and_coverage(annota
 
 
 @pytest.mark.asyncio
+async def test_relabel_into_attribute_requiring_label_carries_replacement_attributes(annotation_context):
+    # A label like empathic_opportunity requires an explicit_or_implicit attribute that a
+    # span created under a different label (e.g. elicitation) never had. Relabeling must be
+    # able to supply that attribute in the same revision -- otherwise no sequence of
+    # relabel/edit_attributes calls could ever satisfy both the new label's requirement and
+    # the (at every step) currently-active label's constraints.
+    service, annotation_set, reviewers = annotation_context
+    run = service.run_service.get_run(annotation_set.evaluation_run_uuid)
+    turn = run.transcript_snapshot[0]
+    text = turn.text[: max(1, min(8, len(turn.text)))]
+    selection = CanonicalSpanSelection(
+        transcript_hash=annotation_set.transcript_hash,
+        start_turn_number=turn.turn_number,
+        end_turn_number=turn.turn_number,
+        speaker=turn.role,
+        start_offset=0,
+        end_offset=len(text),
+        selected_text=text,
+    )
+
+    current = service.create_human_annotation(
+        annotation_set.annotation_set_uuid,
+        HumanAnnotationCreateRequest(
+            expected_set_revision=0,
+            selection=selection,
+            label="elicitation",
+        ),
+        reviewers[0],
+    )
+    created = current.active_human_annotations[0]
+
+    with pytest.raises(ResearchAnnotationServiceError) as missing_attribute:
+        service.revise_human_annotation(
+            annotation_set.annotation_set_uuid,
+            created.annotation_id,
+            HumanAnnotationRevisionRequest(
+                expected_set_revision=current.revision,
+                expected_annotation_revision=1,
+                operation="relabel",
+                label="empathic_opportunity",
+                dimension="Feeling",
+            ),
+            reviewers[0],
+        )
+    assert missing_attribute.value.category == "invalid_annotation"
+
+    current = service.revise_human_annotation(
+        annotation_set.annotation_set_uuid,
+        created.annotation_id,
+        HumanAnnotationRevisionRequest(
+            expected_set_revision=current.revision,
+            expected_annotation_revision=1,
+            operation="relabel",
+            label="empathic_opportunity",
+            dimension="Feeling",
+            attributes=(SpanAttributeValue(identifier="explicit_or_implicit", value="explicit"),),
+        ),
+        reviewers[0],
+    )
+    relabeled = current.active_human_annotations[0]
+    assert relabeled.label == "empathic_opportunity"
+    assert relabeled.dimension == "Feeling"
+
+
+@pytest.mark.asyncio
 async def test_server_rejects_stale_text_and_resolves_model_boundary_correction(annotation_context):
     service, annotation_set, reviewers = annotation_context
     run = service.run_service.get_run(annotation_set.evaluation_run_uuid)
