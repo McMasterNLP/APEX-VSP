@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
   ResearchTranscriptTurn,
+  DecisionRevisionRecord,
   SpanAnnotation,
   TurnLabel,
 } from '@/types/researchEvaluation'
@@ -10,6 +11,8 @@ interface TranscriptAnnotationViewProps {
   spans: SpanAnnotation[]
   turnLabels: TurnLabel[]
   focusedTurn: number | null
+  effectiveDecisions?: DecisionRevisionRecord[]
+  selectedPredictionId?: string | null
 }
 
 interface TextSegment {
@@ -60,6 +63,8 @@ export function TranscriptAnnotationView({
   spans,
   turnLabels,
   focusedTurn,
+  effectiveDecisions = [],
+  selectedPredictionId = null,
 }: TranscriptAnnotationViewProps) {
   const [selected, setSelected] = useState<SpanAnnotation | null>(null)
   const turnRefs = useRef(new Map<number, HTMLDivElement>())
@@ -91,6 +96,10 @@ export function TranscriptAnnotationView({
     }
     return map
   }, [turnLabels])
+  const decisionByPrediction = useMemo(
+    () => new Map(effectiveDecisions.map((decision) => [decision.prediction_id, decision.decision])),
+    [effectiveDecisions]
+  )
 
   if (turns.length === 0) {
     return <p className="text-sm text-gray-600">No transcript turns are available.</p>
@@ -131,7 +140,7 @@ export function TranscriptAnnotationView({
                     key={label.prediction_id}
                     className="rounded-full border border-sky-300 bg-sky-50 px-2 py-0.5 text-sky-950"
                   >
-                    {label.label}: {label.subtype ?? label.dimension ?? 'labeled'}
+                    {label.label}: {label.subtype ?? label.dimension ?? 'labeled'} · {decisionByPrediction.get(label.prediction_id)?.replaceAll('_', ' ') ?? 'unreviewed'}
                   </span>
                 ))}
               </div>
@@ -144,13 +153,19 @@ export function TranscriptAnnotationView({
                     (annotation) =>
                       `${annotation.label}${annotation.subtype ? ` (${annotation.subtype})` : ''}`
                   )
+                  const primary = segment.annotations[0]
+                  const decisionState = decisionByPrediction.get(primary.prediction_id) ?? 'unreviewed'
+                  const selectedState = segment.annotations.some(
+                    (annotation) => annotation.prediction_id === selectedPredictionId
+                  )
                   return (
                     <button
                       key={`${segment.start}-${segment.end}`}
                       type="button"
-                      onClick={() => setSelected(segment.annotations[0])}
-                      aria-label={`${annotationLabels.join(', ')}: ${segment.text}`}
-                      className="mx-0.5 rounded-sm border-b-2 border-indigo-600 bg-indigo-100 px-0.5 text-left text-gray-950 outline-none focus:ring-2 focus:ring-indigo-600"
+                      onClick={() => setSelected(primary)}
+                      aria-label={`${annotationLabels.join(', ')}; human decision ${decisionState}: ${segment.text}`}
+                      data-review-state={decisionState}
+                      className={`mx-0.5 rounded-sm border-b-2 px-0.5 text-left text-gray-950 outline-none focus:ring-2 focus:ring-indigo-600 ${selectedState ? 'border-indigo-800 bg-indigo-200 ring-1 ring-indigo-700' : 'border-indigo-600 bg-indigo-100'}`}
                     >
                       {segment.text}
                       {segment.annotations.length > 1 && (

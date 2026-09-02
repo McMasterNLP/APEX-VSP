@@ -20,6 +20,7 @@ import type {
 import { Button } from '@/components/ui/button'
 import { ResearchResultView } from './ResearchResultView'
 import { SavedResearchRuns } from './SavedResearchRuns'
+import { AnnotationSetWorkspace } from './AnnotationSetWorkspace'
 
 interface ResearchEvaluationPanelProps {
   sessionId: number
@@ -368,6 +369,14 @@ export function ResearchEvaluationPanel({
           busyRunUuid={busyRunUuid}
           onOpen={(runUuid) => void openSavedRun(runUuid)}
           onCreateOrOpenSet={(run) => void createOrOpenSet(run)}
+        />
+      )}
+
+      {selectedRun && annotationSet && (
+        <AnnotationSetWorkspace
+          run={selectedRun}
+          annotationSet={annotationSet}
+          onChange={setAnnotationSet}
         />
       )}
 
