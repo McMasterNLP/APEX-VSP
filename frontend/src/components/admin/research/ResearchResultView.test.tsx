@@ -309,6 +309,8 @@ describe('ResearchResultView', () => {
     expect(screen.getByRole('heading', { name: 'Relations' })).toBeInTheDocument()
     expect(screen.getByText('2', { selector: 'sup' })).toHaveAccessibleName('2 overlapping annotations')
     fireEvent.click(screen.getByRole('button', { name: /Feeling \(explicit\), Emotion: worried/i }))
+    expect(screen.getByRole('dialog', { name: 'Overlapping annotations' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Feeling · model/i }))
     expect(screen.getByText(/Selected annotation: Feeling/i)).toBeInTheDocument()
     expect(screen.getByText('responds to')).toBeInTheDocument()
     expect(screen.getByText('4 / 5')).toBeInTheDocument()

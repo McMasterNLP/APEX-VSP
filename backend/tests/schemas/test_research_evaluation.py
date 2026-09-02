@@ -86,15 +86,33 @@ def test_extension_contract_rejects_nested_arbitrary_provider_output():
         )
 
 
-def test_item_2_annotation_capabilities_keep_future_operations_disabled():
+def test_item_2_annotation_capabilities_default_future_operations_disabled():
     capabilities = AnnotationOperationCapabilities(confirm=True, reject=True)
     assert capabilities.confirm is True
     assert capabilities.reject is True
     assert capabilities.adjust_span is False
     assert capabilities.add_annotation is False
     assert capabilities.add_relation is False
+
+
+def test_item_2b_annotation_capabilities_allow_declared_authoring_operations():
+    # Item 2B (annotation contract 1.1) turns adjust_span/add_annotation/
+    # add_relation from Item 2A's permanently-disabled literals into real,
+    # per-evaluator boolean declarations. See
+    # docs/research/evaluation_platform/item_2b_architecture.md
+    # ("Policy-driven authoring").
+    capabilities = AnnotationOperationCapabilities(
+        confirm=True,
+        reject=True,
+        adjust_span=True,
+        add_annotation=True,
+        add_relation=True,
+    )
+    assert capabilities.adjust_span is True
+    assert capabilities.add_annotation is True
+    assert capabilities.add_relation is True
     with pytest.raises(ValidationError):
-        AnnotationOperationCapabilities(adjust_span=True)
+        AnnotationOperationCapabilities(unsupported_field=True)
 
 
 @pytest.mark.parametrize(
