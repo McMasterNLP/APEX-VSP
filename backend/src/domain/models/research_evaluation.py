@@ -454,20 +454,44 @@ class OutputCapabilities(StrictModel):
 
 
 class AnnotationOperationCapabilities(StrictModel):
-    confirm: Literal[False] = False
-    reject: Literal[False] = False
-    change_label: Literal[False] = False
+    confirm: bool = False
+    reject: bool = False
+    change_label: bool = False
+    change_dimension: bool = False
     adjust_span: Literal[False] = False
-    change_rating: Literal[False] = False
-    change_evidence: Literal[False] = False
+    change_rating: bool = False
+    mark_insufficient_evidence: bool = False
+    change_evidence: bool = False
+    change_assessability: bool = False
     add_annotation: Literal[False] = False
     add_relation: Literal[False] = False
+
+
+class ProjectionAnnotationCapabilities(StrictModel):
+    span_annotation: AnnotationOperationCapabilities = Field(
+        default_factory=AnnotationOperationCapabilities
+    )
+    turn_label: AnnotationOperationCapabilities = Field(
+        default_factory=AnnotationOperationCapabilities
+    )
+    relation: AnnotationOperationCapabilities = Field(
+        default_factory=AnnotationOperationCapabilities
+    )
+    dimension_rating: AnnotationOperationCapabilities = Field(
+        default_factory=AnnotationOperationCapabilities
+    )
+    finding: AnnotationOperationCapabilities = Field(
+        default_factory=AnnotationOperationCapabilities
+    )
 
 
 class ResearchCapabilities(StrictModel):
     outputs: OutputCapabilities
     annotation_operations: AnnotationOperationCapabilities = Field(
         default_factory=AnnotationOperationCapabilities
+    )
+    annotation_by_projection: ProjectionAnnotationCapabilities = Field(
+        default_factory=ProjectionAnnotationCapabilities
     )
 
 

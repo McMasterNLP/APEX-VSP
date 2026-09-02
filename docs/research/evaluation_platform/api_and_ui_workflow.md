@@ -46,12 +46,15 @@ Example excerpt:
           "live_execution": false
         },
         "annotation_operations": {
-          "confirm": false,
-          "reject": false,
-          "change_label": false,
+          "confirm": true,
+          "reject": true,
+          "change_label": true,
+          "change_dimension": true,
           "adjust_span": false,
           "change_rating": false,
+          "mark_insufficient_evidence": false,
           "change_evidence": false,
+          "change_assessability": false,
           "add_annotation": false,
           "add_relation": false
         }

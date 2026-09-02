@@ -177,10 +177,12 @@ Output capabilities are `character_spans`, `turn_labels`, `relations`,
 `dimension_ratings`, `global_metrics`, `narrative_findings`, `evidence_turns`,
 `framework_native_view`, and `live_execution`.
 
-Future operation declarations are `confirm`, `reject`, `change_label`,
-`adjust_span`, `change_rating`, `change_evidence`, `add_annotation`, and
-`add_relation`. Every operation is literal false in Item 1. These declarations
-do not authorize or expose editing.
+Operation declarations are `confirm`, `reject`, `change_label`,
+`change_dimension`, `adjust_span`, `change_rating`,
+`mark_insufficient_evidence`, `change_evidence`, `change_assessability`,
+`add_annotation`, and `add_relation`. Item 2A adds a typed per-projection
+capability map. `adjust_span`, `add_annotation`, and `add_relation` remain
+literal false so unfinished functionality cannot be exposed.
 
 ## Stable identifiers
 

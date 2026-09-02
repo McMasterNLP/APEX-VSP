@@ -55,10 +55,10 @@ Set an output capability to true only when the adapter can produce that type
 with defined semantics. Empty supported output and unsupported output are
 different: the UI renders “none produced” for the first and omits the second.
 
-All Item 1 annotation-operation capabilities are literal `false`. An evaluator
-integration must not add confirm, reject, correction, span/rating adjustment,
-new annotation, or adjudication behavior. Those require Item 2 data and audit
-models.
+Item 2A declares operations separately for spans, turn labels, relations,
+ratings, and findings. An integration may enable only operations covered by a
+versioned framework policy and typed correction schema. Span-boundary changes,
+new annotations, new relations, and adjudication remain disabled.
 
 ## Source references and mapping tables
 
