@@ -192,6 +192,17 @@ Other useful commands (from `backend/README.md`): `poetry run black src/`, `poet
 - **Broken assistant audio links:** set `PUBLIC_BASE_URL` to the public URL of the API.
 - **WebSockets:** the default `nginx.conf` does not proxy `/v1/ws`; the browser connects to `VITE_API_URL` directly. Ensure that origin allows WebSockets and that proxies (if any) forward `Upgrade` / `Connection` headers.
 
+### Research evaluation execution policy
+
+Item 1 research evaluation is offline-safe by default. Keep
+`RESEARCH_ALLOW_LIVE_EVALUATIONS=false` unless an approved deployment is
+intended to send completed-session transcript content to a configured model
+provider. A live run still requires an administrator to select a live evaluator
+and explicitly submit `allow_live=true`; ACE-CT-inspired execution also retains
+its separate experimental-rubric policy gate. Changing this backend value does
+not require rebuilding the frontend image, but the backend container must be
+restarted.
+
 ---
 
 ## Render unchanged

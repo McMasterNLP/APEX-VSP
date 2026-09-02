@@ -123,6 +123,7 @@ project-root/
 - **Session lifecycle management** – Create, resume, and close sessions with full transcript history.
 - **Feedback and scoring engine** – Session summary, empathy scores, SPIKES completion, AFCE-style breakdowns, and conversation timelines.
 - **Admin dashboard and research analytics** – Case management, session metrics, fairness-oriented analytics, and anonymized data export for research.
+- **Research evaluation workspace** – Admin-only, non-persisting comparison of reviewed evaluators through a versioned native-plus-projection contract, capability-driven views, and sanitized exports. See [the Item 1 research evaluation documentation](docs/research/evaluation_platform/README.md).
 - **Bias & fairness views** – Visualizations to inspect score consistency across anonymized cohorts (where data is available).
 - **Security & role-based access** – Supabase Auth with email verification, JWT-based API authorization, trainee/admin roles, and separation between training and research views.
 
