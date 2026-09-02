@@ -6,7 +6,7 @@
  *   - fetchResearchSessionByAnonId: URL construction, error handling
  *   - fetchResearchExport: blob download, DOM interactions, 403 error
  *   - fetchResearchData: maps to ResearchData, score clamping, fairnessMetrics absent
- *   - downloadMetricsCSV: uses native fetch, token from localStorage, triggers download
+ *   - downloadMetricsCSV: uses native fetch, token from the auth store, triggers download
  *   - downloadTranscriptsCSV: same pattern, different URL/filename
  */
 
@@ -21,6 +21,7 @@ import {
   downloadTranscriptsCSV,
 } from '@/api/research.api'
 import type { ResearchSessionDTO, ResearchSessionsResponse } from '@/api/research.api'
+import { useAuthStore } from '@/store/authStore'
 import { apiGet } from '@/test/authTestMocks'
 
 // Global setup wires `api.get` → `apiGet`. Prefer `mockImplementationOnce(() => Promise.reject(...))`
@@ -177,6 +178,7 @@ describe('fetchResearchSessionByAnonId', () => {
 describe('fetchResearchExport', () => {
   beforeEach(() => {
     mockedGet.mockReset()
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
     vi.stubGlobal('URL', {
       createObjectURL: vi.fn().mockReturnValue('blob:mock-url'),
       revokeObjectURL: vi.fn(),
@@ -350,16 +352,16 @@ describe('fetchResearchData', () => {
 describe('downloadMetricsCSV', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
-    localStorage.clear()
+    useAuthStore.setState({ token: null })
   })
 
-  it('is a no-op when no token is in localStorage', async () => {
-    await downloadMetricsCSV()
+  it('rejects when no authenticated token is available', async () => {
+    await expect(downloadMetricsCSV()).rejects.toThrow('No auth token available')
     expect(fetch).not.toHaveBeenCalled()
   })
 
-  it('fetches metrics CSV with Bearer token from localStorage', async () => {
-    localStorage.setItem('auth-storage', JSON.stringify({ state: { token: 'my-jwt' } }))
+  it('fetches metrics CSV with the auth-store Bearer token', async () => {
+    useAuthStore.setState({ token: 'my-jwt' })
     const blob = new Blob(['csv'], { type: 'text/csv' })
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -387,7 +389,7 @@ describe('downloadMetricsCSV', () => {
   })
 
   it('throws when the fetch response is not ok', async () => {
-    localStorage.setItem('auth-storage', JSON.stringify({ state: { token: 'tok' } }))
+    useAuthStore.setState({ token: 'tok' })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, blob: vi.fn() }))
     await expect(downloadMetricsCSV()).rejects.toThrow('Metrics export failed')
   })
@@ -400,16 +402,16 @@ describe('downloadMetricsCSV', () => {
 describe('downloadTranscriptsCSV', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn())
-    localStorage.clear()
+    useAuthStore.setState({ token: null })
   })
 
-  it('is a no-op when no token is present', async () => {
-    await downloadTranscriptsCSV()
+  it('rejects when no authenticated token is available', async () => {
+    await expect(downloadTranscriptsCSV()).rejects.toThrow('No auth token available')
     expect(fetch).not.toHaveBeenCalled()
   })
 
   it('fetches transcripts CSV and triggers download', async () => {
-    localStorage.setItem('auth-storage', JSON.stringify({ state: { token: 'jwt-tok' } }))
+    useAuthStore.setState({ token: 'jwt-tok' })
     const blob = new Blob(['t'], { type: 'text/csv' })
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -435,7 +437,7 @@ describe('downloadTranscriptsCSV', () => {
   })
 
   it('throws when the fetch response is not ok', async () => {
-    localStorage.setItem('auth-storage', JSON.stringify({ state: { token: 'tok' } }))
+    useAuthStore.setState({ token: 'tok' })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, blob: vi.fn() }))
     await expect(downloadTranscriptsCSV()).rejects.toThrow('Transcripts export failed')
   })
