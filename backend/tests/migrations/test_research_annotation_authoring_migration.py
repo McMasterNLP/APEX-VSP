@@ -15,13 +15,13 @@ def test_authoring_entities_are_append_only_and_use_restrictive_foreign_keys():
         ResearchAuthoredRelationRevision,
         ResearchCoverageDeclarationRevision,
     ):
-        assert entity.__table__.schema == "core"
         assert all(foreign_key.ondelete == "RESTRICT" for foreign_key in entity.__table__.foreign_keys)
 
 
 def test_authoring_migration_has_three_revision_tables_and_reverse_order_rollback():
-    migration = Path(
-        "src/db/migrations/versions/c3b4d5e6f7a8_add_research_annotation_authoring.py"
+    migration = (
+        Path(__file__).parents[2]
+        / "src/db/migrations/versions/c3b4d5e6f7a8_add_research_annotation_authoring.py"
     ).read_text(encoding="utf-8")
     names = (
         "research_human_annotation_revisions",

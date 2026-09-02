@@ -468,10 +468,14 @@ class ResearchAnnotationService:
         policy = policy_for_envelope(self.run_service.get_run(annotation_set.evaluation_run_id).envelope)
         if request.coverage not in policy.coverage.supported_values:
             raise ResearchAnnotationServiceError("invalid_coverage", "This coverage value is not supported by the annotation policy.")
-        if request.coverage == "exhaustive":
+        if request.coverage in {
+            "prediction_review_only",
+            "fixed_inventory_complete",
+            "exhaustive",
+        }:
             missing = len(self._inventory(annotation_set)) - len(self._effective_decision_entities(annotation_set.id))
             if missing:
-                raise ResearchAnnotationServiceError("invalid_coverage", "Exhaustive coverage requires every presented prediction to be reviewed.")
+                raise ResearchAnnotationServiceError("invalid_coverage", "Assessed coverage requires every presented prediction to be reviewed.")
         previous = self.repository.list_coverage_revisions(annotation_set.id)
         now = utc_now()
         annotation_set.revision += 1

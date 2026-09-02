@@ -590,12 +590,12 @@ async def test_human_span_unicode_overlap_lifecycle_relation_and_coverage(annota
         annotation_set.annotation_set_uuid,
         CoverageDeclarationWriteRequest(
             expected_set_revision=current.revision,
-            coverage="prediction_review_only",
+            coverage="not_assessed",
         ),
         reviewers[0],
     )
-    assert current.coverage_level == "prediction_review_only"
-    assert "span_precision" in current.validation_eligibility.eligible_metric_identifiers
+    assert current.coverage_level == "not_assessed"
+    assert "span_precision" in current.validation_eligibility.ineligible_metric_identifiers
     assert "span_recall" in current.validation_eligibility.ineligible_metric_identifiers
     assert any(item.provenance.method == "human_annotation" for item in current.resolved_projection.spans)
 
@@ -661,3 +661,37 @@ async def test_server_rejects_stale_text_and_resolves_model_boundary_correction(
     assert resolved.quoted_text == selected
     assert resolved.provenance.method == "human_correction"
     assert prediction.original_prediction.quoted_text == original.quoted_text
+
+
+@pytest.mark.asyncio
+async def test_assessed_coverage_requires_fixed_inventory_review(annotation_context):
+    service, annotation_set, reviewers = annotation_context
+    with pytest.raises(ResearchAnnotationServiceError) as blocked:
+        service.declare_coverage(
+            annotation_set.annotation_set_uuid,
+            CoverageDeclarationWriteRequest(
+                expected_set_revision=0, coverage="prediction_review_only"
+            ),
+            reviewers[0],
+        )
+    assert blocked.value.category == "invalid_coverage"
+    current = annotation_set
+    for prediction in annotation_set.eligible_predictions:
+        current = service.record_decision(
+            annotation_set.annotation_set_uuid,
+            prediction.prediction_id,
+            ReviewDecisionWriteRequest(
+                expected_set_revision=current.revision, decision="confirmed"
+            ),
+            reviewers[0],
+        )
+    current = service.declare_coverage(
+        annotation_set.annotation_set_uuid,
+        CoverageDeclarationWriteRequest(
+            expected_set_revision=current.revision,
+            coverage="prediction_review_only",
+        ),
+        reviewers[0],
+    )
+    assert "span_precision" in current.validation_eligibility.eligible_metric_identifiers
+    assert "span_recall" in current.validation_eligibility.ineligible_metric_identifiers

@@ -404,12 +404,12 @@ async def test_admin_authors_spans_relations_lifecycle_and_coverage_over_http(
             f"/v1/research/annotation-sets/{current['annotation_set_uuid']}/coverage",
             json={
                 "expected_set_revision": current["revision"],
-                "coverage": "prediction_review_only",
+                "coverage": "not_assessed",
             },
         )
         assert coverage.status_code == 200, coverage.text
-        assert coverage.json()["coverage_level"] == "prediction_review_only"
-        assert "span_precision" in coverage.json()["validation_eligibility"]["eligible_metric_identifiers"]
+        assert coverage.json()["coverage_level"] == "not_assessed"
+        assert "span_precision" in coverage.json()["validation_eligibility"]["ineligible_metric_identifiers"]
 
 
 @pytest.mark.anyio
