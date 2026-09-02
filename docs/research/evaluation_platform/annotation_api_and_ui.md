@@ -16,6 +16,11 @@ GET  /v1/research/evaluation-runs/{run_uuid}
 POST /v1/research/evaluation-runs/{run_uuid}/annotation-sets
 GET  /v1/research/annotation-sets/{set_uuid}
 PUT  /v1/research/annotation-sets/{set_uuid}/decisions/{prediction_id}
+POST /v1/research/annotation-sets/{set_uuid}/annotations
+POST /v1/research/annotation-sets/{set_uuid}/annotations/{annotation_id}/revisions
+POST /v1/research/annotation-sets/{set_uuid}/relations
+POST /v1/research/annotation-sets/{set_uuid}/relations/{relation_id}/revisions
+POST /v1/research/annotation-sets/{set_uuid}/coverage
 POST /v1/research/annotation-sets/{set_uuid}/complete
 POST /v1/research/annotation-sets/{set_uuid}/reopen
 POST /v1/research/annotation-sets/{set_uuid}/exports
@@ -65,9 +70,13 @@ The existing Admin Session Logs detail contains one research area:
 4. The administrator creates or opens their guideline-specific set.
 5. A sequential queue shows model prediction, current human decision,
    correction controls, evidence, note, and progress.
-6. Completion validates all required items and locks the set.
-7. Reopen uses an explicit reason dialog.
-8. Export controls download sanitized full, resolved, or audit JSON.
+6. Explicit Add annotation and Adjust span modes map native selection to the
+   saved snapshot and open a composer; no selection is saved automatically.
+7. Relation mode uses stable active endpoints and declared relation types.
+8. Coverage is declared explicitly and drives structured metric eligibility.
+9. Completion validates all required items and locks the set.
+10. Reopen uses an explicit reason dialog.
+11. Export controls download sanitized full, resolved, or audit JSON.
 
 The UI warns that save reruns the evaluator and a stochastic/live result may
 differ from a preview. It labels experimental/unvalidated frameworks and never
@@ -79,7 +88,25 @@ The review card switches on projection type and declared operations. It does
 not switch on evaluator identifiers. Span and turn cards expose only allowed
 label/dimension choices; relations and findings expose confirm/reject; ratings
 expose score, insufficient-evidence, and evidence-turn controls. Span-boundary
-fields and human-added annotations have no Item 2A UI.
+fields and human-added annotations have no Item 2A UI. Item 2B adds boolean
+boundary, annotation, and relation capabilities plus versioned span,
+attribute, overlap, relation, and coverage policies. An evaluator without span
+support renders a written read-only state.
+
+## Authoring integrity and conflicts
+
+Human-span creation supplies the expected set revision, transcript hash, one
+turn and speaker, Unicode code-point `[start, end)` range, exact selected text,
+label, dimension, and policy-defined attributes. Revision endpoints also
+require the current object revision. The server reloads the immutable snapshot
+and rejects stale hashes, cross-turn or out-of-bounds ranges, text mismatch,
+unsupported labels/attributes, and locked sets.
+
+Human spans, relations, and coverage are append-only full-snapshot revisions;
+there is no normal delete route. Concurrency conflicts return HTTP 409 with
+sanitized current revision numbers. Invalid selection, relation, policy, and
+coverage requests return bounded HTTP 422 errors without echoing transcript
+content.
 
 ## Queue and accessibility
 

@@ -81,12 +81,13 @@ impute.
 
 Exports are generated on demand and are not themselves persisted. Item 1's
 endpoint validates the submitted envelope schema and session transcript hash
-before serialization; it never re-executes a model. Item 2A's export endpoint
-loads the immutable saved run and append-only review history. JSON is the
+before serialization; it never re-executes a model. Item 2A/2B's export
+endpoint loads the immutable saved run and append-only model-decision,
+human-span, relation, coverage, and lifecycle history. JSON is the
 authoritative lossless structure at the declared profile. Item 1 CSV is a
 normalized analysis convenience and must not be represented as lossless.
 
-Item 2A intentionally provides no deletion endpoint. Dedicated research rows
+Items 2A and 2B intentionally provide no deletion endpoint. Dedicated research rows
 have restrictive foreign keys, so retention or erasure must be an explicit,
 governed administrative process rather than an accidental cascade. A future
 deployment must define retention periods, legal holds, reviewer-key rotation,
@@ -118,7 +119,7 @@ human communication competence without independent validation, appropriate
 human review, and governance. Missing audio, video, timing, and overlap can make
 transcript-only constructs partially or wholly unassessable.
 
-## Threats not solved by Items 1 and 2A
+## Threats not solved by Items 1, 2A, and 2B
 
 - semantic re-identification from rare transcript content;
 - malicious or compromised approved providers;
@@ -126,9 +127,9 @@ transcript-only constructs partially or wholly unassessable.
 - model/version drift at remote services;
 - unauthorized downstream copying after an export;
 - membership inference or reconstruction attacks against future trained models;
-- independent/blinded review, disagreement, and adjudication, which belong to
-  a later Item 2 phase;
-- false-negative discovery because Item 2A cannot add annotations or relations;
+- independent/blinded review, disagreement, and adjudication;
+- disclosure through selected text in privileged transcript-inclusive exports;
+  default redaction is not a guarantee of anonymity;
 - reviewer pseudonym linkage by an administrator with access to deployment
   secrets or operational records;
 - empirical accuracy/agreement validation, which belongs to Item 3.

@@ -36,7 +36,7 @@ completion/locking, audited reopening, resolved projections, and three
 sanitized JSON export profiles. It keeps model predictions distinct from human
 decisions and never changes learner feedback or production session records.
 
-The current review corpus is intentionally incomplete as a gold standard:
+Item 2A alone is intentionally incomplete as a gold standard:
 
 - reviewers can assess model-produced spans, turn labels, relations, ratings,
   and findings only; they cannot add false negatives;
@@ -52,9 +52,26 @@ The current review corpus is intentionally incomplete as a gold standard:
 - no validation metric, agreement statistic, model training, or learner-facing
   feedback change is performed.
 
-Item 2B may add new annotations/relations, boundary correction, multiple
-reviewers, adjudication, assignments, and governed retention. Each requires a
-new policy/contract version rather than reinterpretation of Item 2A records.
+Item 2B adds new annotations/relations and boundary correction under annotation
+contract `1.1`. Multiple independent reviewers, adjudication, assignments, and
+governed retention remain future work and require new policy/contract versions
+rather than reinterpretation of existing records.
+
+## Item 2B: authoring and reference readiness
+
+Item 2B adds contiguous single-turn human spans, boundary correction, overlaps,
+stable policy-constrained relations, coverage declarations, deterministic
+reference views, and machine-readable validation eligibility. It does not turn
+one review into an adjudicated gold standard.
+
+Remaining limitations are scoped researcher roles, assignments, blinding,
+independent duplicate review, disagreement and adjudication workflows,
+discontinuous spans, grapheme-cluster-aware authoring, relation visualization,
+automatic invalid-relation retirement, retention/deletion governance, and
+expert usability or inter-rater evaluation. UI accessibility is supported by
+native controls, keyboard selection, focus restoration, written states, and
+announcements, but still requires evaluation with real reviewers and assistive
+technologies.
 
 ## Item 3: validation runs and analytics
 

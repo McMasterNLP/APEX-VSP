@@ -202,6 +202,10 @@ Use a fully synthetic transcript and crop account/browser identifiers.
 - export controls and inspected sanitized JSON/ZIP table list;
 - saved run, prediction queue, written human/resolved states, and progress;
 - typed label/rating/evidence controls with no span-boundary editor;
+- Add annotation and Adjust span modes with exact range preview and written
+  model/human/correction provenance;
+- overlap disambiguation, human revision history, relation composer/list, and
+  coverage/eligibility states;
 - completed locked set, reopen-reason dialog, and sanitized annotation exports;
 - keyboard focus indicator and a narrow-screen layout.
 
@@ -239,6 +243,8 @@ environment.
   educational validity.
 - “Transcript text redacted by default,” not “anonymous” or “de-identified”
   without a separate disclosure-risk assessment.
+- “Coverage-gated reference projection,” not “gold performance”; recall and F1
+  require exhaustive coverage and adjudication remains future work.
 
 ## Reproducible artifact bundle
 

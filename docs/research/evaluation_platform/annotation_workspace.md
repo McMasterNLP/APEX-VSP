@@ -73,8 +73,11 @@ policy, not evaluator-name conditionals.
 | Finding | confirm, reject, note |
 | Global metric / limitation | informational only |
 
-Span correction schemas reserve nullable corrected offset/text fields, but
-Item 2A requires them to remain null and exposes no boundary editor.
+Item 2B activates explicit Add annotation, Adjust span, and Relation modes when
+the policy allows them. Its composer uses exact saved-snapshot selection,
+canonical offsets, policy labels/attributes, Save/Cancel, Escape cancellation,
+focus restoration, and live announcements. Overlaps remain separate and open
+a disambiguation list.
 
 ## Framework policy
 
@@ -116,10 +119,10 @@ resolved projection, and complete audit history. Sanitized export is the
 default and pseudonymizes reviewers; transcript text requires a separate
 explicit request.
 
-> Item 2A creates reviewed prediction sets, not complete gold-standard
-> datasets, because false negatives cannot yet be added manually.
+> Item 2B creates coverage-qualified reference projections, not complete or
+> adjudicated gold-standard datasets.
 
-Future Item 2B may enable span-boundary correction, human-added annotations,
-relations, multiple reviewers, and adjudication. Future Item 3 may consume
-frozen reviewed datasets for validation metrics, but Item 2A performs no
+Item 2B enables boundary correction, human-added annotations and relations,
+and coverage gating. Multiple reviewers and adjudication remain future work.
+Future Item 3 may consume frozen reviewed datasets for validation metrics, but Item 2B performs no
 precision, recall, F1, accuracy, agreement, or training.

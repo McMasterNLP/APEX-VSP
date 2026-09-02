@@ -17,6 +17,22 @@ persistence, immutable run rows, production-table non-mutation, transcript
 mismatch detection, typed policies/corrections, append-only revisions,
 optimistic concurrency, lifecycle locking/reopening, and sanitized exports.
 
+Item 2B adds strict canonical selection verification, Unicode conversion,
+human-span and relation revision lifecycles, overlap preservation, boundary
+correction, policy enforcement, coverage gating, reference projection,
+eligibility, privacy-safe expanded exports, and browser interaction evidence.
+
+Focused Item 2B backend tests:
+
+```bash
+.venv/bin/python -m pytest -q \
+  tests/schemas/test_research_annotation_authoring.py \
+  tests/services/test_research_annotation_service.py \
+  tests/services/test_research_annotation_exports.py \
+  tests/api/test_research_annotation_api.py \
+  tests/migrations/test_research_annotation_authoring_migration.py
+```
+
 ## Backend commands
 
 From `backend/`, with required test-only environment values supplied:
@@ -78,6 +94,12 @@ inspect the four `core.research_*` tables and constraints. Replaying this
 repository's full legacy history into a blank database is a separate bootstrap
 concern because a pre-existing revision expects `core.sessions` after earlier
 unqualified table creation.
+
+For Item 2B, use a disposable PostgreSQL database at Item 2A revision and run
+`upgrade c3b4d5e6f7a8`, `downgrade f2a3b4c5d6e7`, then re-upgrade. Inspect the
+three new `core.research_*_revisions` tables, `RESTRICT` foreign keys, unique
+object/revision constraints, and indexes. Never point this exercise at a
+production or shared database.
 
 Static checks for the changed backend surface:
 
@@ -171,6 +193,11 @@ Component tests verify:
   mismatch warnings;
 - optimistic-conflict refresh, completion readiness, locked controls, required
   reopen reason, and all three sanitized annotation export profiles.
+- UTF-16/code-point conversion for emoji and combining marks;
+- explicit add/adjust/relation modes, selection composer, Escape cancellation,
+  overlap disambiguation, human/model written styling, lifecycle controls, and
+  coverage declaration;
+- unsupported evaluator state and responsive side-panel composer behavior.
 
 ## Manual synthetic-session checklist
 
@@ -199,15 +226,22 @@ participant transcript.
 11. Create/open a review set. Confirm, reject, correct one allowed label, and
     for an ACE-CT-inspired fixture correct a rating/evidence set and mark one
     rating insufficient. Verify written states and progress update.
-12. Confirm there is no span-boundary, free-text label, add-annotation, or
-    add-relation control. Navigate previous/next with keyboard focus visible.
-13. Attempt completion with unreviewed items, then complete a fully reviewed
+12. Enter Add annotation mode, select one exact synthetic phrase, inspect its
+    code-point offsets, assign a permitted label, save, relabel, adjust, retire,
+    and restore it. Repeat selection and save using keyboard controls; verify
+    Escape clears an unsaved range and restores focus.
+13. Correct a model span boundary and confirm its immutable original remains in
+    audit history. Create an overlapping span and use disambiguation to inspect
+    both. Reject cross-turn and Unicode-surrogate-splitting selections.
+14. Create a policy-supported relation, declare prediction-review coverage,
+    and inspect eligible/ineligible metric reasons.
+15. Attempt completion with unreviewed items, then complete a fully reviewed
     set. Verify decision controls lock. Reopen with a reason and verify history
     remains visible.
-14. Download full-review, resolved-projection, and audit-history JSON. Confirm
+16. Download full-review, resolved-projection, and audit-history JSON. Confirm
     default output has no transcript text, email, raw session ID, or credentials
     and includes the reviewed-prediction limitation statement.
-15. Reload the session and verify saved learner feedback and production session
+17. Reload the session and verify saved learner feedback and production session
     data did not change.
 
 Record the tested commit, browser, session fixture identifier, screenshots,

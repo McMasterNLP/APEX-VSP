@@ -192,8 +192,10 @@ The active reference projection contains:
 
 Rejected predictions, superseded revisions, retired spans, retired relations,
 and relations with inactive endpoints are excluded from the active reference
-and preserved in full/audit exports. Collections are sorted by stable semantic
-keys and identities so insertion order cannot alter the result.
+and preserved in full/audit exports. Immutable model inventory order is
+preserved; authored records are queried by stable identity/revision and active
+relations by stable identity, so database insertion order cannot alter the
+result.
 
 ## Frontend interaction model
 
@@ -226,4 +228,3 @@ declared code-point convention.
 Pseudonymization does not make clinical narrative content anonymous. Export
 recipients still need approved storage, access, retention, and disclosure-risk
 controls.
-

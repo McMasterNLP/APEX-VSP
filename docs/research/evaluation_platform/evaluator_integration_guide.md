@@ -148,6 +148,14 @@ framework-equivalent ACE-CT scores.
 7. Document validation status, construct limits, license, data transfer, model
    version, retention, and cost.
 
+For annotation authoring, also declare projection-specific operations. A span
+policy enumerates labels/dimensions, attributes and values, overlap behavior,
+single-turn/contiguous limits, help text, and whether exhaustive annotation is
+meaningful. Relation policies enumerate type, source/target labels, and
+self-link behavior. Coverage states which claims the task supports. Do not
+enable an operation without its matching policy; an unsupported evaluator
+remains read-only rather than borrowing APEX labels.
+
 ## External services and researcher models
 
 An approved remote service requires an allowlisted integration committed to the
