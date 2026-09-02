@@ -168,6 +168,55 @@ npx eslint src/components/admin/research \
   src/api/research.api.test.ts src/api/researchEvaluation.api.test.ts
 ```
 
+## Item 2B evidence
+
+Item 2B is the following stack on `research-annotation-workspace`, branch
+`research-annotation-authoring`:
+
+| Commit | Evidence boundary |
+| --- | --- |
+| `fbf2158` | authoring architecture and ADRs |
+| `703fca3` | authoring contracts and persistence schema/migration |
+| `fc40422` | span/relation/coverage services |
+| `2f3f21c` | accessible transcript annotation modes (frontend) |
+| `186bffa` | authoring integrity and API test coverage |
+| `ef2cda9` | coverage-completeness enforcement fix |
+
+### Captured software verification
+
+Captured 2026-09-02 on macOS from this branch's tip. No live/paid provider
+call was made; the `baseline` evaluator used throughout is rule-based and
+offline.
+
+| Check | Exact scope | Result |
+| --- | --- | --- |
+| Backend regression | full `pytest -q` with the four documented test environment variables | 697 passed, 5 deprecation warnings |
+| Focused Item 2B backend | the five paths listed in "Focused Item 2B backend tests" (`testing_and_validation.md`) | 34 passed |
+| PostgreSQL migration round trip | disposable PostgreSQL 15 database bootstrapped through the full legacy chain (see the Item 2A note on `add_unique_open_session_index`, worked around here by setting `search_path` to include `core` before replay) to `f2a3b4c5d6e7`, then `upgrade c3b4d5e6f7a8` → `downgrade f2a3b4c5d6e7` → re-`upgrade c3b4d5e6f7a8` | passed; three `research_*_revisions` tables created, dropped, and recreated; `RESTRICT` foreign keys confirmed by direct inspection |
+| Changed backend lint | Ruff over the Item 2B backend files plus the two files touched while fixing the bugs below | passed, no findings |
+| Frontend regression | `npm run test:run` | 126 passed in 14 files |
+| Frontend production build | `npm run build` | TypeScript and Vite passed; pre-existing chunk-size warning only |
+| TypeScript project check | `npx tsc -b` | passed |
+| Changed frontend lint | ESLint over the Item 2B frontend files | passed, no findings |
+| `git diff --check` | whole tree | passed, no whitespace errors |
+
+### Browser validation status
+
+Unlike Item 2A, a real Chromium browser (Playwright-driven) was connected to
+a locally running backend and frontend for this item, against a disposable
+PostgreSQL database and a fully synthetic session fixture. See
+[`evidence/item_2b_browser_acceptance/README.md`](evidence/item_2b_browser_acceptance/README.md)
+for the exact scenarios exercised, screenshots, and the two defects this pass
+found and fixed (a stale adjust-target selection that could silently
+misdirect a model-prediction boundary correction onto an unrelated human
+annotation, and a relabel/attribute validation deadlock that made it
+impossible to ever relabel a human annotation into a label requiring an
+attribute the annotation did not already carry). Both fixes carry backend
+and/or frontend regression tests. Authentication used a local test-only JWT
+and a temporary, reverted, `DEV`-gated bridge — no real or production
+Supabase project is configured in this environment, and no such bridge
+shipped on this branch.
+
 ## Test evidence to archive
 
 Archive plain-text command output with UTC date, operating system, Python/Node
