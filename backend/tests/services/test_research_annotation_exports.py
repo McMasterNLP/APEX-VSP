@@ -195,5 +195,6 @@ async def test_transcript_inclusive_export_is_explicit_and_warned(reviewed_conte
     )
     assert payload["raw_transcript_included"] is True
     assert payload["transcript_snapshot"][0]["text"] == "How are you feeling?"
-    assert "exact transcript text" in payload["sensitive_data_warning"]
+    assert "contains transcript text" in payload["sensitive_data_warning"]
+    assert "email-like strings remain redacted" in payload["sensitive_data_warning"]
     assert reviewer.email not in json.dumps(payload)

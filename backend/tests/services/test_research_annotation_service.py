@@ -468,3 +468,39 @@ async def test_completion_blocks_unreviewed_then_locks_and_reopen_audits(annotat
     ]
     assert reopened.transitions[-1].reason.startswith("Expert requested")
     assert len(reopened.decision_revisions) == len(annotation_set.eligible_predictions)
+
+
+@pytest.mark.asyncio
+async def test_completion_rejects_relation_with_rejected_endpoint(annotation_context):
+    service, annotation_set, reviewers = annotation_context
+    relation = next(
+        item
+        for item in annotation_set.eligible_predictions
+        if item.projection_type == "relation"
+    )
+    rejected_endpoint = relation.original_prediction.source_annotation_id
+    current = annotation_set
+    for prediction in annotation_set.eligible_predictions:
+        current = service.record_decision(
+            annotation_set.annotation_set_uuid,
+            prediction.prediction_id,
+            ReviewDecisionWriteRequest(
+                expected_set_revision=current.revision,
+                decision=(
+                    "rejected"
+                    if prediction.prediction_id == rejected_endpoint
+                    else "confirmed"
+                ),
+            ),
+            reviewers[0],
+        )
+
+    assert current.progress.unreviewed == 0
+    with pytest.raises(ResearchAnnotationServiceError) as incoherent:
+        service.complete(
+            annotation_set.annotation_set_uuid,
+            AnnotationSetCompleteRequest(expected_set_revision=current.revision),
+            reviewers[0],
+        )
+    assert incoherent.value.category == "completion_blocked"
+    assert "rejected endpoint" in str(incoherent.value).lower()

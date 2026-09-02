@@ -206,7 +206,8 @@ class ResearchAnnotationExportService:
                 turn.model_dump(mode="json") for turn in run.transcript_snapshot
             ]
             payload["sensitive_data_warning"] = (
-                "This explicitly requested export contains exact transcript text."
+                "This explicitly requested export contains transcript text; "
+                "email-like strings remain redacted."
             )
             payload = _sanitize_annotation_node(
                 payload,
