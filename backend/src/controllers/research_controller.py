@@ -1,7 +1,8 @@
-"""Research controller/router — read-only, admin-only, anonymized data."""
+"""Admin-only research preview, durable review, and anonymized export routes."""
 
 import json
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response, StreamingResponse
@@ -12,6 +13,17 @@ from core.deps import get_db, require_admin
 from core.time import serialize_utc_datetime, utc_now
 from domain.entities.user import User
 from domain.models.admin import ResearchSessionsEnvelope
+from domain.models.research_annotation import (
+    AnnotationExportRequest,
+    AnnotationSetCompleteRequest,
+    AnnotationSetCreateRequest,
+    AnnotationSetRecord,
+    AnnotationSetReopenRequest,
+    EvaluationRunRecord,
+    EvaluationRunSummary,
+    ResearchEvaluationRunSaveRequest,
+    ReviewDecisionWriteRequest,
+)
 from domain.models.research_evaluation import (
     ResearchEvaluationRequest,
     ResearchEvaluationResponse,
@@ -21,6 +33,15 @@ from domain.models.research_evaluation import (
 from services.research_evaluation_service import (
     ResearchEvaluationService,
     ResearchEvaluationServiceError,
+)
+from services.research_annotation_export_service import ResearchAnnotationExportService
+from services.research_annotation_service import (
+    ResearchAnnotationService,
+    ResearchAnnotationServiceError,
+)
+from services.research_evaluation_run_service import (
+    ResearchEvaluationRunService,
+    ResearchEvaluationRunServiceError,
 )
 from services.research_export_service import ResearchExportService
 from services.research_service import ResearchService, resolve_anon_to_session_id
@@ -41,6 +62,46 @@ def _raise_research_evaluation_http_error(error: ResearchEvaluationServiceError)
         status_code=status_by_category[error.category],
         detail=str(error),
     ) from error
+
+
+def _raise_evaluation_run_http_error(error: ResearchEvaluationRunServiceError) -> None:
+    status_by_category = {
+        "run_not_found": 404,
+        "evaluation_failed": 502,
+        "live_execution_refused": 409,
+        "unsupported_annotation_policy": 422,
+        "persistence_failed": 500,
+    }
+    raise HTTPException(
+        status_code=status_by_category[error.category],
+        detail={"category": error.category, "message": str(error)},
+    ) from error
+
+
+def _raise_annotation_http_error(error: ResearchAnnotationServiceError) -> None:
+    status_by_category = {
+        "annotation_set_not_found": 404,
+        "annotation_set_forbidden": 403,
+        "annotation_set_locked": 409,
+        "no_reviewable_predictions": 422,
+        "invalid_guideline": 422,
+        "invalid_prediction": 422,
+        "invalid_decision": 422,
+        "invalid_correction": 422,
+        "revision_conflict": 409,
+        "completion_blocked": 409,
+        "invalid_transition": 409,
+        "persistence_failed": 500,
+    }
+    detail: dict[str, object] = {
+        "category": error.category,
+        "message": str(error),
+    }
+    if error.current_set_revision is not None:
+        detail["current_set_revision"] = error.current_set_revision
+    if error.current_decision_revision is not None:
+        detail["current_decision_revision"] = error.current_decision_revision
+    raise HTTPException(status_code=status_by_category[error.category], detail=detail) from error
 
 
 @router.get("/evaluators", response_model=ResearchEvaluatorDescriptorsResponse)
@@ -69,6 +130,185 @@ async def evaluate_research_session(
         return await ResearchEvaluationService(db).evaluate(session_id, request)
     except ResearchEvaluationServiceError as error:
         _raise_research_evaluation_http_error(error)
+
+
+@router.post(
+    "/sessions/{session_id}/evaluation-runs",
+    response_model=EvaluationRunRecord,
+)
+async def run_and_save_research_evaluation(
+    session_id: int,
+    request: ResearchEvaluationRunSaveRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    """Execute one evaluator server-side and save its immutable validated result."""
+
+    try:
+        record = await ResearchEvaluationRunService(db).run_and_save(
+            session_id, request, current_user
+        )
+    except ResearchEvaluationServiceError as error:
+        _raise_research_evaluation_http_error(error)
+    except ResearchEvaluationRunServiceError as error:
+        _raise_evaluation_run_http_error(error)
+    logger.info(
+        "Research evaluation run saved admin_user_id=%s session_id=%s run_uuid=%s",
+        current_user.id,
+        session_id,
+        record.run_uuid,
+    )
+    return record
+
+
+@router.get(
+    "/sessions/{session_id}/evaluation-runs",
+    response_model=tuple[EvaluationRunSummary, ...],
+)
+async def list_saved_research_evaluations(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    """List immutable research runs associated with one source session."""
+
+    return ResearchEvaluationRunService(db).list_for_session(session_id)
+
+
+@router.get(
+    "/evaluation-runs/{run_uuid}",
+    response_model=EvaluationRunRecord,
+)
+async def get_saved_research_evaluation(
+    run_uuid: UUID,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchEvaluationRunService(db).get_run(run_uuid)
+    except ResearchEvaluationRunServiceError as error:
+        _raise_evaluation_run_http_error(error)
+
+
+@router.post(
+    "/evaluation-runs/{run_uuid}/annotation-sets",
+    response_model=AnnotationSetRecord,
+)
+async def create_research_annotation_set(
+    run_uuid: UUID,
+    request: AnnotationSetCreateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).create_annotation_set(
+            run_uuid, request, current_user
+        )
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.get(
+    "/annotation-sets/{annotation_set_uuid}",
+    response_model=AnnotationSetRecord,
+)
+async def get_research_annotation_set(
+    annotation_set_uuid: UUID,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).get_annotation_set(annotation_set_uuid)
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.put(
+    "/annotation-sets/{annotation_set_uuid}/decisions/{prediction_id}",
+    response_model=AnnotationSetRecord,
+)
+async def save_research_review_decision(
+    annotation_set_uuid: UUID,
+    prediction_id: str,
+    request: ReviewDecisionWriteRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).record_decision(
+            annotation_set_uuid, prediction_id, request, current_user
+        )
+    except (ResearchAnnotationServiceError, ResearchEvaluationRunServiceError) as error:
+        if isinstance(error, ResearchAnnotationServiceError):
+            _raise_annotation_http_error(error)
+        _raise_evaluation_run_http_error(error)
+
+
+@router.post(
+    "/annotation-sets/{annotation_set_uuid}/complete",
+    response_model=AnnotationSetRecord,
+)
+async def complete_research_annotation_set(
+    annotation_set_uuid: UUID,
+    request: AnnotationSetCompleteRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).complete(
+            annotation_set_uuid, request, current_user
+        )
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.post(
+    "/annotation-sets/{annotation_set_uuid}/reopen",
+    response_model=AnnotationSetRecord,
+)
+async def reopen_research_annotation_set(
+    annotation_set_uuid: UUID,
+    request: AnnotationSetReopenRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).reopen(
+            annotation_set_uuid, request, current_user
+        )
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.post("/annotation-sets/{annotation_set_uuid}/exports")
+async def export_research_annotation_set(
+    annotation_set_uuid: UUID,
+    request: AnnotationExportRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    annotation_service = ResearchAnnotationService(db)
+    run_service = annotation_service.run_service
+    try:
+        artifact = ResearchAnnotationExportService(
+            annotation_service, run_service
+        ).render(annotation_set_uuid, request)
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+    except ResearchEvaluationRunServiceError as error:
+        _raise_evaluation_run_http_error(error)
+    logger.info(
+        "Research annotation export admin_user_id=%s annotation_set_uuid=%s profile=%s transcript=%s",
+        current_user.id,
+        annotation_set_uuid,
+        request.profile,
+        request.include_transcript_content,
+    )
+    return Response(
+        content=artifact.content,
+        media_type=artifact.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{artifact.filename}"'},
+    )
 
 
 @router.post("/sessions/{session_id}/evaluation-exports")
