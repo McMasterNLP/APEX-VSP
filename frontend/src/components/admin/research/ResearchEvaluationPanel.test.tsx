@@ -17,6 +17,12 @@ vi.mock('@/api/research.api', () => ({
   downloadResearchEvaluationExport: vi.fn(),
 }))
 
+vi.mock('./ResearchResultView', () => ({
+  ResearchResultView: ({ envelope }: { envelope: { status: string; evaluator: { display_name: string } } }) => (
+    <div>{envelope.evaluator.display_name}: {envelope.status}</div>
+  ),
+}))
+
 const mockedDescriptors = vi.mocked(fetchResearchEvaluatorDescriptors)
 const mockedRun = vi.mocked(runResearchEvaluations)
 const mockedExport = vi.mocked(downloadResearchEvaluationExport)
@@ -133,5 +139,48 @@ describe('ResearchEvaluationPanel', () => {
     expect(screen.getByRole('button', { name: /run selected evaluators/i })).toBeDisabled()
     expect(mockedRun).not.toHaveBeenCalled()
     expect(mockedExport).not.toHaveBeenCalled()
+  })
+
+  it('surfaces descriptor loading errors', async () => {
+    mockedDescriptors.mockRejectedValue(new Error('Descriptor service unavailable.'))
+    render(<ResearchEvaluationPanel sessionId={42} sessionState="completed" />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Descriptor service unavailable.')
+    expect(screen.getByRole('button', { name: /run selected evaluators/i })).toBeDisabled()
+  })
+
+  it('renders partial success and exports the exact returned envelopes', async () => {
+    const results = [
+      { run: { run_id: 'one' }, evaluator: { display_name: 'APEX baseline' }, status: 'success' },
+      { run: { run_id: 'two' }, evaluator: { display_name: 'Experimental evaluator' }, status: 'failed' },
+    ]
+    mockedRun.mockResolvedValue({
+      schema_version: '1.0',
+      transcript: {},
+      transcript_turns: [],
+      results,
+    } as unknown as ResearchEvaluationResponse)
+    mockedExport.mockResolvedValue(undefined)
+    render(<ResearchEvaluationPanel sessionId={42} sessionState="completed" />)
+
+    await screen.findByText(/APEX baseline/i)
+    fireEvent.click(screen.getByRole('button', { name: /run selected evaluators/i }))
+    expect(await screen.findByText('APEX baseline: success')).toBeInTheDocument()
+    expect(screen.getByText('Experimental evaluator: failed')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Full JSON' }))
+    await waitFor(() => expect(mockedExport).toHaveBeenCalledWith(42, 'full', results))
+  })
+
+  it('disables unavailable evaluators while preserving their visible status', async () => {
+    mockedDescriptors.mockResolvedValue({
+      schema_version: '1.0',
+      evaluators: [descriptor({ availability: 'server_live_disabled' })],
+    })
+    render(<ResearchEvaluationPanel sessionId={42} sessionState="completed" />)
+
+    const evaluator = await screen.findByRole('checkbox', { name: /APEX baseline/i })
+    expect(evaluator).toBeDisabled()
+    expect(screen.getByText(/server live disabled/i)).toBeInTheDocument()
   })
 })

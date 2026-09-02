@@ -10,16 +10,11 @@ import type {
   ResearchExportProfile,
 } from '@/types/researchEvaluation'
 import { Button } from '@/components/ui/button'
+import { ResearchResultView } from './ResearchResultView'
 
 interface ResearchEvaluationPanelProps {
   sessionId: number
   sessionState: string
-}
-
-const statusStyles: Record<string, string> = {
-  success: 'bg-emerald-100 text-emerald-900',
-  failed: 'bg-red-100 text-red-900',
-  refused: 'bg-amber-100 text-amber-950',
 }
 
 export function ResearchEvaluationPanel({
@@ -47,7 +42,10 @@ export function ResearchEvaluationPanel({
         setDescriptors(response.evaluators)
         setSelected(
           response.evaluators
-            .filter((descriptor) => descriptor.default_selected)
+            .filter(
+              (descriptor) =>
+                descriptor.default_selected && descriptor.availability === 'available'
+            )
             .map((descriptor) => descriptor.identifier)
         )
       } catch (caught) {
@@ -80,6 +78,9 @@ export function ResearchEvaluationPanel({
       providerSets.every((supported) => supported.has(candidate))
     )
   }, [selectedDescriptors])
+  const effectiveProvider = availableProviders.includes(provider)
+    ? provider
+    : availableProviders[0]
 
   const toggleEvaluator = (identifier: string) => {
     setSelected((current) =>
@@ -96,7 +97,9 @@ export function ResearchEvaluationPanel({
       const response = await runResearchEvaluations(sessionId, {
         evaluator_identifiers: selected,
         allow_live: allowLive,
-        ...(hasLiveSelection && allowLive ? { provider } : {}),
+        ...(hasLiveSelection && allowLive && effectiveProvider
+          ? { provider: effectiveProvider }
+          : {}),
       })
       setResult(response)
     } catch (caught) {
@@ -153,6 +156,7 @@ export function ResearchEvaluationPanel({
                 type="checkbox"
                 checked={selected.includes(descriptor.identifier)}
                 onChange={() => toggleEvaluator(descriptor.identifier)}
+                disabled={descriptor.availability !== 'available'}
                 className="mt-1 h-4 w-4"
               />
               <span className="min-w-0 flex-1">
@@ -188,7 +192,7 @@ export function ResearchEvaluationPanel({
               Provider
               <select
                 aria-label="Live evaluator provider"
-                value={provider}
+                value={effectiveProvider}
                 onChange={(event) => setProvider(event.target.value as 'openai' | 'gemini')}
                 className="ml-2 rounded border border-amber-300 bg-white px-2 py-1"
               >
@@ -198,13 +202,24 @@ export function ResearchEvaluationPanel({
               </select>
             </label>
           )}
+          {allowLive && availableProviders.length === 0 && (
+            <p role="alert" className="text-sm font-medium text-red-800">
+              The selected live evaluators do not share a supported provider.
+            </p>
+          )}
         </div>
       )}
 
       <Button
         type="button"
         onClick={() => void execute()}
-        disabled={!completed || selected.length === 0 || running || loadingDescriptors}
+        disabled={
+          !completed ||
+          selected.length === 0 ||
+          running ||
+          loadingDescriptors ||
+          (hasLiveSelection && allowLive && availableProviders.length === 0)
+        }
       >
         {running ? 'Running research evaluation…' : 'Run selected evaluators'}
       </Button>
@@ -238,24 +253,11 @@ export function ResearchEvaluationPanel({
             ))}
           </div>
           {result.results.map((envelope) => (
-            <article key={envelope.run.run_id} className="rounded-lg border border-gray-200 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h5 className="font-medium text-gray-950">{envelope.evaluator.display_name}</h5>
-                <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${statusStyles[envelope.status]}`}>
-                  {envelope.status}
-                </span>
-              </div>
-              {envelope.error && (
-                <p role="alert" className="mt-2 text-sm text-red-700">
-                  {envelope.error.message}
-                </p>
-              )}
-              {envelope.status === 'success' && (
-                <p className="mt-2 text-sm text-gray-600">
-                  Validated {envelope.framework.display_name} result · {envelope.run.runtime_ms.toFixed(1)} ms
-                </p>
-              )}
-            </article>
+            <ResearchResultView
+              key={envelope.run.run_id}
+              envelope={envelope}
+              transcriptTurns={result.transcript_turns}
+            />
           ))}
         </div>
       )}
