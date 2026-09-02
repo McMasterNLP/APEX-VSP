@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ResearchEvaluationPanel } from './ResearchEvaluationPanel'
 import {
   downloadResearchEvaluationExport,
+  fetchSavedResearchRuns,
   fetchResearchEvaluatorDescriptors,
   runResearchEvaluations,
+  saveResearchEvaluationRun,
 } from '@/api/research.api'
 import type {
   ResearchEvaluationResponse,
@@ -12,8 +14,13 @@ import type {
 } from '@/types/researchEvaluation'
 
 vi.mock('@/api/research.api', () => ({
+  createResearchAnnotationSet: vi.fn(),
+  fetchSavedResearchRun: vi.fn(),
+  fetchSavedResearchRuns: vi.fn(),
   fetchResearchEvaluatorDescriptors: vi.fn(),
+  getResearchApiMessage: (_error: unknown, fallback: string) => fallback,
   runResearchEvaluations: vi.fn(),
+  saveResearchEvaluationRun: vi.fn(),
   downloadResearchEvaluationExport: vi.fn(),
 }))
 
@@ -24,7 +31,9 @@ vi.mock('./ResearchResultView', () => ({
 }))
 
 const mockedDescriptors = vi.mocked(fetchResearchEvaluatorDescriptors)
+const mockedSavedRuns = vi.mocked(fetchSavedResearchRuns)
 const mockedRun = vi.mocked(runResearchEvaluations)
+const mockedSave = vi.mocked(saveResearchEvaluationRun)
 const mockedExport = vi.mocked(downloadResearchEvaluationExport)
 
 const capabilities = {
@@ -40,14 +49,49 @@ const capabilities = {
     live_execution: false,
   },
   annotation_operations: {
-    confirm: false as const,
-    reject: false as const,
-    change_label: false as const,
+    confirm: true,
+    reject: true,
+    change_label: true,
+    change_dimension: true,
     adjust_span: false as const,
-    change_rating: false as const,
-    change_evidence: false as const,
+    change_rating: false,
+    mark_insufficient_evidence: false,
+    change_evidence: false,
+    change_assessability: false,
     add_annotation: false as const,
     add_relation: false as const,
+  },
+  annotation_by_projection: {
+    span_annotation: {
+      confirm: true, reject: true, change_label: true, change_dimension: true,
+      adjust_span: false as const, change_rating: false,
+      mark_insufficient_evidence: false, change_evidence: false,
+      change_assessability: false, add_annotation: false as const, add_relation: false as const,
+    },
+    turn_label: {
+      confirm: true, reject: true, change_label: true, change_dimension: true,
+      adjust_span: false as const, change_rating: false,
+      mark_insufficient_evidence: false, change_evidence: false,
+      change_assessability: false, add_annotation: false as const, add_relation: false as const,
+    },
+    relation: {
+      confirm: true, reject: true, change_label: false, change_dimension: false,
+      adjust_span: false as const, change_rating: false,
+      mark_insufficient_evidence: false, change_evidence: false,
+      change_assessability: false, add_annotation: false as const, add_relation: false as const,
+    },
+    dimension_rating: {
+      confirm: false, reject: false, change_label: false, change_dimension: false,
+      adjust_span: false as const, change_rating: false,
+      mark_insufficient_evidence: false, change_evidence: false,
+      change_assessability: false, add_annotation: false as const, add_relation: false as const,
+    },
+    finding: {
+      confirm: true, reject: true, change_label: false, change_dimension: false,
+      adjust_span: false as const, change_rating: false,
+      mark_insufficient_evidence: false, change_evidence: false,
+      change_assessability: false, add_annotation: false as const, add_relation: false as const,
+    },
   },
 }
 
@@ -82,6 +126,7 @@ describe('ResearchEvaluationPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedDescriptors.mockResolvedValue({ schema_version: '1.0', evaluators: [descriptor()] })
+    mockedSavedRuns.mockResolvedValue([])
   })
 
   it('loads descriptors, defaults to baseline, and executes explicitly', async () => {
@@ -96,7 +141,7 @@ describe('ResearchEvaluationPanel', () => {
     expect(screen.getByText(/does not overwrite saved learner feedback/i)).toBeInTheDocument()
     const baseline = await screen.findByRole('checkbox', { name: /APEX baseline/i })
     expect(baseline).toBeChecked()
-    fireEvent.click(screen.getByRole('button', { name: /run selected evaluators/i }))
+    fireEvent.click(screen.getByRole('button', { name: /preview selected evaluators/i }))
 
     await waitFor(() =>
       expect(mockedRun).toHaveBeenCalledWith(42, {
@@ -105,6 +150,38 @@ describe('ResearchEvaluationPanel', () => {
       })
     )
     expect(screen.queryByRole('button', { name: /confirm|reject|correct/i })).not.toBeInTheDocument()
+  })
+
+  it('keeps preview distinct from explicit server run and save', async () => {
+    mockedSave.mockResolvedValue({
+      run_uuid: 'saved-run-uuid',
+      created_at: '2026-09-02T00:00:00Z',
+      transcript_matches_current: true,
+      envelope: {
+        status: 'success',
+        run: { run_id: 'run_content', execution_mode: 'offline' },
+        evaluator: { identifier: 'baseline', version: '1.0', display_name: 'APEX baseline' },
+        framework: { identifier: 'apex-spikes-afce', version: '1.0' },
+        transcript: { canonical_transcript_hash: 'a'.repeat(64) },
+      },
+      annotation_policy: {
+        guideline_identifier: 'apex-afce-expert-review',
+        guideline_version: '1.0',
+      },
+    } as unknown as import('@/types/researchEvaluation').EvaluationRunRecord)
+    render(<ResearchEvaluationPanel sessionId={42} sessionState="completed" />)
+    await screen.findByText(/APEX baseline/i)
+
+    fireEvent.click(screen.getByRole('button', { name: /run and save for review/i }))
+    await waitFor(() =>
+      expect(mockedSave).toHaveBeenCalledWith(42, {
+        evaluator_identifier: 'baseline',
+        allow_live: false,
+      })
+    )
+    expect(mockedRun).not.toHaveBeenCalled()
+    expect(await screen.findByText(/selected saved run: APEX baseline/i)).toBeInTheDocument()
+    expect(screen.getByText(/saving reruns the evaluator on the server/i)).toBeInTheDocument()
   })
 
   it('shows live requirements without enabling live execution automatically', async () => {
@@ -136,7 +213,7 @@ describe('ResearchEvaluationPanel', () => {
     render(<ResearchEvaluationPanel sessionId={42} sessionState="active" />)
     await screen.findByText(/APEX baseline/i)
     expect(screen.getByText(/complete this session/i)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /run selected evaluators/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /preview selected evaluators/i })).toBeDisabled()
     expect(mockedRun).not.toHaveBeenCalled()
     expect(mockedExport).not.toHaveBeenCalled()
   })
@@ -146,7 +223,7 @@ describe('ResearchEvaluationPanel', () => {
     render(<ResearchEvaluationPanel sessionId={42} sessionState="completed" />)
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Descriptor service unavailable.')
-    expect(screen.getByRole('button', { name: /run selected evaluators/i })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /preview selected evaluators/i })).toBeDisabled()
   })
 
   it('renders partial success and exports the exact returned envelopes', async () => {
@@ -164,7 +241,7 @@ describe('ResearchEvaluationPanel', () => {
     render(<ResearchEvaluationPanel sessionId={42} sessionState="completed" />)
 
     await screen.findByText(/APEX baseline/i)
-    fireEvent.click(screen.getByRole('button', { name: /run selected evaluators/i }))
+    fireEvent.click(screen.getByRole('button', { name: /preview selected evaluators/i }))
     expect(await screen.findByText('APEX baseline: success')).toBeInTheDocument()
     expect(screen.getByText('Experimental evaluator: failed')).toBeInTheDocument()
 

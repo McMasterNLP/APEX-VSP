@@ -147,19 +147,31 @@ export interface OutputCapabilities {
 }
 
 export interface AnnotationOperationCapabilities {
-  confirm: false
-  reject: false
-  change_label: false
+  confirm: boolean
+  reject: boolean
+  change_label: boolean
+  change_dimension: boolean
   adjust_span: false
-  change_rating: false
-  change_evidence: false
+  change_rating: boolean
+  mark_insufficient_evidence: boolean
+  change_evidence: boolean
+  change_assessability: boolean
   add_annotation: false
   add_relation: false
+}
+
+export interface ProjectionAnnotationCapabilities {
+  span_annotation: AnnotationOperationCapabilities
+  turn_label: AnnotationOperationCapabilities
+  relation: AnnotationOperationCapabilities
+  dimension_rating: AnnotationOperationCapabilities
+  finding: AnnotationOperationCapabilities
 }
 
 export interface ResearchCapabilities {
   outputs: OutputCapabilities
   annotation_operations: AnnotationOperationCapabilities
+  annotation_by_projection: ProjectionAnnotationCapabilities
 }
 
 export interface ApexNativeSpan {
@@ -431,3 +443,215 @@ export interface ResearchEvaluationRunRequest {
   provider?: 'openai' | 'gemini'
   model_identifier?: string
 }
+
+export type ReviewProjectionType =
+  | 'span_annotation'
+  | 'turn_label'
+  | 'relation'
+  | 'dimension_rating'
+  | 'finding'
+
+export type ReviewableProjection =
+  | SpanAnnotation
+  | TurnLabel
+  | ProjectedRelation
+  | DimensionRating
+  | ResearchFinding
+
+export type AnnotationSetStatus = 'draft' | 'in_review' | 'complete'
+export type ReviewDecision =
+  | 'confirmed'
+  | 'rejected'
+  | 'corrected'
+  | 'insufficient_evidence'
+
+export interface LabelPolicy {
+  projection_type: 'span_annotation' | 'turn_label'
+  allowed_labels: string[]
+  allowed_dimensions: string[]
+  allow_null_dimension: boolean
+}
+
+export interface RatingScalePolicy {
+  dimension_identifier: string
+  allowed_scores: number[]
+  allowed_assessability: Array<
+    'text_assessable' | 'partially_assessable' | 'not_assessable'
+  >
+  allow_assessability_correction: boolean
+}
+
+export interface AnnotationPolicyDescriptor {
+  policy_identifier: string
+  policy_version: string
+  guideline_identifier: string
+  guideline_version: string
+  guideline_validation_status:
+    | 'engineering_unvalidated'
+    | 'experimental_unvalidated'
+    | 'approved'
+  framework_identifier: string
+  supported_envelope_schema_versions: string[]
+  supported_adapter_versions: string[]
+  operations: ProjectionAnnotationCapabilities
+  label_policies: LabelPolicy[]
+  rating_scales: RatingScalePolicy[]
+}
+
+export interface ReviewablePrediction {
+  prediction_id: string
+  projection_type: ReviewProjectionType
+  original_prediction: ReviewableProjection
+  allowed_operations: AnnotationOperationCapabilities
+}
+
+export interface SpanCorrection {
+  correction_type: 'span_annotation'
+  corrected_label: string
+  corrected_dimension: string | null
+  corrected_start_char?: null
+  corrected_end_char?: null
+  corrected_text?: null
+}
+
+export interface TurnLabelCorrection {
+  correction_type: 'turn_label'
+  corrected_label: string
+  corrected_dimension: string | null
+}
+
+export interface DimensionRatingCorrection {
+  correction_type: 'dimension_rating'
+  corrected_score: number | null
+  corrected_score_status: 'available' | 'insufficient_evidence' | 'not_assessable'
+  corrected_assessability:
+    | 'text_assessable'
+    | 'partially_assessable'
+    | 'not_assessable'
+  corrected_evidence_turns: number[]
+}
+
+export type TypedCorrection =
+  | SpanCorrection
+  | TurnLabelCorrection
+  | DimensionRatingCorrection
+
+export interface ResearchEvaluationRunSaveRequest {
+  evaluator_identifier: string
+  allow_live: boolean
+  provider?: 'openai' | 'gemini'
+  model_identifier?: string
+}
+
+export interface EvaluationRunRecord {
+  run_uuid: string
+  source_session_id: number
+  envelope: ResearchEvaluationEnvelope
+  transcript_snapshot: ResearchTranscriptTurn[]
+  creator_reference: string
+  created_at: string
+  transcript_matches_current: boolean
+  current_transcript_hash?: string | null
+  annotation_policy: AnnotationPolicyDescriptor
+}
+
+export interface EvaluationRunSummary {
+  run_uuid: string
+  item1_run_id: string
+  evaluator_identifier: string
+  evaluator_version: string
+  framework_identifier: string
+  framework_version: string
+  transcript_hash: string
+  execution_mode: 'offline' | 'live'
+  status: ResearchStatus
+  created_at: string
+  transcript_matches_current: boolean
+}
+
+export interface AnnotationSetCreateRequest {
+  guideline_identifier: string
+  guideline_version: string
+  set_note?: string
+}
+
+export interface ReviewDecisionWriteRequest {
+  expected_set_revision: number
+  expected_decision_revision?: number | null
+  decision: ReviewDecision
+  correction?: TypedCorrection | null
+  reviewer_note?: string | null
+}
+
+export interface DecisionRevisionRecord {
+  decision_uuid: string
+  prediction_id: string
+  projection_type: ReviewProjectionType
+  revision_number: number
+  decision: ReviewDecision
+  correction?: TypedCorrection | null
+  reviewer_note?: string | null
+  reviewer_reference: string
+  supersedes_uuid?: string | null
+  created_at: string
+}
+
+export interface AnnotationTransitionRecord {
+  transition_uuid: string
+  from_status: AnnotationSetStatus
+  to_status: AnnotationSetStatus
+  set_revision: number
+  reason?: string | null
+  actor_reference: string
+  created_at: string
+}
+
+export interface ReviewProgress {
+  total: number
+  confirmed: number
+  corrected: number
+  rejected: number
+  insufficient_evidence: number
+  unreviewed: number
+}
+
+export interface AnnotationSetRecord {
+  schema_version: '1.0'
+  annotation_set_uuid: string
+  evaluation_run_uuid: string
+  transcript_hash: string
+  transcript_matches_current: boolean
+  framework_identifier: string
+  framework_version: string
+  annotation_policy: AnnotationPolicyDescriptor
+  guideline_identifier: string
+  guideline_version: string
+  reviewer_reference: string
+  status: AnnotationSetStatus
+  locked: boolean
+  revision: number
+  eligible_predictions: ReviewablePrediction[]
+  decision_revisions: DecisionRevisionRecord[]
+  effective_decisions: DecisionRevisionRecord[]
+  transitions: AnnotationTransitionRecord[]
+  progress: ReviewProgress
+  resolved_projection: ResearchProjection
+  set_note?: string | null
+  created_at: string
+  updated_at: string
+  completed_at?: string | null
+  locked_at?: string | null
+  reopened_at?: string | null
+}
+
+export interface ResearchRevisionConflict {
+  category: 'revision_conflict'
+  message: string
+  current_set_revision?: number
+  current_decision_revision?: number
+}
+
+export type AnnotationExportProfile =
+  | 'full_review'
+  | 'resolved_projection'
+  | 'audit_history'

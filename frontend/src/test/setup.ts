@@ -3,6 +3,7 @@ import { vi } from 'vitest'
 import {
   apiGet,
   apiPost,
+  apiPut,
   mockGetSession,
   mockOnAuthStateChange,
   mockSignOut,
@@ -23,5 +24,6 @@ vi.mock('@/api/client', () => ({
   default: {
     get: (...args: unknown[]) => apiGet(...args),
     post: (...args: unknown[]) => apiPost(...args),
+    put: (...args: unknown[]) => apiPut(...args),
   },
 }))

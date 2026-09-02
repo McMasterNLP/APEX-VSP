@@ -19,6 +19,7 @@ export const mockOnAuthStateChange = vi.fn(
 /** Mocked `api.get` used by {@link refreshProfile} via dynamic import. */
 export const apiGet = vi.fn()
 export const apiPost = vi.fn()
+export const apiPut = vi.fn()
 
 export function resetAuthTestMocks() {
   mockSignOut.mockClear()
@@ -34,4 +35,5 @@ export function resetAuthTestMocks() {
   )
   apiGet.mockReset()
   apiPost.mockReset()
+  apiPut.mockReset()
 }
