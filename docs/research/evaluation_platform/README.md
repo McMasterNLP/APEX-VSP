@@ -1,9 +1,9 @@
 # APEX research evaluation platform
 
-This package documents Item 1 of the APEX research evaluation platform: a
-lossless, capability-driven result path for read-only evaluator research. It is
-additive to the learner feedback workflow and does not change saved feedback,
-session state, turns, metrics, or plugin selection.
+This package documents Item 1's lossless, capability-driven evaluator result
+path and Item 2A's durable human review workspace. Both are additive to the
+learner feedback workflow and do not change saved feedback, session state,
+turns, metrics, or plugin selection.
 
 ## Current scope
 
@@ -79,15 +79,21 @@ do not determine generic rendering.
 - [Testing and validation](testing_and_validation.md)
 - [Limitations and future work](limitations_and_future_work.md)
 - [Paper evidence guide](paper_evidence_guide.md)
+- [Human annotation workspace](annotation_workspace.md)
+- [Annotation contract](annotation_contract.md)
+- [Annotation API and UI](annotation_api_and_ui.md)
+- [Annotation export format](annotation_export_format.md)
 - [Architecture decision records](adr/)
 
-## Future Items 2 and 3
+## Item 2A and future work
 
-Item 2 will add durable human review concepts such as annotation sets,
-confirm/reject/correct actions, span and rating changes, reviewer attribution,
-and adjudication. Item 3 will add evaluator validation runs, gold datasets,
+Item 2A adds immutable saved runs, reviewer-specific annotation sets,
+confirm/reject/typed-correction actions, append-only history, locking/reopening,
+and reviewed-projection exports. It does not add span-boundary editing,
+human-added false negatives, multiple-reviewer adjudication, or agreement.
+Item 3 will add evaluator validation runs, complete reference datasets,
 precision/recall/F1 and agreement analyses, and validation dashboards. Neither
-item is implemented or implied by the read-only declarations in Item 1.
+validation nor complete-gold claims are implied by Item 2A.
 
 Arbitrary plugin uploads, dynamic execution of researcher-supplied code, and
 unreviewed external inference endpoints remain prohibited.
