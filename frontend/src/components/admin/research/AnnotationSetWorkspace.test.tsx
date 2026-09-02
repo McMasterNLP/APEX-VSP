@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   completeResearchAnnotationSet,
+  createHumanAnnotation,
+  declareAnnotationCoverage,
   downloadResearchAnnotationExport,
   fetchResearchAnnotationSet,
   reopenResearchAnnotationSet,
@@ -18,14 +20,20 @@ import { AnnotationSetWorkspace } from './AnnotationSetWorkspace'
 
 vi.mock('@/api/research.api', () => ({
   completeResearchAnnotationSet: vi.fn(),
+  createAuthoredRelation: vi.fn(),
+  createHumanAnnotation: vi.fn(),
+  declareAnnotationCoverage: vi.fn(),
   downloadResearchAnnotationExport: vi.fn(),
   fetchResearchAnnotationSet: vi.fn(),
   getResearchApiMessage: (_error: unknown, fallback: string) => fallback,
   reopenResearchAnnotationSet: vi.fn(),
+  reviseHumanAnnotation: vi.fn(),
   saveResearchReviewDecision: vi.fn(),
 }))
 
 const mockedComplete = vi.mocked(completeResearchAnnotationSet)
+const mockedCreateHuman = vi.mocked(createHumanAnnotation)
+const mockedCoverage = vi.mocked(declareAnnotationCoverage)
 const mockedDownload = vi.mocked(downloadResearchAnnotationExport)
 const mockedFetchSet = vi.mocked(fetchResearchAnnotationSet)
 const mockedReopen = vi.mocked(reopenResearchAnnotationSet)
@@ -58,6 +66,12 @@ const spanOperations: AnnotationOperationCapabilities = {
   reject: true,
   change_label: true,
   change_dimension: true,
+}
+
+const authoringSpanOperations: AnnotationOperationCapabilities = {
+  ...spanOperations,
+  adjust_span: true,
+  add_annotation: true,
 }
 
 const ratingOperations: AnnotationOperationCapabilities = {
@@ -199,6 +213,27 @@ function makePolicy() {
   }
 }
 
+function makeAuthoringSet() {
+  const set = makeSet([spanPrediction])
+  return {
+    ...set,
+    annotation_policy: {
+      ...set.annotation_policy,
+      operations: { ...set.annotation_policy.operations, span_annotation: authoringSpanOperations },
+      span_authoring: {
+        supported: true, offset_convention: 'unicode_code_point_half_open' as const,
+        overlap_policy: 'allow' as const, contiguous_only: true as const, single_turn_only: true as const,
+        exhaustive_annotation_meaningful: true,
+        guideline_help_text: 'Select the exact evidence.', attribute_policies: [],
+      },
+      coverage: {
+        supported_values: ['not_assessed', 'prediction_review_only', 'exhaustive'] as const,
+        exhaustive_span_annotations: true, exhaustive_relations: true,
+      },
+    },
+  }
+}
+
 function makeSet(predictions: ReviewablePrediction[]): AnnotationSetRecord {
   return {
     schema_version: '1.0',
@@ -247,6 +282,8 @@ describe('AnnotationSetWorkspace', () => {
     vi.clearAllMocks()
     mockedSave.mockImplementation(async () => makeSet([spanPrediction]))
     mockedDownload.mockResolvedValue(undefined)
+    mockedCreateHuman.mockImplementation(async () => makeAuthoringSet())
+    mockedCoverage.mockImplementation(async () => makeAuthoringSet())
   })
 
   it('saves confirm and typed label decisions without exposing span edits', async () => {
@@ -483,5 +520,44 @@ describe('AnnotationSetWorkspace', () => {
       await waitFor(() => expect(mockedDownload).toHaveBeenCalledWith('set-uuid', profile))
     }
     expect(screen.getByText(/transcript text is excluded by default/i)).toBeInTheDocument()
+  })
+
+  it('authors selected text explicitly, supports Escape cancellation, and declares coverage', async () => {
+    const annotationSet = makeAuthoringSet()
+    const onChange = vi.fn()
+    render(<AnnotationSetWorkspace run={makeRun([spanPrediction])} annotationSet={annotationSet} onChange={onChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add annotation' }))
+    const paragraph = document.querySelector<HTMLElement>('[data-turn-text="1"]')!
+    const walker = document.createTreeWalker(paragraph, NodeFilter.SHOW_TEXT)
+    let selectedNode: Text | null = null
+    while (walker.nextNode()) {
+      if (walker.currentNode.textContent?.includes('difficult')) selectedNode = walker.currentNode as Text
+    }
+    expect(selectedNode).not.toBeNull()
+    const range = document.createRange()
+    range.setStart(selectedNode!, 0)
+    range.setEnd(selectedNode!, 9)
+    const selection = window.getSelection()!
+    selection.removeAllRanges(); selection.addRange(range)
+    fireEvent.mouseUp(paragraph)
+    expect(screen.getByRole('region', { name: 'Annotation composer' })).toHaveTextContent('difficult')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('region', { name: 'Annotation composer' })).not.toBeInTheDocument()
+
+    selection.removeAllRanges(); selection.addRange(range)
+    fireEvent.mouseUp(paragraph)
+    fireEvent.change(screen.getByLabelText('Annotation type'), { target: { value: 'empathic_response' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Annotate selected text' }))
+    await waitFor(() => expect(mockedCreateHuman).toHaveBeenCalledWith('set-uuid', expect.objectContaining({
+      expected_set_revision: 3,
+      selection: expect.objectContaining({ start_offset: 12, end_offset: 21, selected_text: 'difficult' }),
+      label: 'empathic_response',
+    })))
+
+    fireEvent.change(screen.getByLabelText('Annotation coverage'), { target: { value: 'prediction_review_only' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Save coverage' }))
+    await waitFor(() => expect(mockedCoverage).toHaveBeenCalledWith('set-uuid', 3, 'prediction_review_only'))
   })
 })

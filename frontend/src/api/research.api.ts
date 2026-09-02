@@ -8,8 +8,11 @@ import type {
   AnnotationExportProfile,
   AnnotationSetCreateRequest,
   AnnotationSetRecord,
+  CanonicalSpanSelection,
+  CoverageLevel,
   EvaluationRunRecord,
   EvaluationRunSummary,
+  HumanAnnotationCreateRequest,
   ResearchEvaluationEnvelope,
   ResearchEvaluationResponse,
   ResearchEvaluationRunRequest,
@@ -390,6 +393,62 @@ export async function saveResearchReviewDecision(
   const { data } = await api.put<AnnotationSetRecord>(
     `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/decisions/${encodeURIComponent(predictionId)}`,
     request
+  )
+  return data
+}
+
+export async function createHumanAnnotation(
+  annotationSetUuid: string,
+  request: HumanAnnotationCreateRequest
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.post<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/annotations`, request
+  )
+  return data
+}
+
+export async function reviseHumanAnnotation(
+  annotationSetUuid: string,
+  annotationId: string,
+  request: {
+    expected_set_revision: number
+    expected_annotation_revision: number
+    operation: 'relabel' | 'edit_attributes' | 'adjust_span' | 'retire' | 'restore'
+    selection?: CanonicalSpanSelection
+    label?: string
+    dimension?: string | null
+    reviewer_note?: string | null
+  }
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.post<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/annotations/${encodeURIComponent(annotationId)}/revisions`, request
+  )
+  return data
+}
+
+export async function createAuthoredRelation(
+  annotationSetUuid: string,
+  request: {
+    expected_set_revision: number
+    source_annotation_id: string
+    target_annotation_id: string
+    relation_type: string
+  }
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.post<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/relations`, request
+  )
+  return data
+}
+
+export async function declareAnnotationCoverage(
+  annotationSetUuid: string,
+  expectedSetRevision: number,
+  coverage: CoverageLevel
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.post<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/coverage`,
+    { expected_set_revision: expectedSetRevision, coverage }
   )
   return data
 }

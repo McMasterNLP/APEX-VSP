@@ -1,12 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   completeResearchAnnotationSet,
+  createAuthoredRelation,
+  createHumanAnnotation,
   createResearchAnnotationSet,
+  declareAnnotationCoverage,
   downloadResearchAnnotationExport,
   fetchResearchAnnotationSet,
   fetchSavedResearchRun,
   fetchSavedResearchRuns,
   reopenResearchAnnotationSet,
+  reviseHumanAnnotation,
   saveResearchEvaluationRun,
   saveResearchReviewDecision,
 } from '@/api/research.api'
@@ -109,5 +113,28 @@ describe('research annotation API client', () => {
       { profile: 'audit_history', include_transcript_content: false },
       { responseType: 'blob' }
     )
+  })
+
+  it('posts revision-guarded spans, relations, lifecycle changes, and coverage', async () => {
+    mockedPost.mockResolvedValue({ data: annotationSet })
+    const selection = {
+      transcript_hash: 'a'.repeat(64), start_turn_number: 1, end_turn_number: 1,
+      speaker: 'clinician' as const, start_offset: 0, end_offset: 4, selected_text: 'Text',
+    }
+    await createHumanAnnotation('set-uuid', {
+      expected_set_revision: 3, selection, label: 'elicitation', attributes: [],
+    })
+    expect(mockedPost).toHaveBeenLastCalledWith('/v1/research/annotation-sets/set-uuid/annotations', expect.objectContaining({ selection }))
+    await reviseHumanAnnotation('set-uuid', 'span_abc', {
+      expected_set_revision: 4, expected_annotation_revision: 1,
+      operation: 'adjust_span', selection,
+    })
+    expect(mockedPost).toHaveBeenLastCalledWith('/v1/research/annotation-sets/set-uuid/annotations/span_abc/revisions', expect.objectContaining({ operation: 'adjust_span' }))
+    await createAuthoredRelation('set-uuid', {
+      expected_set_revision: 5, source_annotation_id: 'span_a', target_annotation_id: 'span_b', relation_type: 'responds_to',
+    })
+    expect(mockedPost).toHaveBeenLastCalledWith('/v1/research/annotation-sets/set-uuid/relations', expect.objectContaining({ relation_type: 'responds_to' }))
+    await declareAnnotationCoverage('set-uuid', 6, 'exhaustive')
+    expect(mockedPost).toHaveBeenLastCalledWith('/v1/research/annotation-sets/set-uuid/coverage', { expected_set_revision: 6, coverage: 'exhaustive' })
   })
 })
