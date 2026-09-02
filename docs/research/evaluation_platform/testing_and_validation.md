@@ -12,6 +12,11 @@ Item 1 is checked at six boundaries:
 5. admin-only API behavior and transcript-hash verification;
 6. capability-driven, accessible frontend rendering and production build.
 
+Item 2A additionally checks server-generated exact envelope/snapshot
+persistence, immutable run rows, production-table non-mutation, transcript
+mismatch detection, typed policies/corrections, append-only revisions,
+optimistic concurrency, lifecycle locking/reopening, and sanitized exports.
+
 ## Backend commands
 
 From `backend/`, with required test-only environment values supplied:

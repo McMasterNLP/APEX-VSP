@@ -13,6 +13,12 @@ execution. A model identifier is useful provenance, but it does not guarantee
 that a remote provider is deterministic or that a mutable alias refers to the
 same weights later.
 
+Item 2A saved runs add a random durable run UUID, creator pseudonymous
+reference, source-session relationship, exact validated envelope, and minimal
+canonical transcript snapshot. The random UUID identifies the persistence
+record; Item 1's content-derived `run_id` continues to identify matching result
+content. Neither identity replaces the other.
+
 ## Canonical transcript identity
 
 APEX canonicalizes the persisted turns using `apex-canonical-v1`, with the
@@ -25,6 +31,10 @@ whose transcript digest differs. Raw transcript text is available in the
 authorized interactive response so annotations can be rendered, but envelope
 identity declares `raw_transcript_included=false`; export profiles redact
 transcript-derived strings by default.
+
+For a saved run, integrity checking compares the current session hash with the
+stored hash. A mismatch is reported while review continues against the exact
+immutable snapshot; offsets are never moved onto changed text.
 
 ## Stable identifiers
 
