@@ -44,16 +44,65 @@ GEMINI_API_KEY='test-key' \
   tests/api/test_research_api.py
 ```
 
+Focused Item 2A suite:
+
+```bash
+DATABASE_URL='postgresql+psycopg2://u:p@localhost:5432/db' \
+SUPABASE_JWT_SECRET='test-secret' \
+OPENAI_API_KEY='test-key' \
+GEMINI_API_KEY='test-key' \
+.venv/bin/python -m pytest -q \
+  tests/migrations/test_research_annotation_migration.py \
+  tests/schemas/test_research_annotation.py \
+  tests/services/test_research_annotation_policy.py \
+  tests/services/test_research_evaluation_run_service.py \
+  tests/services/test_research_annotation_service.py \
+  tests/services/test_research_annotation_exports.py \
+  tests/api/test_research_annotation_api.py
+```
+
+The migration test exercises table constraints and append-only hooks against
+the test database abstraction. PostgreSQL upgrade and downgrade SQL can also be
+compiled without connecting to a deployment database:
+
+```bash
+.venv/bin/alembic upgrade a1b2c3d4e5f8:f2a3b4c5d6e7 --sql
+.venv/bin/alembic downgrade f2a3b4c5d6e7:a1b2c3d4e5f8 --sql
+```
+
+Apply the migration against a real PostgreSQL staging database before release;
+offline compilation does not verify deployed permissions, locks, or data.
+For a target already at Item 1 revision `a1b2c3d4e5f8`, validate the actual
+`upgrade f2a3b4c5d6e7`, `downgrade a1b2c3d4e5f8`, and re-upgrade sequence and
+inspect the four `core.research_*` tables and constraints. Replaying this
+repository's full legacy history into a blank database is a separate bootstrap
+concern because a pre-existing revision expects `core.sessions` after earlier
+unqualified table creation.
+
 Static checks for the changed backend surface:
 
 ```bash
 .venv/bin/ruff check \
+  src/domain/entities/research_annotation.py \
+  src/domain/models/research_annotation.py \
   src/domain/models/research_evaluation.py \
+  src/repositories/research_annotation_repo.py \
   src/services/research_adapters \
+  src/services/research_annotation_export_service.py \
+  src/services/research_annotation_policy.py \
+  src/services/research_annotation_resolution.py \
+  src/services/research_annotation_service.py \
   src/services/research_evaluation_service.py \
+  src/services/research_evaluation_run_service.py \
   src/services/research_export_service.py \
   src/controllers/research_controller.py \
+  tests/migrations/test_research_annotation_migration.py \
+  tests/schemas/test_research_annotation.py \
   tests/schemas/test_research_evaluation.py \
+  tests/services/test_research_annotation_policy.py \
+  tests/services/test_research_annotation_service.py \
+  tests/services/test_research_annotation_exports.py \
+  tests/services/test_research_evaluation_run_service.py \
   tests/services/test_research_adapter_registry.py \
   tests/services/test_research_adapters.py \
   tests/services/test_research_evaluation_service.py \
@@ -114,7 +163,14 @@ Component tests verify:
 - relations, grouped ratings, textual metric comparability, findings,
   limitations, provenance, native views, and failed-run states;
 - generic section gating by capabilities after changing an evaluator identifier;
-- absence of confirm/reject/correction/edit controls.
+- Item 1 preview and run-and-save remain distinct actions;
+- saved-run discovery and annotation-set creation use server records;
+- capability-driven confirm/reject and typed label/rating/evidence controls;
+- no span-boundary or human-add controls in Item 2A;
+- written decision/resolution states, progress, queue navigation, and transcript
+  mismatch warnings;
+- optimistic-conflict refresh, completion readiness, locked controls, required
+  reopen reason, and all three sanitized annotation export profiles.
 
 ## Manual synthetic-session checklist
 
@@ -138,8 +194,21 @@ participant transcript.
    baseline; verify partial success remains visible/exportable.
 9. Download full, native, projection, and tabular profiles; inspect JSON schema,
    ZIP table names, redacted text, and common run/provenance keys.
-10. Reload the session and verify saved learner feedback and session data did
-    not change.
+10. Use **Run and save for review** once; verify a distinct immutable saved run
+    appears and the UI warns that live/stochastic output may differ from preview.
+11. Create/open a review set. Confirm, reject, correct one allowed label, and
+    for an ACE-CT-inspired fixture correct a rating/evidence set and mark one
+    rating insufficient. Verify written states and progress update.
+12. Confirm there is no span-boundary, free-text label, add-annotation, or
+    add-relation control. Navigate previous/next with keyboard focus visible.
+13. Attempt completion with unreviewed items, then complete a fully reviewed
+    set. Verify decision controls lock. Reopen with a reason and verify history
+    remains visible.
+14. Download full-review, resolved-projection, and audit-history JSON. Confirm
+    default output has no transcript text, email, raw session ID, or credentials
+    and includes the reviewed-prediction limitation statement.
+15. Reload the session and verify saved learner feedback and production session
+    data did not change.
 
 Record the tested commit, browser, session fixture identifier, screenshots,
 commands, results, and measured timings in the paper evidence log. Do not report

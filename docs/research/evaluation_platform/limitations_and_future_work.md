@@ -4,8 +4,9 @@
 
 - The workspace is administrator-only because the repository has no separate
   researcher authorization model.
-- Research runs and exports are computed on demand and are not persisted as
-  durable research records.
+- Item 1 previews and exports are computed on demand. Item 2A adds a separate
+  explicit server-run-and-save path for durable review records; previews still
+  cannot be promoted or posted back as authoritative runs.
 - The baseline is an engineering, rule-based operationalization. It is not a
   validated reproduction of AFCE.
 - Hybrid and ACE-CT-inspired execution depends on approved external model
@@ -27,22 +28,33 @@
 - No arbitrary evaluator/model upload or remote endpoint registration is
   supported.
 
-## Item 2: human review and annotation
+## Item 2A: human review and annotation
 
-Item 2 should introduce durable, append-only research review concepts rather
-than mutating evaluator predictions:
+Item 2A implements immutable saved runs, reviewer/guideline-specific annotation
+sets, append-only decisions, optimistic concurrency, typed corrections,
+completion/locking, audited reopening, resolved projections, and three
+sanitized JSON export profiles. It keeps model predictions distinct from human
+decisions and never changes learner feedback or production session records.
 
-- annotation/review set and revision schemas;
-- confirmation, rejection, corrected labels, adjusted spans, changed ratings,
-  changed evidence, new annotations, and relations;
-- reviewer pseudonyms/roles, timestamps, provenance, and rationale;
-- optimistic concurrency, immutable history, and audit export;
-- independent/blinded review, disagreement representation, and adjudication;
-- privacy retention rules and access controls distinct from learner feedback;
-- accessible UI controls and review-state recovery.
+The current review corpus is intentionally incomplete as a gold standard:
 
-Until these models exist, all annotation-operation capabilities remain literal
-false and the Item 1 workspace must remain read-only.
+- reviewers can assess model-produced spans, turn labels, relations, ratings,
+  and findings only; they cannot add false negatives;
+- span boundaries and quoted text cannot be edited;
+- relations and findings can be confirmed or rejected but not corrected;
+- one reviewer has one set per run/guideline version; independent review,
+  blinding, disagreement representation, and adjudication are not implemented;
+- the only authorization role is administrator, not a scoped researcher or
+  adjudicator role;
+- pseudonymization and default text redaction reduce exposure but do not make
+  the dataset anonymous;
+- no retention/deletion workflow or reviewer assignment queue is provided;
+- no validation metric, agreement statistic, model training, or learner-facing
+  feedback change is performed.
+
+Item 2B may add new annotations/relations, boundary correction, multiple
+reviewers, adjudication, assignments, and governed retention. Each requires a
+new policy/contract version rather than reinterpretation of Item 2A records.
 
 ## Item 3: validation runs and analytics
 

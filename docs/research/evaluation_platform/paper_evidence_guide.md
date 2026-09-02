@@ -13,9 +13,13 @@ screenshots and archives.
 | Baseline execution is offline and non-persisting | research orchestration and existing compute-only baseline | service spy tests and manual saved-feedback comparison | Rule-based engineering baseline, not validated AFCE reproduction |
 | Live execution is opt-in twice | request schema, server setting, refusal boundary | service/API refusal tests | Provider use also needs governance and credentials |
 | One evaluator failure does not erase siblings | per-registration orchestration boundary | synthetic partial-failure service/UI tests | Failure isolation is not result imputation |
-| UI is capability-driven and read-only | common result shell and native discriminator switch | renamed-evaluator capability test; no edit-control assertions | Human annotation is Item 2 |
+| Item 1 preview is capability-driven and read-only | common result shell and native discriminator switch | renamed-evaluator capability test; no preview edit controls | Review requires a separately saved Item 2A run |
 | Exports are structured and sanitized by default | export service and transcript-hash check | JSON/ZIP/redaction/API tests | CSV is normalized, not lossless; hashes remain sensitive |
 | ACE-CT-inspired structure is retained | typed native variant and ACE adapter | 11-dimension/four-domain mapping test | Experimental, unvalidated, non-official, not a publication-model reproduction |
+| Human decisions never rewrite model predictions | immutable envelope/inventory plus append-only decision revisions | entity guards, revision-history, non-mutation, and resolution tests | Reviewed predictions are not a complete gold dataset |
+| Review controls follow framework policy and projection capabilities | versioned policy registry and typed correction union | invalid correction, rating/evidence, renamed evaluator, and no-boundary-control tests | Item 2A cannot add false negatives or relations |
+| Completion is explicit and recoverable | coverage check, lock, transition history, reasoned reopen | incomplete/lock/write-rejection/reopen/concurrency tests | One administrator/reviewer set; no adjudication |
+| Annotation exports preserve auditability while minimizing data | full-review, resolved, and audit profiles | transcript/email/session-ID redaction and explicit transcript opt-in tests | Pseudonymous artifacts remain sensitive |
 
 ## Commit evidence
 
@@ -36,33 +40,74 @@ the final incremental series. The implementation began with these checkpoints:
 | `febc393` | complete documentation and deployment notes |
 | `ed10fff` | regression-test alignment with the current auth-store boundary |
 
+Item 2A is the following stack on `research-annotation-workspace`:
+
+| Commit | Evidence boundary |
+| --- | --- |
+| `33fd66c` | annotation architecture and ADRs |
+| `4d79e0d` | dedicated persistence schema and reversible migration |
+| `bd7f368` | typed correction contract, policies, and capabilities |
+| `8eda99b` | immutable server-run-and-save workflow |
+| `e3f949c` | append-only decisions, concurrency, completion, and reopen |
+| `6c0e28e` | resolved projections and annotation exports |
+| `b1373a2` | admin-only annotation API |
+| `f862bcc` | saved-run frontend workflow |
+| `8135998` | capability-driven review queue and typed controls |
+| `c2dd55d` | lifecycle UI, locking/reopening, exports, and privacy hardening |
+| `bed3016` | email redaction and resolved-relation completion safeguards |
+
 Cite a tag or immutable commit in the paper, not a moving branch name.
 
 ## Captured software verification
 
-The following results were captured on 2026-09-01 from code commit `ed10fff` on
-macOS. Test credentials were inert local values and no live/paid provider call
-was made.
+The following results were captured on 2026-09-02 from Item 2A implementation
+commit `bed3016` on macOS. Test credentials were inert local values and no
+live/paid provider call was made.
 
 | Check | Exact scope | Result | Measured time |
 | --- | --- | --- | --- |
-| Backend regression | `.venv/bin/python -m pytest -q --ignore=tests/services/test_seeded_evaluator_validation.py` with the four documented test environment variables | 644 passed, 5 deprecation warnings | pytest 8.18 s; wall 9.25 s |
-| Item 1 backend | five paths in `testing_and_validation.md` | 70 passed, 2 deprecation warnings | pytest 1.71 s; wall 2.34 s |
-| Changed backend lint | exact Ruff command in `testing_and_validation.md` | passed, no findings | included directly after focused suite |
-| Frontend regression | `npm run test:run` | 103 passed in 11 files | Vitest 4.33 s; wall 5.21 s |
-| Item 1 frontend | API, panel, and result-view test paths | 13 passed in 3 files | Vitest 1.97 s; wall 3.32 s |
-| Frontend production build | `npm run build` | TypeScript and Vite passed; existing chunk-size warnings | Vite 3.11 s; wall 7.10 s |
-| Changed frontend lint | ESLint paths in `testing_and_validation.md` | passed, no findings | run after build |
+| Backend regression | `.venv/bin/python -m pytest -q --ignore=tests/services/test_seeded_evaluator_validation.py` with the four documented test environment variables | 675 passed, 5 deprecation warnings | pytest 7.50 s; wall 8.00 s |
+| Item 1 backend | five paths in `testing_and_validation.md` | 70 passed, 2 deprecation warnings | pytest 2.10 s; wall 2.60 s |
+| Item 2A backend | seven paths in `testing_and_validation.md` | 31 passed, 2 deprecation warnings | pytest 1.73 s; wall 2.16 s |
+| PostgreSQL migration SQL | targeted Alembic upgrade and downgrade compilation | both passed; all four tables created/dropped | 127 upgrade lines; 32 downgrade lines |
+| PostgreSQL migration round trip | PostgreSQL 16 disposable database initialized with the Item 1 schema and stamped `a1b2c3d4e5f8` | upgrade/downgrade/upgrade passed; table count 4 → 0 → 4; final version `f2a3b4c5d6e7` | 29 check/foreign/unique constraints in the resulting `core` schema |
+| Changed backend lint | Ruff over Python files changed from `research-evaluation-contract` | passed, no findings | captured with regression run |
+| Frontend regression | `npm run test:run` | 115 passed in 13 files | Vitest 1.98 s; wall 2.64 s |
+| Focused research frontend | six API/component paths | 54 passed in 6 files | Vitest 1.59 s; wall 2.27 s |
+| Frontend production build | `npm run build` | TypeScript and Vite passed; existing chunk-size warnings | Vite 2.35 s; build-and-lint wall 6.66 s |
+| Changed frontend lint | ESLint paths in `testing_and_validation.md` | passed, no findings | captured with focused checks |
 
 The backend exclusion is necessary because the legacy
 `test_seeded_evaluator_validation.py` module explicitly performs unmocked paid
 OpenAI calls and has no pytest marker. All other backend tests ran. The observed
 times above are software-verification timings, not evaluator latency benchmarks.
 
-No browser connection was available in the validation environment. Therefore
-the manual synthetic-session checklist and screenshots below are **not
-captured** and must not be reported as passed. Component/API tests cover the
-same states synthetically, but they do not substitute for visual acceptance.
+Component/API tests exercise synthetic data and do not substitute for a
+browser connected to a fully configured local backend. Record browser findings
+separately below and do not report an unavailable end-to-end step as passed.
+
+### Browser validation status
+
+On 2026-09-02 the local Vite application started successfully at
+`http://127.0.0.1:5173`, but the browser-control runtime reported no connected
+browser instance. No screenshots or end-to-end visual checks were captured.
+The manual checklist below remains pending and must not be represented as
+passed; the automated accessible component tests are reported separately.
+
+### Migration validation status
+
+The Item 2A revision was applied, downgraded, and reapplied against PostgreSQL
+16 using a production-shaped Item 1 schema. The final database contained the
+four dedicated research tables and reported the expected Alembic head. The
+named disposable database container was removed after validation.
+
+A separate attempt to replay the repository's entire historical migration
+chain into a completely blank database stopped in the pre-existing
+`add_unique_open_session_index` revision: earlier legacy revisions create
+unqualified tables while that revision expects `core.sessions`. This predates
+Item 2A and does not affect the verified `a1b2c3d4e5f8` → `f2a3b4c5d6e7`
+round trip, but fresh-database bootstrap should be repaired separately rather
+than rewriting published migration history in this branch.
 
 Exact captured commands:
 
@@ -72,6 +117,20 @@ DATABASE_URL='postgresql+psycopg2://u:p@localhost:5432/db' \
 SUPABASE_JWT_SECRET='test-secret' OPENAI_API_KEY='test-key' \
 GEMINI_API_KEY='test-key' .venv/bin/python -m pytest -q \
   --ignore=tests/services/test_seeded_evaluator_validation.py
+
+DATABASE_URL='postgresql+psycopg2://u:p@localhost:5432/db' \
+SUPABASE_JWT_SECRET='test-secret' OPENAI_API_KEY='test-key' \
+GEMINI_API_KEY='test-key' .venv/bin/python -m pytest -q \
+  tests/migrations/test_research_annotation_migration.py \
+  tests/schemas/test_research_annotation.py \
+  tests/services/test_research_annotation_policy.py \
+  tests/services/test_research_evaluation_run_service.py \
+  tests/services/test_research_annotation_service.py \
+  tests/services/test_research_annotation_exports.py \
+  tests/api/test_research_annotation_api.py
+
+.venv/bin/alembic upgrade a1b2c3d4e5f8:f2a3b4c5d6e7 --sql
+.venv/bin/alembic downgrade f2a3b4c5d6e7:a1b2c3d4e5f8 --sql
 
 DATABASE_URL='postgresql+psycopg2://u:p@localhost:5432/db' \
 SUPABASE_JWT_SECRET='test-secret' OPENAI_API_KEY='test-key' \
@@ -97,9 +156,12 @@ GEMINI_API_KEY='test-key' .venv/bin/python -m pytest -q \
 cd ../frontend
 npm run test:run
 npm run test:run -- \
+  src/api/research.api.test.ts \
   src/api/researchEvaluation.api.test.ts \
+  src/api/researchAnnotation.api.test.ts \
   src/components/admin/research/ResearchEvaluationPanel.test.tsx \
-  src/components/admin/research/ResearchResultView.test.tsx
+  src/components/admin/research/ResearchResultView.test.tsx \
+  src/components/admin/research/AnnotationSetWorkspace.test.tsx
 npm run build
 npx eslint src/components/admin/research \
   src/types/researchEvaluation.ts src/api/research.api.ts \
@@ -113,12 +175,13 @@ versions, dependency lock hashes, commit hash, exit status, pass/fail/skip
 counts, warnings, and elapsed time for:
 
 1. full backend pytest suite without paid/live calls;
-2. focused Item 1 backend suite;
-3. backend Ruff checks for changed files;
-4. full frontend Vitest suite;
-5. focused research component/API suite;
-6. frontend production build and ESLint checks;
-7. `git diff --check` and clean-worktree confirmation.
+2. focused Item 1 and Item 2A backend suites;
+3. targeted migration upgrade/downgrade compilation and staging application;
+4. backend Ruff checks for changed files;
+5. full frontend Vitest suite;
+6. focused research component/API suite;
+7. frontend production build and ESLint checks;
+8. `git diff --check` and clean-worktree confirmation.
 
 Do not copy a count from this guide. Counts change as tests are added; use the
 captured output from the cited commit.
@@ -137,6 +200,9 @@ Use a fully synthetic transcript and crop account/browser identifiers.
 - provenance panel with truncated hash, versions, provider/model, runtime, and
   execution mode;
 - export controls and inspected sanitized JSON/ZIP table list;
+- saved run, prediction queue, written human/resolved states, and progress;
+- typed label/rating/evidence controls with no span-boundary editor;
+- completed locked set, reopen-reason dialog, and sanitized annotation exports;
 - keyboard focus indicator and a narrow-screen layout.
 
 Record screenshot filename, commit, fixture, browser/version, viewport, and the

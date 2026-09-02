@@ -162,8 +162,32 @@ Within **Admin → Session Logs → selected completed session**:
 7. Export controls POST the already returned envelopes to the export endpoint.
 
 The workspace displays: **“Research evaluation — does not overwrite saved
-learner feedback.”** It has no confirmation, rejection, correction, span
-editing, rating editing, or annotation controls.
+learner feedback.”** Item 1 preview results remain read-only and have no
+confirmation, rejection, correction, or annotation controls.
+
+## Durable review workflow (Item 2A)
+
+Item 2A is a separate explicit path. **Run and save for review** accepts one
+evaluator choice and re-executes it on the server; it never accepts a preview
+envelope from the browser. Successful results are stored with the exact
+validated envelope and minimal canonical transcript snapshot. Failed or
+refused results do not create reviewable runs.
+
+The admin then opens a saved run, creates or reopens their compatible
+guideline-specific annotation set, and reviews a stable captured prediction
+inventory. Projection-specific capabilities expose confirm/reject, bounded
+notes, allowed label/dimension corrections, or rating/evidence corrections.
+No boundary editor, human-added annotation, or human-added relation is exposed.
+
+Every write includes expected set/decision revisions. HTTP 409 conflicts show
+an explicit refresh action rather than overwriting newer work. Completion is
+available only after all eligible predictions have effective decisions and
+the resolved relation graph is coherent; it locks the set. Reopening requires
+a non-empty audited reason. Sanitized full-review, resolved-projection, and
+audit-history JSON exports omit transcript text by default.
+
+The exact routes, request shapes, and UI states are documented in
+[Annotation API and UI](annotation_api_and_ui.md).
 
 ## Capability-driven rendering
 

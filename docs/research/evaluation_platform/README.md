@@ -61,8 +61,8 @@ do not determine generic rendering.
   projection.
 - **Research projection**: typed spans, turn labels, relations, ratings,
   metrics, findings, and limitations used by generic consumers.
-- **Capability manifest**: declared supported outputs and future annotation
-  operations.
+- **Capability manifest**: declared supported outputs and projection-specific
+  annotation operations.
 - **Evaluation run**: one evaluator/configuration applied to one canonical
   transcript.
 - **Source reference**: a safe structured link from a projected object to an

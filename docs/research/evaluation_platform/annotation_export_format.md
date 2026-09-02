@@ -9,7 +9,7 @@ reviewer pseudonym, annotation-set revision/status, and export timestamp.
 
 Sanitized export is the default. It excludes email, authentication and
 Supabase identifiers, credentials, raw provider prompts/responses, hidden
-reasoning, unnecessary database IDs, and transcript text. Reviewer IDs are
+reasoning, raw database session IDs, and transcript text. Reviewer IDs are
 deterministically pseudonymized for the deployment. Transcript hashes and
 narrative content remain sensitive research data.
 
@@ -27,7 +27,7 @@ Profile `full_review` contains:
 
 When transcript inclusion is requested, the payload sets
 `raw_transcript_included=true` and includes a sensitive-data warning. The
-default is false.
+default is false. Email-like strings remain redacted even with this opt-in.
 
 ## Resolved annotation projection
 

@@ -2,11 +2,12 @@
 
 ## Access and purpose boundary
 
-Research evaluation routes reuse the existing administrator authorization
-dependency. Item 1 introduces no researcher role and grants no new access to a
-session. Only completed sessions can be evaluated. The workflow is read-only
-with respect to learner feedback, session state, turns, metrics, and plugin
-selection.
+Research evaluation and annotation routes reuse the existing administrator
+authorization dependency. Items 1 and 2A introduce no researcher role and
+grant no new access to a session. Only completed sessions can be evaluated.
+The workflow is read-only with respect to learner feedback, session state,
+turns, metrics, and plugin selection; Item 2A writes only dedicated research
+run, annotation-set, decision-revision, and lifecycle-transition tables.
 
 This technical access control does not replace institutional approval,
 participant consent, data-governance review, or an appropriate legal basis for
@@ -24,6 +25,17 @@ approved evaluators.
   quoted span/evidence, and patient-text fields by default.
 - Multi-table CSV emits offsets, turn numbers, labels, IDs, and provenance but
   leaves quoted transcript text empty.
+- Saved runs retain only the canonical role/turn/text snapshot required to
+  preserve offsets. They do not copy user profiles, email, authentication
+  identifiers, case ownership, prompts, provider responses, or hidden
+  reasoning.
+- Annotation records use deployment-pseudonymous reviewer references rather
+  than email or names. Default exports also redact email-like strings in
+  bounded reviewer notes and reopen reasons.
+- Annotation exports use a pseudonymous source-session reference instead of a
+  raw database session ID. The admin UI always requests transcript-free
+  exports; raw transcript inclusion exists only as a separate explicit API
+  opt-in with a sensitive-data warning.
 - No request or response contains provider credentials.
 
 A transcript hash is pseudonymous, not anonymous. Low-entropy or known text
@@ -67,11 +79,18 @@ impute.
 
 ## Export handling
 
-Exports are generated on demand and are not persisted by Item 1. The endpoint
-validates the submitted envelope schema and session transcript hash before
-serialization; it never re-executes a model. JSON is the authoritative lossless
-structure at the declared profile. CSV is a normalized analysis convenience
-and must not be represented as lossless.
+Exports are generated on demand and are not themselves persisted. Item 1's
+endpoint validates the submitted envelope schema and session transcript hash
+before serialization; it never re-executes a model. Item 2A's export endpoint
+loads the immutable saved run and append-only review history. JSON is the
+authoritative lossless structure at the declared profile. Item 1 CSV is a
+normalized analysis convenience and must not be represented as lossless.
+
+Item 2A intentionally provides no deletion endpoint. Dedicated research rows
+have restrictive foreign keys, so retention or erasure must be an explicit,
+governed administrative process rather than an accidental cascade. A future
+deployment must define retention periods, legal holds, reviewer-key rotation,
+and deletion procedures before using participant data.
 
 Recommended handling:
 
@@ -99,7 +118,7 @@ human communication competence without independent validation, appropriate
 human review, and governance. Missing audio, video, timing, and overlap can make
 transcript-only constructs partially or wholly unassessable.
 
-## Threats not solved by Item 1
+## Threats not solved by Items 1 and 2A
 
 - semantic re-identification from rare transcript content;
 - malicious or compromised approved providers;
@@ -107,5 +126,9 @@ transcript-only constructs partially or wholly unassessable.
 - model/version drift at remote services;
 - unauthorized downstream copying after an export;
 - membership inference or reconstruction attacks against future trained models;
-- human-review disagreement and adjudication, which belong to Item 2;
+- independent/blinded review, disagreement, and adjudication, which belong to
+  a later Item 2 phase;
+- false-negative discovery because Item 2A cannot add annotations or relations;
+- reviewer pseudonym linkage by an administrator with access to deployment
+  secrets or operational records;
 - empirical accuracy/agreement validation, which belongs to Item 3.
