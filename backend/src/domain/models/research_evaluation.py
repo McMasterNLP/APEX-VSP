@@ -248,7 +248,12 @@ FRAMEWORK_NATIVE_RESULT_ADAPTER = TypeAdapter(FrameworkNativeResult)
 
 
 class SourceReference(StrictModel):
-    native_result_type: Literal["apex_feedback", "ace_ct_inspired", "versioned_extension"]
+    native_result_type: Literal[
+        "apex_feedback",
+        "ace_ct_inspired",
+        "versioned_extension",
+        "human_annotation",
+    ]
     native_identifier: str = Field(min_length=1, max_length=200)
     native_path: str = Field(min_length=1, max_length=300)
     adapter_version: str = Field(min_length=1, max_length=50)
@@ -266,7 +271,13 @@ class SourceReference(StrictModel):
 
 
 class ProjectionProvenance(StrictModel):
-    method: Literal["deterministic_adapter", "native_model", "native_rule"]
+    method: Literal[
+        "deterministic_adapter",
+        "native_model",
+        "native_rule",
+        "human_correction",
+        "human_annotation",
+    ]
     provider: str | None = Field(default=None, max_length=50)
     model_identifier: str | None = Field(default=None, max_length=200)
 
@@ -458,13 +469,13 @@ class AnnotationOperationCapabilities(StrictModel):
     reject: bool = False
     change_label: bool = False
     change_dimension: bool = False
-    adjust_span: Literal[False] = False
+    adjust_span: bool = False
     change_rating: bool = False
     mark_insufficient_evidence: bool = False
     change_evidence: bool = False
     change_assessability: bool = False
-    add_annotation: Literal[False] = False
-    add_relation: Literal[False] = False
+    add_annotation: bool = False
+    add_relation: bool = False
 
 
 class ProjectionAnnotationCapabilities(StrictModel):

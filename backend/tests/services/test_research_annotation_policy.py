@@ -80,7 +80,13 @@ def test_apex_policy_inventory_is_projection_driven_and_excludes_metrics():
     assert not ({metric.metric_id for metric in envelope.projection.global_metrics} & {
         item.prediction_id for item in inventory
     })
-    assert all(item.allowed_operations.adjust_span is False for item in inventory)
+    span_items = [item for item in inventory if item.projection_type == "span_annotation"]
+    assert all(item.allowed_operations.adjust_span for item in span_items)
+    assert policy.span_authoring.supported is True
+    assert {item.relation_type for item in policy.relation_types} == {
+        "responds_to",
+        "elicits",
+    }
 
 
 def test_policy_rejects_incompatible_guideline_and_adapter_version():

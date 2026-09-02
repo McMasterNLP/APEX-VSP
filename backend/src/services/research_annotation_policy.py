@@ -1,12 +1,16 @@
-"""Versioned framework-aware annotation policies for Item 2A."""
+"""Versioned framework-aware review and authoring policies."""
 
 from __future__ import annotations
 
 from domain.models.research_annotation import (
     AnnotationPolicyDescriptor,
+    CoveragePolicy,
     LabelPolicy,
     RatingScalePolicy,
+    RelationTypePolicy,
     ReviewablePrediction,
+    SpanAttributePolicy,
+    SpanAuthoringPolicy,
     prediction_identifier,
 )
 from domain.models.research_evaluation import (
@@ -33,6 +37,8 @@ def _apex_operations() -> ProjectionAnnotationCapabilities:
             reject=True,
             change_label=True,
             change_dimension=True,
+            adjust_span=True,
+            add_annotation=True,
         ),
         turn_label=AnnotationOperationCapabilities(
             confirm=True,
@@ -40,7 +46,9 @@ def _apex_operations() -> ProjectionAnnotationCapabilities:
             change_label=True,
             change_dimension=True,
         ),
-        relation=AnnotationOperationCapabilities(confirm=True, reject=True),
+        relation=AnnotationOperationCapabilities(
+            confirm=True, reject=True, add_relation=True
+        ),
         finding=AnnotationOperationCapabilities(confirm=True, reject=True),
     )
 
@@ -99,6 +107,46 @@ def policy_for_envelope(envelope: ResearchEvaluationEnvelope) -> AnnotationPolic
                         "strategy_summary",
                     ),
                 ),
+            ),
+            span_authoring=SpanAuthoringPolicy(
+                supported=True,
+                overlap_policy="allow",
+                exhaustive_annotation_meaningful=True,
+                guideline_help_text=(
+                    "Select one exact, non-whitespace range within a transcript turn, "
+                    "then assign the construct represented by that text."
+                ),
+                attribute_policies=(
+                    SpanAttributePolicy(
+                        identifier="explicit_or_implicit",
+                        display_name="Expression",
+                        allowed_values=("explicit", "implicit"),
+                        allowed_for_labels=("empathic_opportunity",),
+                        required_for_labels=("empathic_opportunity",),
+                    ),
+                ),
+            ),
+            relation_types=(
+                RelationTypePolicy(
+                    relation_type="responds_to",
+                    allowed_source_labels=("empathic_opportunity",),
+                    allowed_target_labels=("empathic_response",),
+                ),
+                RelationTypePolicy(
+                    relation_type="elicits",
+                    allowed_source_labels=("empathic_opportunity",),
+                    allowed_target_labels=("elicitation",),
+                ),
+            ),
+            coverage=CoveragePolicy(
+                supported_values=(
+                    "not_assessed",
+                    "prediction_review_only",
+                    "exhaustive",
+                    "fixed_inventory_complete",
+                ),
+                exhaustive_span_annotations=True,
+                exhaustive_relations=True,
             ),
         )
 
