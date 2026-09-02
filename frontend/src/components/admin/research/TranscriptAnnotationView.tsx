@@ -163,7 +163,7 @@ export function TranscriptAnnotationView({
                       key={`${segment.start}-${segment.end}`}
                       type="button"
                       onClick={() => setSelected(primary)}
-                      aria-label={`${annotationLabels.join(', ')}; human decision ${decisionState}: ${segment.text}`}
+                      aria-label={`${annotationLabels.join(', ')}: ${segment.text}; human decision ${decisionState}`}
                       data-review-state={decisionState}
                       className={`mx-0.5 rounded-sm border-b-2 px-0.5 text-left text-gray-950 outline-none focus:ring-2 focus:ring-indigo-600 ${selectedState ? 'border-indigo-800 bg-indigo-200 ring-1 ring-indigo-700' : 'border-indigo-600 bg-indigo-100'}`}
                     >

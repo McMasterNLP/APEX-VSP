@@ -70,7 +70,11 @@ async def reviewed_context(test_db, completed_session):
     current = annotation_service.record_decision(
         annotation_set.annotation_set_uuid,
         spans[0].prediction_id,
-        ReviewDecisionWriteRequest(expected_set_revision=0, decision="confirmed"),
+        ReviewDecisionWriteRequest(
+            expected_set_revision=0,
+            decision="confirmed",
+            reviewer_note="Contact private-reviewer@example.com for adjudication.",
+        ),
         reviewer,
     )
     current = annotation_service.record_decision(
@@ -147,6 +151,7 @@ async def test_default_annotation_exports_are_sanitized_and_pseudonymous(
     assert "human-reviewed prediction set" in payload["scientific_limitation"]
     assert reviewer.email not in serialized
     assert reviewer.full_name not in serialized
+    assert "[EMAIL_REDACTED]" in serialized
     assert "How are you feeling?" not in serialized
     assert "I feel worried." not in serialized
     assert payload["annotation_set"]["reviewer_reference"].startswith("reviewer_")
@@ -178,7 +183,7 @@ async def test_full_audit_keeps_revisions_and_resolved_export_excludes_rejection
 
 @pytest.mark.asyncio
 async def test_transcript_inclusive_export_is_explicit_and_warned(reviewed_context):
-    _, _, _, annotation_set, export_service, _, _ = reviewed_context
+    reviewer, _, _, annotation_set, export_service, _, _ = reviewed_context
     payload = json.loads(
         export_service.render(
             annotation_set.annotation_set_uuid,
@@ -191,3 +196,4 @@ async def test_transcript_inclusive_export_is_explicit_and_warned(reviewed_conte
     assert payload["raw_transcript_included"] is True
     assert payload["transcript_snapshot"][0]["text"] == "How are you feeling?"
     assert "exact transcript text" in payload["sensitive_data_warning"]
+    assert reviewer.email not in json.dumps(payload)

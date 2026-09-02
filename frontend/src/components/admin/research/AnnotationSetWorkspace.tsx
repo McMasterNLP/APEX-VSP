@@ -16,6 +16,7 @@ import type {
 import { Button } from '@/components/ui/button'
 import { TranscriptAnnotationView } from './TranscriptAnnotationView'
 import { PredictionReviewCard } from './PredictionReviewCard'
+import { AnnotationSetActions } from './AnnotationSetActions'
 import { ReviewProgress } from './ReviewProgress'
 
 function evidenceTurns(
@@ -149,6 +150,7 @@ export function AnnotationSetWorkspace({
         </p>
       )}
       <ReviewProgress progress={annotationSet.progress} />
+      <AnnotationSetActions annotationSet={annotationSet} onChange={onChange} />
       {error && (
         <div role="alert" className="flex flex-wrap items-center gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           <span>{error}</span>

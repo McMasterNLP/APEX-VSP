@@ -1,7 +1,10 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  completeResearchAnnotationSet,
+  downloadResearchAnnotationExport,
   fetchResearchAnnotationSet,
+  reopenResearchAnnotationSet,
   saveResearchReviewDecision,
 } from '@/api/research.api'
 import type {
@@ -14,12 +17,18 @@ import type {
 import { AnnotationSetWorkspace } from './AnnotationSetWorkspace'
 
 vi.mock('@/api/research.api', () => ({
+  completeResearchAnnotationSet: vi.fn(),
+  downloadResearchAnnotationExport: vi.fn(),
   fetchResearchAnnotationSet: vi.fn(),
   getResearchApiMessage: (_error: unknown, fallback: string) => fallback,
+  reopenResearchAnnotationSet: vi.fn(),
   saveResearchReviewDecision: vi.fn(),
 }))
 
+const mockedComplete = vi.mocked(completeResearchAnnotationSet)
+const mockedDownload = vi.mocked(downloadResearchAnnotationExport)
 const mockedFetchSet = vi.mocked(fetchResearchAnnotationSet)
+const mockedReopen = vi.mocked(reopenResearchAnnotationSet)
 const mockedSave = vi.mocked(saveResearchReviewDecision)
 
 const sourceReference = {
@@ -237,6 +246,7 @@ describe('AnnotationSetWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockedSave.mockImplementation(async () => makeSet([spanPrediction]))
+    mockedDownload.mockResolvedValue(undefined)
   })
 
   it('saves confirm and typed label decisions without exposing span edits', async () => {
@@ -377,5 +387,101 @@ describe('AnnotationSetWorkspace', () => {
           element?.tagName === 'P' && element.textContent === 'That sounds difficult.'
       )
     ).toBeInTheDocument()
+  })
+
+  it('requires complete coverage before completing and locks the returned set', async () => {
+    const incomplete = makeSet([spanPrediction])
+    const locked = {
+      ...incomplete,
+      status: 'complete' as const,
+      locked: true,
+      revision: 4,
+      progress: { ...incomplete.progress, confirmed: 1, unreviewed: 0 },
+    }
+    mockedComplete.mockResolvedValue(locked)
+    const onChange = vi.fn()
+    const { rerender } = render(
+      <AnnotationSetWorkspace
+        run={makeRun([spanPrediction])}
+        annotationSet={incomplete}
+        onChange={onChange}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: 'Complete and lock review' })).toBeDisabled()
+    expect(screen.getByText(/review all 1 remaining predictions/i)).toBeInTheDocument()
+
+    const ready = {
+      ...incomplete,
+      status: 'in_review' as const,
+      progress: { ...incomplete.progress, confirmed: 1, unreviewed: 0 },
+    }
+    rerender(
+      <AnnotationSetWorkspace
+        run={makeRun([spanPrediction])}
+        annotationSet={ready}
+        onChange={onChange}
+      />
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Complete and lock review' }))
+    await waitFor(() => expect(mockedComplete).toHaveBeenCalledWith('set-uuid', 3))
+    expect(onChange).toHaveBeenCalledWith(locked)
+  })
+
+  it('disables review controls when locked and requires an audited reopen reason', async () => {
+    const base = makeSet([spanPrediction])
+    const locked = {
+      ...base,
+      status: 'complete' as const,
+      locked: true,
+      revision: 4,
+      progress: { ...base.progress, confirmed: 1, unreviewed: 0 },
+    }
+    const reopened = { ...locked, status: 'in_review' as const, locked: false, revision: 5 }
+    mockedReopen.mockResolvedValue(reopened)
+    const onChange = vi.fn()
+    render(
+      <AnnotationSetWorkspace
+        run={makeRun([spanPrediction])}
+        annotationSet={locked}
+        onChange={onChange}
+      />
+    )
+
+    expect(screen.getByRole('button', { name: 'Confirm prediction' })).toBeDisabled()
+    expect(screen.getByText(/complete and locked/i)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Reopen locked set' }))
+    const submit = screen.getByRole('button', { name: 'Record reason and reopen' })
+    expect(submit).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('Reopen reason'), {
+      target: { value: 'Documented expert second pass.' },
+    })
+    fireEvent.click(submit)
+    await waitFor(() => expect(mockedReopen).toHaveBeenCalledWith(
+      'set-uuid',
+      4,
+      'Documented expert second pass.'
+    ))
+    expect(onChange).toHaveBeenCalledWith(reopened)
+  })
+
+  it('offers all sanitized annotation export profiles without transcript text', async () => {
+    render(
+      <AnnotationSetWorkspace
+        run={makeRun([spanPrediction])}
+        annotationSet={makeSet([spanPrediction])}
+        onChange={vi.fn()}
+      />
+    )
+
+    for (const [label, profile] of [
+      ['Full review JSON', 'full_review'],
+      ['Resolved projection JSON', 'resolved_projection'],
+      ['Audit history JSON', 'audit_history'],
+    ] as const) {
+      fireEvent.click(screen.getByRole('button', { name: label }))
+      await waitFor(() => expect(mockedDownload).toHaveBeenCalledWith('set-uuid', profile))
+    }
+    expect(screen.getByText(/transcript text is excluded by default/i)).toBeInTheDocument()
   })
 })

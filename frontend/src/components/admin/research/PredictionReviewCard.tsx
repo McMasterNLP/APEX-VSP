@@ -59,6 +59,22 @@ export function PredictionReviewCard({
   ) => Promise<void>
 }) {
   const state = currentDecision?.decision ?? 'unreviewed'
+  const stateStyles = {
+    unreviewed: 'border-gray-300 bg-gray-50 text-gray-800',
+    confirmed: 'border-emerald-300 bg-emerald-50 text-emerald-950',
+    corrected: 'border-indigo-300 bg-indigo-50 text-indigo-950',
+    rejected: 'border-red-300 bg-red-50 text-red-950',
+    insufficient_evidence: 'border-amber-300 bg-amber-50 text-amber-950',
+  }[state]
+  const resolvedState = state === 'unreviewed'
+    ? 'Pending human decision'
+    : state === 'rejected'
+      ? 'Omitted from the resolved projection'
+      : state === 'confirmed'
+        ? 'Original model value retained'
+        : state === 'insufficient_evidence'
+          ? 'Rating resolved as insufficient evidence'
+          : 'Typed human correction applied'
   return (
     <article aria-labelledby={`prediction-${prediction.prediction_id}`} className="space-y-4 rounded-lg border border-gray-200 p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
@@ -68,13 +84,16 @@ export function PredictionReviewCard({
             {predictionSummary(prediction)}
           </h6>
         </div>
-        <span aria-label={`Human decision: ${humanize(state)}`} className="rounded-full border border-gray-300 px-2 py-1 text-xs font-semibold capitalize">
+        <span aria-label={`Human decision: ${humanize(state)}`} className={`rounded-full border px-2 py-1 text-xs font-semibold capitalize ${stateStyles}`}>
           Human decision: {humanize(state)}
         </span>
       </div>
+      <p aria-label="Resolved annotation state" className="rounded-md border border-gray-200 bg-gray-50 p-2 text-sm text-gray-800">
+        <strong>Resolved annotation:</strong> {resolvedState}.
+      </p>
       {currentDecision?.correction && (
         <details className="rounded-md bg-indigo-50 p-2 text-sm">
-          <summary className="cursor-pointer font-medium">Effective human correction</summary>
+          <summary className="cursor-pointer font-medium">Resolved typed correction</summary>
           <pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(currentDecision.correction, null, 2)}</pre>
         </details>
       )}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -19,6 +20,12 @@ from services.research_export_service import (
 )
 from services.research_service import generate_anon_session_id
 
+EMAIL_PATTERN = re.compile(
+    r"(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])",
+    re.IGNORECASE,
+)
+REDACTED_EMAIL = "[EMAIL_REDACTED]"
+
 
 @dataclass(frozen=True)
 class ResearchAnnotationExportArtifact:
@@ -32,20 +39,40 @@ def _redact_string(value: str, transcript_texts: tuple[str, ...]) -> str:
     for text in sorted(transcript_texts, key=len, reverse=True):
         if text:
             redacted = redacted.replace(text, REDACTED_TRANSCRIPT_TEXT)
-    return redacted
+    return EMAIL_PATTERN.sub(REDACTED_EMAIL, redacted)
 
 
-def _sanitize_annotation_node(value: Any, transcript_texts: tuple[str, ...]) -> Any:
+def _sanitize_annotation_node(
+    value: Any,
+    transcript_texts: tuple[str, ...],
+    *,
+    redact_transcript_fields: bool = True,
+) -> Any:
     if isinstance(value, list):
-        return [_sanitize_annotation_node(item, transcript_texts) for item in value]
+        return [
+            _sanitize_annotation_node(
+                item,
+                transcript_texts,
+                redact_transcript_fields=redact_transcript_fields,
+            )
+            for item in value
+        ]
     if not isinstance(value, dict):
         return _redact_string(value, transcript_texts) if isinstance(value, str) else value
     output: dict[str, Any] = {}
     for key, item in value.items():
-        if key in {"quoted_text", "evidence_text", "text"} and isinstance(item, str):
+        if (
+            redact_transcript_fields
+            and key in {"quoted_text", "evidence_text", "text"}
+            and isinstance(item, str)
+        ):
             output[key] = REDACTED_TRANSCRIPT_TEXT if item else item
         else:
-            output[key] = _sanitize_annotation_node(item, transcript_texts)
+            output[key] = _sanitize_annotation_node(
+                item,
+                transcript_texts,
+                redact_transcript_fields=redact_transcript_fields,
+            )
     return output
 
 
@@ -180,6 +207,11 @@ class ResearchAnnotationExportService:
             ]
             payload["sensitive_data_warning"] = (
                 "This explicitly requested export contains exact transcript text."
+            )
+            payload = _sanitize_annotation_node(
+                payload,
+                (),
+                redact_transcript_fields=False,
             )
         else:
             payload = _sanitize_annotation_node(payload, transcript_texts)
