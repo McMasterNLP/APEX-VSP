@@ -210,6 +210,8 @@ Plugins are **registered in code** (on import) and **selected** via configuratio
 
 To run the FastAPI backend and the Vite-built frontend in containers (with **Supabase/Postgres still external** unless you add the optional local Postgres overlay), see **[docs/docker.md](docs/docker.md)** for exact commands (bash and PowerShell), a Docker smoke checklist, Poetry/pytest commands, and notes on **`VITE_*` rebuilds** and migrations. Copy the root **`.env.example`** to **`.env`**, fill in secrets and URLs, then run `docker compose build` and `docker compose up`. Do not remove or change **Render** until a Docker-based deployment is validated.
 
+**Fully local database, migrated and seeded in one command:** if you'd rather not point your local backend at the shared Supabase project at all, run `make local-up` from the repo root. It brings up a disposable local PostgreSQL container, migrates it, and seeds it with demo users/cases/sessions covering Item 1 (evaluator comparison), Item 2A (prediction review), and Item 2B (span authoring) — see **[docs/docker.md](docs/docker.md#local-postgresql-optional)** for the full one-shot flow, what gets seeded, and the exact next commands to start the backend and frontend against it.
+
 ### 1. Clone the repository
 
 ```bash
