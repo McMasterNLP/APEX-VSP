@@ -6,6 +6,26 @@
 #
 # Ensure root `.env` sets other required variables (API keys, SUPABASE_JWT_SECRET, etc.).
 # This file overrides DATABASE_URL for the backend to use the local Postgres service.
+#
+# Prefer `make local-up` (see the root Makefile / docs/docker.md "Local
+# PostgreSQL" section) for a one-shot migrate+seed flow against this same
+# service on the host (native backend/frontend, no container build). It
+# still needs one manual step this file can't do portably: creating the
+# `core` schema and setting this database's `search_path` to `core, public`
+# before the first migration runs (every ORM model defaults to schema
+# "core", but no migration has ever created it -- see
+# backend/src/db/migrations/versions/1fc6c6467582_ensure_core_schema_exists.py
+# for the full explanation). `make db-local-up` does this automatically;
+# from pure `docker compose`, run once after `up -d postgres --wait`:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml \
+#     exec -T postgres psql -U apex -d apex \
+#     -c "CREATE SCHEMA IF NOT EXISTS core; ALTER DATABASE apex SET search_path TO core, public;"
+# Then migrate and seed the same way as a one-off command against this
+# service, e.g.:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml \
+#     run --rm backend poetry run alembic upgrade head
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml \
+#     run --rm backend poetry run python -m scripts.seed_local_dev
 
 services:
   postgres:
