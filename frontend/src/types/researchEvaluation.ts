@@ -14,7 +14,7 @@ export interface SourceReference {
 }
 
 export interface ProjectionProvenance {
-  method: 'deterministic_adapter' | 'native_model' | 'native_rule'
+  method: 'deterministic_adapter' | 'native_model' | 'native_rule' | 'human_correction' | 'human_annotation'
   provider?: string | null
   model_identifier?: string | null
 }
@@ -151,13 +151,13 @@ export interface AnnotationOperationCapabilities {
   reject: boolean
   change_label: boolean
   change_dimension: boolean
-  adjust_span: false
+  adjust_span: boolean
   change_rating: boolean
   mark_insufficient_evidence: boolean
   change_evidence: boolean
   change_assessability: boolean
-  add_annotation: false
-  add_relation: false
+  add_annotation: boolean
+  add_relation: boolean
 }
 
 export interface ProjectionAnnotationCapabilities {
@@ -496,6 +496,40 @@ export interface AnnotationPolicyDescriptor {
   operations: ProjectionAnnotationCapabilities
   label_policies: LabelPolicy[]
   rating_scales: RatingScalePolicy[]
+  span_authoring?: SpanAuthoringPolicy
+  relation_types?: RelationTypePolicy[]
+  coverage?: CoveragePolicy
+}
+
+export interface SpanAttributeValue { identifier: string; value: string }
+export interface SpanAttributePolicy {
+  identifier: string
+  display_name: string
+  allowed_values: string[]
+  allowed_for_labels: string[]
+  required_for_labels: string[]
+}
+export interface SpanAuthoringPolicy {
+  supported: boolean
+  offset_convention: 'unicode_code_point_half_open'
+  overlap_policy: 'allow' | 'forbid'
+  contiguous_only: true
+  single_turn_only: true
+  exhaustive_annotation_meaningful: boolean
+  guideline_help_text: string
+  attribute_policies: SpanAttributePolicy[]
+}
+export interface RelationTypePolicy {
+  relation_type: string
+  allowed_source_labels: string[]
+  allowed_target_labels: string[]
+  allow_self_relation: boolean
+}
+export type CoverageLevel = 'not_assessed' | 'prediction_review_only' | 'exhaustive' | 'fixed_inventory_complete'
+export interface CoveragePolicy {
+  supported_values: CoverageLevel[]
+  exhaustive_span_annotations: boolean
+  exhaustive_relations: boolean
 }
 
 export interface ReviewablePrediction {
@@ -509,9 +543,13 @@ export interface SpanCorrection {
   correction_type: 'span_annotation'
   corrected_label: string
   corrected_dimension: string | null
-  corrected_start_char?: null
-  corrected_end_char?: null
-  corrected_text?: null
+  corrected_start_char?: number | null
+  corrected_end_char?: number | null
+  corrected_text?: string | null
+  transcript_hash?: string | null
+  corrected_turn_number?: number | null
+  corrected_speaker?: 'clinician' | 'patient' | null
+  corrected_attributes?: SpanAttributeValue[]
 }
 
 export interface TurnLabelCorrection {
@@ -616,7 +654,7 @@ export interface ReviewProgress {
 }
 
 export interface AnnotationSetRecord {
-  schema_version: '1.0'
+  schema_version: '1.0' | '1.1'
   annotation_set_uuid: string
   evaluation_run_uuid: string
   transcript_hash: string
@@ -636,12 +674,96 @@ export interface AnnotationSetRecord {
   transitions: AnnotationTransitionRecord[]
   progress: ReviewProgress
   resolved_projection: ResearchProjection
+  human_annotation_revisions?: HumanAnnotationRevisionRecord[]
+  active_human_annotations?: HumanAnnotationRevisionRecord[]
+  authored_relation_revisions?: AuthoredRelationRevisionRecord[]
+  active_authored_relations?: AuthoredRelationRevisionRecord[]
+  coverage_revisions?: CoverageDeclarationRecord[]
+  coverage?: CoverageDeclarationRecord | null
+  coverage_level?: CoverageLevel
+  reference_projection?: { projection: ResearchProjection; coverage: CoverageLevel } | null
+  validation_eligibility?: ValidationEligibilityRecord | null
   set_note?: string | null
   created_at: string
   updated_at: string
   completed_at?: string | null
   locked_at?: string | null
   reopened_at?: string | null
+}
+
+export interface CanonicalSpanSelection {
+  transcript_hash: string
+  start_turn_number: number
+  end_turn_number: number
+  speaker: 'clinician' | 'patient'
+  start_offset: number
+  end_offset: number
+  selected_text: string
+}
+export interface HumanAnnotationCreateRequest {
+  expected_set_revision: number
+  selection: CanonicalSpanSelection
+  label: string
+  dimension?: string | null
+  attributes: SpanAttributeValue[]
+  reviewer_note?: string | null
+}
+export interface HumanAnnotationRevisionRecord {
+  revision_uuid: string
+  annotation_id: string
+  revision_number: number
+  set_revision: number
+  operation: 'create' | 'relabel' | 'edit_attributes' | 'adjust_span' | 'retire' | 'restore'
+  status: 'active' | 'retired'
+  origin: 'human_added'
+  transcript_hash: string
+  turn_number: number
+  speaker: 'clinician' | 'patient'
+  start_offset: number
+  end_offset: number
+  selected_text: string
+  label: string
+  dimension?: string | null
+  attributes: SpanAttributeValue[]
+  reviewer_reference: string
+  guideline_identifier: string
+  guideline_version: string
+  created_at: string
+}
+export interface AuthoredRelationRevisionRecord {
+  revision_uuid: string
+  relation_id: string
+  revision_number: number
+  set_revision: number
+  operation: 'create' | 'correct' | 'retire' | 'restore'
+  status: 'active' | 'retired'
+  source_annotation_id: string
+  target_annotation_id: string
+  relation_type: string
+  created_at: string
+}
+export interface CoverageDeclarationRecord {
+  revision_uuid: string
+  coverage_revision: number
+  set_revision: number
+  coverage: CoverageLevel
+  reviewer_reference: string
+  guideline_identifier: string
+  guideline_version: string
+  created_at: string
+}
+export interface MetricEligibilityRecord {
+  metric_identifier: string
+  eligible: boolean
+  reason_code: string
+  explanation: string
+  required_coverage: CoverageLevel
+  current_coverage: CoverageLevel
+}
+export interface ValidationEligibilityRecord {
+  eligible_metric_identifiers: string[]
+  ineligible_metric_identifiers: string[]
+  metrics: MetricEligibilityRecord[]
 }
 
 export interface ResearchRevisionConflict {

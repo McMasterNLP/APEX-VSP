@@ -7,9 +7,12 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from domain.entities.research_annotation import (
+    ResearchAuthoredRelationRevision,
     ResearchAnnotationSet,
     ResearchAnnotationTransition,
+    ResearchCoverageDeclarationRevision,
     ResearchEvaluationRun,
+    ResearchHumanAnnotationRevision,
     ResearchReviewDecisionRevision,
 )
 
@@ -122,3 +125,39 @@ class ResearchAnnotationRepository:
             .order_by(ResearchAnnotationTransition.set_revision.asc())
             .all()
         )
+
+    def add_human_annotation_revision(self, revision: ResearchHumanAnnotationRevision):
+        self.db.add(revision)
+        self.db.flush()
+        return revision
+
+    def list_human_annotation_revisions(self, annotation_set_id: UUID, *, annotation_id: str | None = None):
+        query = self.db.query(ResearchHumanAnnotationRevision).filter(
+            ResearchHumanAnnotationRevision.annotation_set_id == annotation_set_id
+        )
+        if annotation_id is not None:
+            query = query.filter(ResearchHumanAnnotationRevision.annotation_id == annotation_id)
+        return query.order_by(ResearchHumanAnnotationRevision.annotation_id.asc(), ResearchHumanAnnotationRevision.revision_number.asc()).all()
+
+    def add_authored_relation_revision(self, revision: ResearchAuthoredRelationRevision):
+        self.db.add(revision)
+        self.db.flush()
+        return revision
+
+    def list_authored_relation_revisions(self, annotation_set_id: UUID, *, relation_id: str | None = None):
+        query = self.db.query(ResearchAuthoredRelationRevision).filter(
+            ResearchAuthoredRelationRevision.annotation_set_id == annotation_set_id
+        )
+        if relation_id is not None:
+            query = query.filter(ResearchAuthoredRelationRevision.relation_id == relation_id)
+        return query.order_by(ResearchAuthoredRelationRevision.relation_id.asc(), ResearchAuthoredRelationRevision.revision_number.asc()).all()
+
+    def add_coverage_revision(self, revision: ResearchCoverageDeclarationRevision):
+        self.db.add(revision)
+        self.db.flush()
+        return revision
+
+    def list_coverage_revisions(self, annotation_set_id: UUID):
+        return self.db.query(ResearchCoverageDeclarationRevision).filter(
+            ResearchCoverageDeclarationRevision.annotation_set_id == annotation_set_id
+        ).order_by(ResearchCoverageDeclarationRevision.coverage_revision.asc()).all()

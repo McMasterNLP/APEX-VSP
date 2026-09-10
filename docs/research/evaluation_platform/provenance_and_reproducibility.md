@@ -19,6 +19,14 @@ canonical transcript snapshot. The random UUID identifies the persistence
 record; Item 1's content-derived `run_id` continues to identify matching result
 content. Neither identity replaces the other.
 
+Item 2B revisions add stable public span/relation identities, reviewer
+pseudonym, set and object revision, superseded revision, policy and guideline
+versions, immutable transcript hash, operation/status, and timestamp. Reference
+projection provenance distinguishes model output, human correction, and human
+addition. Reproduce a reference by restoring the saved run, complete revision
+streams, and exact policy code at the cited commit; never overwrite historical
+records with a later guideline interpretation.
+
 ## Canonical transcript identity
 
 APEX canonicalizes the persisted turns using `apex-canonical-v1`, with the

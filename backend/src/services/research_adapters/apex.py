@@ -142,6 +142,8 @@ class ApexResearchAdapter:
                     reject=True,
                     change_label=True,
                     change_dimension=True,
+                    adjust_span=True,
+                    add_annotation=True,
                 ),
                 turn_label=AnnotationOperationCapabilities(
                     confirm=True,
@@ -149,7 +151,9 @@ class ApexResearchAdapter:
                     change_label=True,
                     change_dimension=True,
                 ),
-                relation=AnnotationOperationCapabilities(confirm=True, reject=True),
+                relation=AnnotationOperationCapabilities(
+                    confirm=True, reject=True, add_relation=True
+                ),
                 finding=AnnotationOperationCapabilities(confirm=True, reject=True),
             ),
         )

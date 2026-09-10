@@ -19,8 +19,13 @@ from domain.models.research_annotation import (
     AnnotationSetCreateRequest,
     AnnotationSetRecord,
     AnnotationSetReopenRequest,
+    AuthoredRelationCreateRequest,
+    AuthoredRelationRevisionRequest,
+    CoverageDeclarationWriteRequest,
     EvaluationRunRecord,
     EvaluationRunSummary,
+    HumanAnnotationCreateRequest,
+    HumanAnnotationRevisionRequest,
     ResearchEvaluationRunSaveRequest,
     ReviewDecisionWriteRequest,
 )
@@ -91,6 +96,10 @@ def _raise_annotation_http_error(error: ResearchAnnotationServiceError) -> None:
         "revision_conflict": 409,
         "completion_blocked": 409,
         "invalid_transition": 409,
+        "invalid_selection": 422,
+        "invalid_annotation": 422,
+        "invalid_relation": 422,
+        "invalid_coverage": 422,
         "persistence_failed": 500,
     }
     detail: dict[str, object] = {
@@ -242,6 +251,73 @@ async def save_research_review_decision(
         if isinstance(error, ResearchAnnotationServiceError):
             _raise_annotation_http_error(error)
         _raise_evaluation_run_http_error(error)
+
+
+@router.post("/annotation-sets/{annotation_set_uuid}/annotations", response_model=AnnotationSetRecord)
+async def create_human_annotation(
+    annotation_set_uuid: UUID,
+    request: HumanAnnotationCreateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).create_human_annotation(annotation_set_uuid, request, current_user)
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.post("/annotation-sets/{annotation_set_uuid}/annotations/{annotation_id}/revisions", response_model=AnnotationSetRecord)
+async def revise_human_annotation(
+    annotation_set_uuid: UUID,
+    annotation_id: str,
+    request: HumanAnnotationRevisionRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).revise_human_annotation(annotation_set_uuid, annotation_id, request, current_user)
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.post("/annotation-sets/{annotation_set_uuid}/relations", response_model=AnnotationSetRecord)
+async def create_authored_relation(
+    annotation_set_uuid: UUID,
+    request: AuthoredRelationCreateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).create_authored_relation(annotation_set_uuid, request, current_user)
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.post("/annotation-sets/{annotation_set_uuid}/relations/{relation_id}/revisions", response_model=AnnotationSetRecord)
+async def revise_authored_relation(
+    annotation_set_uuid: UUID,
+    relation_id: str,
+    request: AuthoredRelationRevisionRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).revise_authored_relation(annotation_set_uuid, relation_id, request, current_user)
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
+
+
+@router.post("/annotation-sets/{annotation_set_uuid}/coverage", response_model=AnnotationSetRecord)
+async def declare_annotation_coverage(
+    annotation_set_uuid: UUID,
+    request: CoverageDeclarationWriteRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    try:
+        return ResearchAnnotationService(db).declare_coverage(annotation_set_uuid, request, current_user)
+    except ResearchAnnotationServiceError as error:
+        _raise_annotation_http_error(error)
 
 
 @router.post(

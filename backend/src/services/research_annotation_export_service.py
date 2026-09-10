@@ -10,7 +10,7 @@ from typing import Any
 from core.time import serialize_utc_datetime, utc_now
 from domain.models.research_annotation import (
     AnnotationExportRequest,
-    REVIEWED_PROJECTION_LIMITATION,
+    REFERENCE_PROJECTION_LIMITATION,
 )
 from services.research_annotation_service import ResearchAnnotationService
 from services.research_evaluation_run_service import ResearchEvaluationRunService
@@ -63,7 +63,7 @@ def _sanitize_annotation_node(
     for key, item in value.items():
         if (
             redact_transcript_fields
-            and key in {"quoted_text", "evidence_text", "text"}
+            and key in {"quoted_text", "selected_text", "evidence_text", "text"}
             and isinstance(item, str)
         ):
             output[key] = REDACTED_TRANSCRIPT_TEXT if item else item
@@ -100,7 +100,7 @@ class ResearchAnnotationExportService:
             "profile": request.profile,
             "exported_at": serialize_utc_datetime(utc_now()),
             "raw_transcript_included": request.include_transcript_content,
-            "scientific_limitation": REVIEWED_PROJECTION_LIMITATION,
+            "scientific_limitation": REFERENCE_PROJECTION_LIMITATION,
             "run": {
                 "run_uuid": str(run.run_uuid),
                 "item1_run_id": run.envelope.run.run_id,
@@ -135,6 +135,9 @@ class ResearchAnnotationExportService:
                 "reopened_at": annotation_set.reopened_at,
                 "set_note": annotation_set.set_note,
                 "progress": annotation_set.progress.model_dump(mode="json"),
+                "coverage": annotation_set.coverage.model_dump(mode="json") if annotation_set.coverage else None,
+                "coverage_level": annotation_set.coverage_level,
+                "validation_eligibility": annotation_set.validation_eligibility.model_dump(mode="json"),
             },
         }
 
@@ -167,6 +170,10 @@ class ResearchAnnotationExportService:
                 "resolved_projection": annotation_set.resolved_projection.model_dump(
                     mode="json"
                 ),
+                "human_annotation_revisions": [item.model_dump(mode="json") for item in annotation_set.human_annotation_revisions],
+                "authored_relation_revisions": [item.model_dump(mode="json") for item in annotation_set.authored_relation_revisions],
+                "coverage_revisions": [item.model_dump(mode="json") for item in annotation_set.coverage_revisions],
+                "reference_projection": annotation_set.reference_projection.model_dump(mode="json"),
             }
         elif request.profile == "resolved_projection":
             payload = {
@@ -175,9 +182,9 @@ class ResearchAnnotationExportService:
                     item.model_dump(mode="json")
                     for item in annotation_set.effective_decisions
                 ],
-                "resolved_projection": annotation_set.resolved_projection.model_dump(
-                    mode="json"
-                ),
+                "reference_projection": annotation_set.reference_projection.model_dump(mode="json"),
+                "resolved_projection": annotation_set.resolved_projection.model_dump(mode="json"),
+                "validation_eligibility": annotation_set.validation_eligibility.model_dump(mode="json"),
             }
         else:
             payload = {
@@ -199,6 +206,9 @@ class ResearchAnnotationExportService:
                 "transitions": [
                     item.model_dump(mode="json") for item in annotation_set.transitions
                 ],
+                "human_annotation_revisions": [item.model_dump(mode="json") for item in annotation_set.human_annotation_revisions],
+                "authored_relation_revisions": [item.model_dump(mode="json") for item in annotation_set.authored_relation_revisions],
+                "coverage_revisions": [item.model_dump(mode="json") for item in annotation_set.coverage_revisions],
             }
 
         if request.include_transcript_content:

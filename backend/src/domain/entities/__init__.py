@@ -3,9 +3,12 @@
 from domain.entities.case import Case
 from domain.entities.feedback import Feedback
 from domain.entities.research_annotation import (
+    ResearchAuthoredRelationRevision,
     ResearchAnnotationSet,
     ResearchAnnotationTransition,
+    ResearchCoverageDeclarationRevision,
     ResearchEvaluationRun,
+    ResearchHumanAnnotationRevision,
     ResearchReviewDecisionRevision,
 )
 from domain.entities.session import Session
@@ -22,4 +25,7 @@ __all__ = [
     "ResearchAnnotationSet",
     "ResearchReviewDecisionRevision",
     "ResearchAnnotationTransition",
+    "ResearchAuthoredRelationRevision",
+    "ResearchCoverageDeclarationRevision",
+    "ResearchHumanAnnotationRevision",
 ]

@@ -63,8 +63,10 @@ never updated or deleted.
 ### Span and turn-label correction
 
 The correction carries a complete corrected label and nullable dimension.
-Span correction also reserves `corrected_start_char`, `corrected_end_char`, and
-`corrected_text`, which must all be null in Item 2A.
+Item 2B activates the span correction boundary tuple: offsets, exact text,
+transcript hash, turn, and speaker are either all null or all present. The
+server verifies a present tuple against the immutable snapshot and records it
+without changing the prediction.
 
 ### Dimension-rating correction
 
@@ -118,8 +120,19 @@ The resolved projection is deterministic:
 - rejected: omit it.
 
 Every resolved object retains its source prediction identifier/reference.
-Human-added objects do not exist in Item 2A. Global metrics and limitations are
-not silently treated as reviewed annotations.
+Item 2B then adds effective active human spans and valid authored relations,
+with provenance distinguishing correction and addition. Global metrics and
+limitations are not silently treated as reviewed annotations.
+
+## Item 2B authored records
+
+Contract `1.1` adds strict requests and complete revision records for human
+spans, relations, and coverage. Human-span operations are create, relabel,
+edit attributes, adjust span, retire, and restore. Relation operations are
+create, correct, retire, and restore. Stable identities survive revisions;
+superseded or retired states remain in history and are absent from the active
+reference. Coverage and metric eligibility use the definitions in
+`item_2b_architecture.md`.
 
 ## Invariants
 

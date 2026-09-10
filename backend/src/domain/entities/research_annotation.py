@@ -245,6 +245,110 @@ class ResearchAnnotationTransition(Base):
     actor = relationship("User", foreign_keys=[actor_user_id], viewonly=True)
 
 
+class ResearchHumanAnnotationRevision(Base):
+    """Append-only complete snapshot of one human-authored span revision."""
+
+    __tablename__ = "research_human_annotation_revisions"
+    __table_args__ = (
+        CheckConstraint("revision_number >= 1", name="ck_research_human_spans_revision"),
+        CheckConstraint("set_revision >= 1", name="ck_research_human_spans_set_revision"),
+        CheckConstraint("end_offset > start_offset", name="ck_research_human_spans_offsets"),
+        CheckConstraint("status IN ('active', 'retired')", name="ck_research_human_spans_status"),
+        CheckConstraint("operation IN ('create', 'relabel', 'edit_attributes', 'adjust_span', 'retire', 'restore')", name="ck_research_human_spans_operation"),
+        UniqueConstraint("annotation_set_id", "annotation_id", "revision_number", name="uq_research_human_spans_object_revision"),
+        Index("ix_research_human_spans_set_object", "annotation_set_id", "annotation_id"),
+        {"schema": "core"},
+    )
+
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    annotation_set_id = Column(Uuid(as_uuid=True), ForeignKey("core.research_annotation_sets.id", ondelete="RESTRICT"), nullable=False)
+    annotation_id = Column(String(45), nullable=False)
+    revision_number = Column(Integer, nullable=False)
+    set_revision = Column(Integer, nullable=False)
+    operation = Column(String(30), nullable=False)
+    status = Column(String(20), nullable=False)
+    transcript_hash = Column(String(64), nullable=False)
+    turn_number = Column(Integer, nullable=False)
+    speaker = Column(String(20), nullable=False)
+    start_offset = Column(Integer, nullable=False)
+    end_offset = Column(Integer, nullable=False)
+    selected_text = Column(Text, nullable=False)
+    label = Column(String(100), nullable=False)
+    dimension = Column(String(100), nullable=True)
+    attributes_json = Column(Text, nullable=False, default="[]")
+    reviewer_note = Column(Text, nullable=True)
+    reviewer_user_id = Column(Integer, ForeignKey("core.users.id", ondelete="RESTRICT"), nullable=False)
+    policy_identifier = Column(String(100), nullable=False)
+    policy_version = Column(String(50), nullable=False)
+    guideline_identifier = Column(String(100), nullable=False)
+    guideline_version = Column(String(50), nullable=False)
+    supersedes_id = Column(Uuid(as_uuid=True), ForeignKey("core.research_human_annotation_revisions.id", ondelete="RESTRICT"), nullable=True)
+    created_at = Column(UTCDateTimeType(), nullable=False, default=utc_now)
+
+
+class ResearchAuthoredRelationRevision(Base):
+    """Append-only complete snapshot of one human-authored relation revision."""
+
+    __tablename__ = "research_authored_relation_revisions"
+    __table_args__ = (
+        CheckConstraint("revision_number >= 1", name="ck_research_authored_relations_revision"),
+        CheckConstraint("set_revision >= 1", name="ck_research_authored_relations_set_revision"),
+        CheckConstraint("status IN ('active', 'retired')", name="ck_research_authored_relations_status"),
+        CheckConstraint("operation IN ('create', 'correct', 'retire', 'restore')", name="ck_research_authored_relations_operation"),
+        UniqueConstraint("annotation_set_id", "relation_id", "revision_number", name="uq_research_authored_relations_object_revision"),
+        Index("ix_research_authored_relations_set_object", "annotation_set_id", "relation_id"),
+        {"schema": "core"},
+    )
+
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    annotation_set_id = Column(Uuid(as_uuid=True), ForeignKey("core.research_annotation_sets.id", ondelete="RESTRICT"), nullable=False)
+    relation_id = Column(String(49), nullable=False)
+    revision_number = Column(Integer, nullable=False)
+    set_revision = Column(Integer, nullable=False)
+    operation = Column(String(20), nullable=False)
+    status = Column(String(20), nullable=False)
+    transcript_hash = Column(String(64), nullable=False)
+    source_annotation_id = Column(String(45), nullable=False)
+    target_annotation_id = Column(String(45), nullable=False)
+    relation_type = Column(String(100), nullable=False)
+    reviewer_note = Column(Text, nullable=True)
+    reviewer_user_id = Column(Integer, ForeignKey("core.users.id", ondelete="RESTRICT"), nullable=False)
+    policy_identifier = Column(String(100), nullable=False)
+    policy_version = Column(String(50), nullable=False)
+    guideline_identifier = Column(String(100), nullable=False)
+    guideline_version = Column(String(50), nullable=False)
+    supersedes_id = Column(Uuid(as_uuid=True), ForeignKey("core.research_authored_relation_revisions.id", ondelete="RESTRICT"), nullable=True)
+    created_at = Column(UTCDateTimeType(), nullable=False, default=utc_now)
+
+
+class ResearchCoverageDeclarationRevision(Base):
+    """Append-only task-level coverage declaration."""
+
+    __tablename__ = "research_coverage_declaration_revisions"
+    __table_args__ = (
+        CheckConstraint("coverage_revision >= 1", name="ck_research_coverage_revision"),
+        CheckConstraint("set_revision >= 1", name="ck_research_coverage_set_revision"),
+        CheckConstraint("coverage IN ('not_assessed', 'prediction_review_only', 'exhaustive', 'fixed_inventory_complete')", name="ck_research_coverage_value"),
+        UniqueConstraint("annotation_set_id", "coverage_revision", name="uq_research_coverage_set_revision"),
+        Index("ix_research_coverage_set", "annotation_set_id"),
+        {"schema": "core"},
+    )
+
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    annotation_set_id = Column(Uuid(as_uuid=True), ForeignKey("core.research_annotation_sets.id", ondelete="RESTRICT"), nullable=False)
+    coverage_revision = Column(Integer, nullable=False)
+    set_revision = Column(Integer, nullable=False)
+    coverage = Column(String(40), nullable=False)
+    reviewer_note = Column(Text, nullable=True)
+    reviewer_user_id = Column(Integer, ForeignKey("core.users.id", ondelete="RESTRICT"), nullable=False)
+    policy_identifier = Column(String(100), nullable=False)
+    policy_version = Column(String(50), nullable=False)
+    guideline_identifier = Column(String(100), nullable=False)
+    guideline_version = Column(String(50), nullable=False)
+    supersedes_id = Column(Uuid(as_uuid=True), ForeignKey("core.research_coverage_declaration_revisions.id", ondelete="RESTRICT"), nullable=True)
+    created_at = Column(UTCDateTimeType(), nullable=False, default=utc_now)
+
+
 def _prevent_mutation(mapper, connection, target) -> None:
     del mapper, connection, target
     raise ValueError("Immutable research records cannot be updated or deleted.")
@@ -254,6 +358,9 @@ for _append_only_entity in (
     ResearchEvaluationRun,
     ResearchReviewDecisionRevision,
     ResearchAnnotationTransition,
+    ResearchHumanAnnotationRevision,
+    ResearchAuthoredRelationRevision,
+    ResearchCoverageDeclarationRevision,
 ):
     event.listen(_append_only_entity, "before_update", _prevent_mutation)
     event.listen(_append_only_entity, "before_delete", _prevent_mutation)

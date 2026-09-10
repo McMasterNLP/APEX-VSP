@@ -1,7 +1,8 @@
 # APEX research evaluation platform
 
 This package documents Item 1's lossless, capability-driven evaluator result
-path and Item 2A's durable human review workspace. Both are additive to the
+path, Item 2A's durable human review workspace, and Item 2B's annotation
+authoring contract. All are additive to the
 learner feedback workflow and do not change saved feedback, session state,
 turns, metrics, or plugin selection.
 
@@ -83,17 +84,21 @@ do not determine generic rendering.
 - [Annotation contract](annotation_contract.md)
 - [Annotation API and UI](annotation_api_and_ui.md)
 - [Annotation export format](annotation_export_format.md)
+- [Item 2B authoring architecture](item_2b_architecture.md)
+- [Span offset and integrity contract](span_offset_contract.md)
+- [Item 2B researcher integration and evidence guide](item_2b_researcher_guide.md)
 - [Architecture decision records](adr/)
 
-## Item 2A and future work
+## Item 2A, Item 2B, and future work
 
 Item 2A adds immutable saved runs, reviewer-specific annotation sets,
 confirm/reject/typed-correction actions, append-only history, locking/reopening,
-and reviewed-projection exports. It does not add span-boundary editing,
-human-added false negatives, multiple-reviewer adjudication, or agreement.
-Item 3 will add evaluator validation runs, complete reference datasets,
+and reviewed-projection exports. Item 2B adds span-boundary correction,
+human-added spans and relations, audited coverage, reference projection, and
+metric eligibility. Multiple-reviewer adjudication and agreement remain
+future work. Item 3 will add evaluator validation runs, governed datasets,
 precision/recall/F1 and agreement analyses, and validation dashboards. Neither
-validation nor complete-gold claims are implied by Item 2A.
+validation nor complete-gold claims are implied by either annotation phase.
 
 Arbitrary plugin uploads, dynamic execution of researcher-supplied code, and
 unreviewed external inference endpoints remain prohibited.

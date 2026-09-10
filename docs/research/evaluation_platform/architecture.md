@@ -8,7 +8,12 @@ evaluator, produces `FeedbackResponse`, persists learner feedback, and runs the
 frozen metrics plugins. The administrator Session Logs view reads that saved
 session, transcript, feedback, and metrics timeline.
 
-Items 1 and 2A do not modify that path.
+Items 1, 2A, and 2B do not modify that path.
+
+Item 2B's additive authoring and reference-projection design is specified in
+[Item 2B annotation-authoring architecture](item_2b_architecture.md). The
+canonical Unicode selection rules are specified in
+[Span offset and text-integrity contract](span_offset_contract.md).
 
 ## Item 2A persistence boundary
 

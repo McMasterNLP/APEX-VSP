@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type {
+  CanonicalSpanSelection,
   ResearchTranscriptTurn,
   DecisionRevisionRecord,
   SpanAnnotation,
   TurnLabel,
 } from '@/types/researchEvaluation'
+import { canonicalSelectionFromRange, codePointOffsetToUtf16 } from './spanOffsets'
 
 interface TranscriptAnnotationViewProps {
   turns: ResearchTranscriptTurn[]
@@ -13,6 +15,10 @@ interface TranscriptAnnotationViewProps {
   focusedTurn: number | null
   effectiveDecisions?: DecisionRevisionRecord[]
   selectedPredictionId?: string | null
+  annotationMode?: boolean
+  transcriptHash?: string
+  onSelection?: (selection: CanonicalSpanSelection) => void
+  onInvalidSelection?: (message: string) => void
 }
 
 interface TextSegment {
@@ -30,8 +36,8 @@ function validSpansForTurn(turn: ResearchTranscriptTurn, spans: SpanAnnotation[]
       Number.isInteger(span.end_offset) &&
       span.start_offset >= 0 &&
       span.end_offset > span.start_offset &&
-      span.end_offset <= turn.text.length &&
-      turn.text.slice(span.start_offset, span.end_offset) === span.quoted_text
+      span.end_offset <= Array.from(turn.text).length &&
+      turn.text.slice(codePointOffsetToUtf16(turn.text, span.start_offset), codePointOffsetToUtf16(turn.text, span.end_offset)) === span.quoted_text
   )
 }
 
@@ -39,7 +45,7 @@ function segmentTurnText(
   turn: ResearchTranscriptTurn,
   spans: SpanAnnotation[]
 ): TextSegment[] {
-  const boundaries = new Set([0, turn.text.length])
+  const boundaries = new Set([0, Array.from(turn.text).length])
   for (const span of spans) {
     boundaries.add(span.start_offset)
     boundaries.add(span.end_offset)
@@ -50,7 +56,7 @@ function segmentTurnText(
     return {
       start,
       end,
-      text: turn.text.slice(start, end),
+      text: turn.text.slice(codePointOffsetToUtf16(turn.text, start), codePointOffsetToUtf16(turn.text, end)),
       annotations: spans.filter(
         (span) => span.start_offset < end && span.end_offset > start
       ),
@@ -65,8 +71,13 @@ export function TranscriptAnnotationView({
   focusedTurn,
   effectiveDecisions = [],
   selectedPredictionId = null,
+  annotationMode = false,
+  transcriptHash,
+  onSelection,
+  onInvalidSelection,
 }: TranscriptAnnotationViewProps) {
   const [selected, setSelected] = useState<SpanAnnotation | null>(null)
+  const [overlapChoices, setOverlapChoices] = useState<SpanAnnotation[]>([])
   const turnRefs = useRef(new Map<number, HTMLDivElement>())
 
   useEffect(() => {
@@ -101,6 +112,29 @@ export function TranscriptAnnotationView({
     [effectiveDecisions]
   )
 
+  const captureSelection = () => {
+    if (!annotationMode || !transcriptHash || !onSelection) return
+    const browserSelection = window.getSelection()
+    if (!browserSelection || browserSelection.rangeCount === 0 || browserSelection.isCollapsed) return
+    const range = browserSelection.getRangeAt(0)
+    const startElement = (range.startContainer.nodeType === Node.ELEMENT_NODE ? range.startContainer : range.startContainer.parentElement) as HTMLElement | null
+    const endElement = (range.endContainer.nodeType === Node.ELEMENT_NODE ? range.endContainer : range.endContainer.parentElement) as HTMLElement | null
+    const startTurnText = startElement?.closest<HTMLElement>('[data-turn-text]')
+    const endTurnText = endElement?.closest<HTMLElement>('[data-turn-text]')
+    if (!startTurnText || startTurnText !== endTurnText) {
+      onInvalidSelection?.('Select text within a single transcript turn.')
+      return
+    }
+    const turnNumber = Number(startTurnText.dataset.turnText)
+    const turn = turns.find((item) => item.turn_number === turnNumber)
+    if (!turn) return
+    try {
+      onSelection(canonicalSelectionFromRange(range, startTurnText, turn, transcriptHash))
+    } catch (error) {
+      onInvalidSelection?.(error instanceof Error ? error.message : 'The selection is invalid.')
+    }
+  }
+
   if (turns.length === 0) {
     return <p className="text-sm text-gray-600">No transcript turns are available.</p>
   }
@@ -115,7 +149,7 @@ export function TranscriptAnnotationView({
           {invalidCount} invalid span {invalidCount === 1 ? 'was' : 'were'} ignored defensively.
         </p>
       )}
-      <div className="max-h-96 space-y-3 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3">
+      <div onMouseUp={captureSelection} onKeyUp={(event) => { if (event.shiftKey) captureSelection() }} className="max-h-96 space-y-3 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-3">
         {turns.map((turn) => {
           const validSpans = validByTurn.get(turn.turn_number) ?? []
           const segments = segmentTurnText(turn, validSpans)
@@ -144,7 +178,7 @@ export function TranscriptAnnotationView({
                   </span>
                 ))}
               </div>
-              <p className="whitespace-pre-wrap text-sm leading-7 text-gray-950">
+              <p data-turn-text={turn.turn_number} className="whitespace-pre-wrap text-sm leading-7 text-gray-950">
                 {segments.map((segment) => {
                   if (segment.annotations.length === 0) {
                     return <span key={`${segment.start}-${segment.end}`}>{segment.text}</span>
@@ -158,14 +192,18 @@ export function TranscriptAnnotationView({
                   const selectedState = segment.annotations.some(
                     (annotation) => annotation.prediction_id === selectedPredictionId
                   )
+                  const humanState = primary.provenance?.method === 'human_annotation'
                   return (
                     <button
                       key={`${segment.start}-${segment.end}`}
                       type="button"
-                      onClick={() => setSelected(primary)}
-                      aria-label={`${annotationLabels.join(', ')}: ${segment.text}; human decision ${decisionState}`}
+                      onClick={() => {
+                        if (segment.annotations.length > 1) setOverlapChoices(segment.annotations)
+                        else setSelected(primary)
+                      }}
+                      aria-label={`${annotationLabels.join(', ')}: ${segment.text}; ${primary.provenance?.method === 'human_annotation' ? 'human added' : 'model prediction'}; human decision ${decisionState}`}
                       data-review-state={decisionState}
-                      className={`mx-0.5 rounded-sm border-b-2 px-0.5 text-left text-gray-950 outline-none focus:ring-2 focus:ring-indigo-600 ${selectedState ? 'border-indigo-800 bg-indigo-200 ring-1 ring-indigo-700' : 'border-indigo-600 bg-indigo-100'}`}
+                      className={`mx-0.5 rounded-sm border-b-2 px-0.5 text-left text-gray-950 outline-none focus:ring-2 focus:ring-indigo-600 ${selectedState ? 'border-indigo-800 bg-indigo-200 ring-1 ring-indigo-700' : humanState ? 'border-emerald-700 bg-emerald-100 underline decoration-dotted' : 'border-indigo-600 bg-indigo-100'}`}
                     >
                       {segment.text}
                       {segment.annotations.length > 1 && (
@@ -187,6 +225,7 @@ export function TranscriptAnnotationView({
       {selected && (
         <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm" aria-live="polite">
           <p className="font-medium text-indigo-950">Selected annotation: {selected.label}</p>
+          <p className="text-xs font-medium">Source: {selected.provenance?.method === 'human_annotation' ? 'Human added' : selected.provenance?.method === 'human_correction' ? 'Human correction of model prediction' : 'Model prediction'}</p>
           <dl className="mt-1 grid gap-x-3 gap-y-1 sm:grid-cols-[max-content_1fr]">
             <dt className="font-medium">Turn</dt><dd>{selected.turn_number}</dd>
             <dt className="font-medium">Text</dt><dd>“{selected.quoted_text}”</dd>
@@ -196,6 +235,14 @@ export function TranscriptAnnotationView({
             <dd>{selected.confidence == null ? 'Not supplied' : selected.confidence.toFixed(2)}</dd>
             <dt className="font-medium">Native source</dt><dd className="break-all font-mono text-xs">{selected.source_reference.native_path}</dd>
           </dl>
+        </div>
+      )}
+      {overlapChoices.length > 1 && (
+        <div className="rounded-md border border-violet-300 bg-violet-50 p-3" role="dialog" aria-label="Overlapping annotations">
+          <p className="text-sm font-semibold">Choose an overlapping annotation</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {overlapChoices.map((item) => <button key={item.prediction_id} type="button" className="rounded border border-violet-500 bg-white px-2 py-1 text-sm focus:ring-2 focus:ring-violet-700" onClick={() => { setSelected(item); setOverlapChoices([]) }}>{item.label} · {item.provenance?.method === 'human_annotation' ? 'human' : 'model'}</button>)}
+          </div>
         </div>
       )}
     </div>

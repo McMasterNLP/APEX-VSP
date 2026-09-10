@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from domain.models.research_annotation import (
+    AuthoredRelationRevisionRecord,
     DecisionRevisionRecord,
     DimensionRatingCorrection,
+    HumanAnnotationRevisionRecord,
     ReviewablePrediction,
     SpanCorrection,
     TurnLabelCorrection,
@@ -12,9 +14,11 @@ from domain.models.research_annotation import (
 from domain.models.research_evaluation import (
     DimensionRating,
     ProjectedRelation,
+    ProjectionProvenance,
     ResearchFinding,
     ResearchProjection,
     SpanAnnotation,
+    SourceReference,
     TurnLabel,
 )
 
@@ -22,6 +26,8 @@ from domain.models.research_evaluation import (
 def resolve_annotation_projection(
     inventory: tuple[ReviewablePrediction, ...],
     effective_decisions: tuple[DecisionRevisionRecord, ...],
+    active_human_annotations: tuple[HumanAnnotationRevisionRecord, ...] = (),
+    active_authored_relations: tuple[AuthoredRelationRevisionRecord, ...] = (),
 ) -> ResearchProjection:
     """Resolve confirmed/corrected model predictions without mutating originals."""
 
@@ -48,17 +54,57 @@ def resolve_annotation_projection(
         elif isinstance(prediction, ResearchFinding):
             findings.append(prediction)
 
+    for annotation in active_human_annotations:
+        spans.append(
+            SpanAnnotation(
+                prediction_id=annotation.annotation_id,
+                framework_identifier=inventory[0].original_prediction.framework_identifier if inventory else "human-authored",
+                turn_number=annotation.turn_number,
+                start_offset=annotation.start_offset,
+                end_offset=annotation.end_offset,
+                quoted_text=annotation.selected_text,
+                label=annotation.label,
+                dimension=annotation.dimension,
+                source_reference=SourceReference(
+                    native_result_type="human_annotation",
+                    native_identifier=annotation.annotation_id,
+                    native_path=f"annotations[{annotation.annotation_id}]",
+                    adapter_version="1.1",
+                ),
+                provenance=ProjectionProvenance(method="human_annotation"),
+            )
+        )
+
     resolved_span_ids = {item.prediction_id for item in spans}
-    relations = tuple(
+    model_relations = [
         relation
         for relation in pending_relations
         if relation.source_annotation_id in resolved_span_ids
         and relation.target_annotation_id in resolved_span_ids
-    )
+    ]
+    authored_relations = [
+        ProjectedRelation(
+            relation_id=relation.relation_id,
+            framework_identifier=inventory[0].original_prediction.framework_identifier if inventory else "human-authored",
+            source_annotation_id=relation.source_annotation_id,
+            target_annotation_id=relation.target_annotation_id,
+            relation_type=relation.relation_type,
+            source_reference=SourceReference(
+                native_result_type="human_annotation",
+                native_identifier=relation.relation_id,
+                native_path=f"relations[{relation.relation_id}]",
+                adapter_version="1.1",
+            ),
+            provenance=ProjectionProvenance(method="human_annotation"),
+        )
+        for relation in active_authored_relations
+        if relation.source_annotation_id in resolved_span_ids
+        and relation.target_annotation_id in resolved_span_ids
+    ]
     return ResearchProjection(
         spans=tuple(spans),
         turn_labels=tuple(turn_labels),
-        relations=relations,
+        relations=tuple(model_relations + authored_relations),
         dimension_ratings=tuple(ratings),
         findings=tuple(findings),
     )
@@ -77,6 +123,10 @@ def _resolve_span(
         update={
             "label": correction.corrected_label,
             "dimension": correction.corrected_dimension,
+            "start_offset": correction.corrected_start_char if correction.corrected_start_char is not None else prediction.start_offset,
+            "end_offset": correction.corrected_end_char if correction.corrected_end_char is not None else prediction.end_offset,
+            "quoted_text": correction.corrected_text if correction.corrected_text is not None else prediction.quoted_text,
+            "provenance": ProjectionProvenance(method="human_correction"),
         }
     )
 
