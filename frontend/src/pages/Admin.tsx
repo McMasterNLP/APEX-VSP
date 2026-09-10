@@ -1091,13 +1091,13 @@ export const Admin = () => {
         <main
           className={cn(
             'flex-1 md:ml-64',
-            activeTab === 'sessions' ? 'overflow-hidden' : 'overflow-y-auto'
+            activeTab === 'sessions' && !selectedDetail ? 'overflow-hidden' : 'overflow-y-auto'
           )}
         >
           <div
             className={cn(
               'mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8',
-              activeTab === 'sessions' && 'flex h-full min-h-0 flex-col'
+              activeTab === 'sessions' && !selectedDetail && 'flex h-full min-h-0 flex-col'
             )}
           >
             <nav className="mb-4 text-sm text-gray-500">
@@ -1142,7 +1142,7 @@ export const Admin = () => {
               <div className="mt-4 border-b border-gray-200" />
             </div>
 
-            <div className={cn(activeTab === 'sessions' && 'min-h-0 flex-1')}>
+            <div className={cn(activeTab === 'sessions' && !selectedDetail && 'min-h-0 flex-1')}>
               {renderTabContent()}
             </div>
           </div>
