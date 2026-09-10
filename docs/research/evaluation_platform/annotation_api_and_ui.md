@@ -2,9 +2,9 @@
 
 ## Authorization
 
-All routes use the existing administrator dependency. Trainees and
-unauthenticated callers cannot create, read, review, complete, reopen, or
-export research annotation records.
+All routes use the `require_admin_or_researcher` dependency: admins and
+researchers may create, read, review, complete, reopen, and export research
+annotation records. Trainees and unauthenticated callers cannot.
 
 ## API sequence
 
@@ -62,12 +62,14 @@ never expose raw provider data.
 
 ## UI sequence
 
-The existing Admin Session Logs detail contains one research area:
+The evaluation workspace page (Research → Evaluate Sessions tab → selected
+session, at `/research/evaluate/:sessionId`) contains the research area,
+available to both admins and researchers:
 
 1. **Preview only — not saved** executes Item 1.
 2. **Run and save for review** explicitly re-executes and persists a result.
 3. Saved runs show immutable provenance and transcript-integrity status.
-4. The administrator creates or opens their guideline-specific set.
+4. The admin or researcher creates or opens their guideline-specific set.
 5. A sequential queue shows model prediction, current human decision,
    correction controls, evidence, note, and progress.
 6. Explicit Add annotation and Adjust span modes map native selection to the

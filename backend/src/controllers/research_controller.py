@@ -9,7 +9,7 @@ from fastapi.responses import Response, StreamingResponse
 from sqlalchemy.orm import Session
 
 from config.logging import get_logger
-from core.deps import get_db, require_admin
+from core.deps import get_db, require_admin, require_admin_or_researcher
 from core.time import serialize_utc_datetime, utc_now
 from domain.entities.user import User
 from domain.models.admin import ResearchSessionsEnvelope
@@ -116,7 +116,7 @@ def _raise_annotation_http_error(error: ResearchAnnotationServiceError) -> None:
 @router.get("/evaluators", response_model=ResearchEvaluatorDescriptorsResponse)
 async def get_research_evaluators(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     """Return capability manifests for explicitly registered research evaluators."""
 
@@ -131,7 +131,7 @@ async def evaluate_research_session(
     session_id: int,
     request: ResearchEvaluationRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     """Run independent admin-authorized evaluations without persistence."""
 
@@ -149,7 +149,7 @@ async def run_and_save_research_evaluation(
     session_id: int,
     request: ResearchEvaluationRunSaveRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     """Execute one evaluator server-side and save its immutable validated result."""
 
@@ -177,7 +177,7 @@ async def run_and_save_research_evaluation(
 async def list_saved_research_evaluations(
     session_id: int,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     """List immutable research runs associated with one source session."""
 
@@ -191,7 +191,7 @@ async def list_saved_research_evaluations(
 async def get_saved_research_evaluation(
     run_uuid: UUID,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchEvaluationRunService(db).get_run(run_uuid)
@@ -207,7 +207,7 @@ async def create_research_annotation_set(
     run_uuid: UUID,
     request: AnnotationSetCreateRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).create_annotation_set(
@@ -224,7 +224,7 @@ async def create_research_annotation_set(
 async def get_research_annotation_set(
     annotation_set_uuid: UUID,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).get_annotation_set(annotation_set_uuid)
@@ -241,7 +241,7 @@ async def save_research_review_decision(
     prediction_id: str,
     request: ReviewDecisionWriteRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).record_decision(
@@ -258,7 +258,7 @@ async def create_human_annotation(
     annotation_set_uuid: UUID,
     request: HumanAnnotationCreateRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).create_human_annotation(annotation_set_uuid, request, current_user)
@@ -272,7 +272,7 @@ async def revise_human_annotation(
     annotation_id: str,
     request: HumanAnnotationRevisionRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).revise_human_annotation(annotation_set_uuid, annotation_id, request, current_user)
@@ -285,7 +285,7 @@ async def create_authored_relation(
     annotation_set_uuid: UUID,
     request: AuthoredRelationCreateRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).create_authored_relation(annotation_set_uuid, request, current_user)
@@ -299,7 +299,7 @@ async def revise_authored_relation(
     relation_id: str,
     request: AuthoredRelationRevisionRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).revise_authored_relation(annotation_set_uuid, relation_id, request, current_user)
@@ -312,7 +312,7 @@ async def declare_annotation_coverage(
     annotation_set_uuid: UUID,
     request: CoverageDeclarationWriteRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).declare_coverage(annotation_set_uuid, request, current_user)
@@ -328,7 +328,7 @@ async def complete_research_annotation_set(
     annotation_set_uuid: UUID,
     request: AnnotationSetCompleteRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).complete(
@@ -346,7 +346,7 @@ async def reopen_research_annotation_set(
     annotation_set_uuid: UUID,
     request: AnnotationSetReopenRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     try:
         return ResearchAnnotationService(db).reopen(
@@ -361,7 +361,7 @@ async def export_research_annotation_set(
     annotation_set_uuid: UUID,
     request: AnnotationExportRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     annotation_service = ResearchAnnotationService(db)
     run_service = annotation_service.run_service
@@ -392,7 +392,7 @@ async def export_research_evaluations(
     session_id: int,
     request: ResearchExportRequest,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     """Export validated run results; this endpoint never executes an evaluator."""
 

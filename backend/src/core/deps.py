@@ -83,14 +83,44 @@ def require_admin(
     return current_user
 
 
+def require_researcher(
+    current_user: Annotated[User, Depends(require_role(RoleScopes.RESEARCHER))]
+) -> User:
+    """Ensure current user is a researcher."""
+    return current_user
+
+
+async def require_admin_or_researcher(
+    current_user: Annotated[User, Depends(get_current_user)]
+) -> User:
+    """Ensure current user is either an admin or a researcher.
+
+    `require_role`/`RoleScopes.has_permission` only check a single role's
+    hierarchy, and admin/researcher are not hierarchically related, so this
+    checks membership directly instead of composing two `require_role` deps.
+    """
+    if current_user.role not in (RoleScopes.ADMIN, RoleScopes.RESEARCHER):
+        raise AuthorizationError(
+            f"Access denied. Required role: {RoleScopes.ADMIN} or {RoleScopes.RESEARCHER}",
+            details={
+                "user_role": current_user.role,
+                "required_role": f"{RoleScopes.ADMIN} or {RoleScopes.RESEARCHER}",
+            },
+        )
+    return current_user
+
+
 def verify_session_access(session, current_user: User) -> None:
     """
     Verify the current user has access to the session.
     - Admin: allow access to any session.
+    - Researcher: allow read access to any session (needed for the evaluation
+      workflow, which operates on real transcripts). This bypass is scoped to
+      this helper only -- researcher is NOT treated as admin elsewhere.
     - Trainee: only allow if session.user_id == current_user.id.
     - Otherwise: raise AuthorizationError (403).
     """
-    if current_user.role == "admin":
+    if current_user.role in ("admin", "researcher"):
         return
     if current_user.role == "trainee" and getattr(session, "user_id", None) == current_user.id:
         return

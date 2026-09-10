@@ -129,3 +129,9 @@ class AdminUserOverviewResponse(BaseModel):
     skip: int
     limit: int
 
+
+class AdminUserRoleUpdateRequest(BaseModel):
+    """Request body for an admin changing another user's role."""
+
+    role: str
+

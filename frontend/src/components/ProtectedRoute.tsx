@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
+import { getHomeRouteForRole } from '@/lib/roleRoutes'
 import type { ReactNode } from 'react'
 
 interface ProtectedRouteProps {
   children: ReactNode
-  allowedRoles?: ('admin' | 'trainee')[]
+  allowedRoles?: ('admin' | 'trainee' | 'researcher')[]
 }
 
 export const ProtectedRoute = ({
@@ -33,7 +34,7 @@ export const ProtectedRoute = ({
   }
 
   if (allowedRoles && allowedRoles.length > 0 && user?.role && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getHomeRouteForRole(user.role)} replace />
   }
 
   return <>{children}</>

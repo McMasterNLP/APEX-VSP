@@ -1,9 +1,10 @@
 /**
- * Admin research dashboard: anonymized session analytics, score trends, and JSON exports.
+ * Research: tabbed shell combining the anonymized-analytics dashboard (Analytics tab, admin +
+ * researcher) and the Item 1/2A/2B evaluation-workflow session picker (Evaluate Sessions tab).
  */
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import {
   downloadMetricsCSV,
   downloadTranscriptsCSV,
@@ -12,13 +13,14 @@ import {
 } from '@/api/research.api'
 import { useAuthStore } from '@/store/authStore'
 import { ResearchSessionsTable } from '@/components/research/ResearchSessionsTable'
+import { AdminSessionsTable } from '@/components/sessions/AdminSessionsTable'
 import { Navbar } from '@/components/Navbar'
 import { Sidebar } from '@/components/Sidebar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { parseUtcDateTime } from '@/lib/dateTime'
 import { cn } from '@/lib/utils'
-import { AlertTriangle, Download, Shield, BarChart3, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Download, Shield, BarChart3, TrendingUp, ClipboardCheck } from 'lucide-react'
 import {
   LineChart,
   Line,
@@ -497,13 +499,24 @@ function ScoreTrendTooltipBody({
 
 type ScoreTrendGranularity = 'hourly' | 'daily' | 'weekly'
 
+/** Tab definitions for the Research page: id, label, and icon for the sub-navigation. */
+const RESEARCH_TABS = [
+  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'evaluate', label: 'Evaluate Sessions', icon: ClipboardCheck },
+] as const
+
+type ResearchTabId = (typeof RESEARCH_TABS)[number]['id']
+
 /**
- * Admin research page: dataset summary, fairness placeholders, exports, and score trend charts.
+ * Research: tabbed shell for the anonymized-analytics dashboard and the evaluation-workflow
+ * session picker.
  *
- * @returns Research dashboard layout
+ * @returns Research page layout
  */
 export const Research = () => {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState<ResearchTabId>('analytics')
   const [data, setData] = useState<ResearchData | null>(null)
   const [scoreTrendGranularity, setScoreTrendGranularity] =
     useState<ScoreTrendGranularity>('daily')
@@ -666,61 +679,45 @@ export const Research = () => {
     loadData()
   }, [])
 
-  if (loading) {
-    return (
-      <div className="h-screen flex flex-col">
-        <Navbar />
-        <div className="flex flex-1 min-h-0">
-          <Sidebar />
-          <main className="flex-1 overflow-y-auto md:ml-64">
-            <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-              <div className="mb-8">
-                <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
-                <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+  /**
+   * Renders the Analytics tab body: score trends, fairness metrics, anonymized sessions table,
+   * and summary stat cards. Guards on the anonymized-analytics fetch (`loading`/`data`) so a
+   * failure here does not block the independent Evaluate Sessions tab.
+   */
+  const renderAnalyticsTab = () => {
+    if (loading) {
+      return (
+        <div>
+          <div className="mb-8">
+            <div className="h-8 w-64 bg-gray-200 rounded animate-pulse mb-2"></div>
+            <div className="h-4 w-96 bg-gray-200 rounded animate-pulse"></div>
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="bg-white border rounded-lg p-6 animate-pulse">
+                <div className="h-5 w-32 bg-gray-200 rounded mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-gray-200 rounded"></div>
+                  <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
+                  <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
+                </div>
               </div>
-              
-              <div className="grid gap-6 lg:grid-cols-2">
-                {[1, 2, 3, 4].map((n) => (
-                  <div key={n} className="bg-white border rounded-lg p-6 animate-pulse">
-                    <div className="h-5 w-32 bg-gray-200 rounded mb-4"></div>
-                    <div className="space-y-2">
-                      <div className="h-4 w-full bg-gray-200 rounded"></div>
-                      <div className="h-4 w-3/4 bg-gray-200 rounded"></div>
-                      <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </main>
+            ))}
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
-  if (!data) {
+    if (!data) {
+      return <div className="text-gray-500 py-8 text-center">Research data not available</div>
+    }
+
+    const displayedSessions = data.anonymizedSessions.slice(0, 10)
+
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-gray-500">Research data not available</div>
-      </div>
-    )
-  }
-
-  const displayedSessions = data.anonymizedSessions.slice(0, 10)
-
-  return (
-    <div className="h-screen flex flex-col">
-      <Navbar />
-      <div className="flex flex-1 min-h-0">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto md:ml-64">
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-            {/* TODO: FR-8, FR-15 - Research API view with read-only analytics */}
-            <nav className="mb-4 text-sm text-gray-500">
-              Dashboard / <span className="text-gray-900">Research Analytics</span>
-            </nav>
-            
-            <div className="mb-8">
+      <div>
+        <div className="mb-8">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-3xl font-bold text-gray-900">
                   Research Analytics Dashboard
@@ -1074,6 +1071,79 @@ export const Research = () => {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+      </div>
+    )
+  }
+
+  /**
+   * Renders the Evaluate Sessions tab: real (non-anonymized) session picker for the
+   * Item 1/2A/2B evaluation/annotation workflow. Reuses {@link AdminSessionsTable}, the same
+   * shared session-list component Admin's Session Logs tab uses.
+   */
+  const renderEvaluateSessionsTab = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Evaluate Sessions</CardTitle>
+        <p className="text-sm text-gray-500 mt-1">
+          Select a session to open the evaluator checklist, saved evaluation runs, and
+          annotation workspace. These are real (non-anonymized) sessions, shown only to
+          admins and researchers.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <AdminSessionsTable
+          onRowClick={(session) => navigate(`/research/evaluate/${session.id}`)}
+        />
+      </CardContent>
+    </Card>
+  )
+
+  return (
+    <div className="h-screen flex flex-col">
+      <Navbar />
+      <div className="flex flex-1 min-h-0">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto md:ml-64">
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <nav className="mb-4 text-sm text-gray-500">
+              Dashboard / <span className="text-gray-900">Research</span>
+            </nav>
+
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-900">Research</h1>
+              <p className="mt-2 text-gray-600">
+                Anonymized analytics for research use, and the session evaluation workflow.
+              </p>
+            </div>
+
+            {/* Tabs */}
+            <div className="mb-8">
+              <nav className="flex gap-8">
+                {RESEARCH_TABS.map((tab) => {
+                  const Icon = tab.icon
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={cn(
+                        'flex items-center gap-2 py-2 px-4 rounded-md font-medium text-sm transition-colors',
+                        activeTab === tab.id
+                          ? 'bg-apex-600 text-white shadow-sm'
+                          : 'border border-gray-200 bg-gray-100 text-gray-700 hover:bg-apex-100 hover:text-apex-700'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </nav>
+              <div className="mt-4 border-b border-gray-200" />
+            </div>
+
+            <div>
+              {activeTab === 'analytics' ? renderAnalyticsTab() : renderEvaluateSessionsTab()}
             </div>
           </div>
         </main>

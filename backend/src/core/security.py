@@ -35,11 +35,12 @@ class RoleScopes:
 
     TRAINEE = "trainee"
     ADMIN = "admin"
+    RESEARCHER = "researcher"
 
     @classmethod
     def get_all_scopes(cls) -> list[str]:
         """Get all available role scopes."""
-        return [cls.TRAINEE, cls.ADMIN]
+        return [cls.TRAINEE, cls.ADMIN, cls.RESEARCHER]
 
     @classmethod
     def has_permission(cls, user_role: str, required_role: str) -> bool:
@@ -47,5 +48,9 @@ class RoleScopes:
         role_hierarchy = {
             cls.ADMIN: [cls.ADMIN, cls.TRAINEE],
             cls.TRAINEE: [cls.TRAINEE],
+            # Researcher gets everything trainee-gated (dashboard, cases,
+            # sessions, feedback, analytics) plus researcher-only routes --
+            # everything except true admin-only endpoints (require_admin).
+            cls.RESEARCHER: [cls.RESEARCHER, cls.TRAINEE],
         }
         return required_role in role_hierarchy.get(user_role, [])

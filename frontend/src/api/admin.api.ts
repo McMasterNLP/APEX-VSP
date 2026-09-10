@@ -198,6 +198,27 @@ export async function fetchAdminUserOverview(
   return data
 }
 
+/** Roles assignable via {@link updateUserRole}. */
+export type AssignableRole = 'admin' | 'trainee' | 'researcher'
+
+/**
+ * Changes a user's role (admin only).
+ *
+ * @param userId - Target user id
+ * @param role - New role to assign
+ * @returns Updated user overview row
+ */
+export async function updateUserRole(
+  userId: number,
+  role: AssignableRole
+): Promise<AdminUserOverviewRowDTO> {
+  const { data } = await api.patch<AdminUserOverviewRowDTO>(
+    `${BASE}/users/${userId}/role`,
+    { role }
+  )
+  return data
+}
+
 /**
  * Loads global admin aggregates and maps them into {@link AdminStats}.
  *

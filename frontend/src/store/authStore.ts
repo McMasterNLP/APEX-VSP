@@ -3,7 +3,7 @@ import axios from 'axios'
 import { supabase } from '@/lib/supabase'
 import type { Session } from '@supabase/supabase-js'
 
-export type Role = 'trainee' | 'admin'
+export type Role = 'trainee' | 'admin' | 'researcher'
 
 export interface AppUser {
   id: number

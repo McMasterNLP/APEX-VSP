@@ -18,11 +18,13 @@ import { Analytics } from './pages/Analytics'
 import { Admin } from './pages/Admin'
 import { Research } from './pages/Research'
 import { ResearchSessions } from './pages/ResearchSessions'
+import { ResearchEvaluationSessionPage } from './pages/ResearchEvaluationSessionPage'
 import { AdminResearchSessionPage } from './pages/AdminResearchSessionPage'
 import { PluginDeveloperGuide } from './pages/PluginDeveloperGuide'
 import { DeveloperOnboarding } from './pages/DeveloperOnboarding'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuthGate } from './hooks/useAuthGate'
+import { getHomeRouteForRole } from './lib/roleRoutes'
 import apexLogo from './assets/apex-capstone-logo.png'
 
 const ROUTE_TITLES: Array<{ path: string; screenName: string }> = [
@@ -72,6 +74,7 @@ const BrandingManager = () => {
  */
 const LoginRoute = () => {
   const gate = useAuthGate()
+  const user = useAuthStore((s) => s.user)
 
   if (gate === 'loading') {
     return (
@@ -82,7 +85,7 @@ const LoginRoute = () => {
   }
 
   if (gate === 'authed') {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to={getHomeRouteForRole(user?.role)} replace />
   }
   return <Login />
 }
@@ -113,7 +116,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'trainee']}>
+            <ProtectedRoute allowedRoles={['admin', 'trainee', 'researcher']}>
               <Dashboard />
             </ProtectedRoute>
           }
@@ -121,7 +124,7 @@ function App() {
         <Route
           path="/case/:caseId"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'trainee']}>
+            <ProtectedRoute allowedRoles={['admin', 'trainee', 'researcher']}>
               <CaseDetail />
             </ProtectedRoute>
           }
@@ -129,7 +132,7 @@ function App() {
         <Route
           path="/feedback/:sessionId"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'trainee']}>
+            <ProtectedRoute allowedRoles={['admin', 'trainee', 'researcher']}>
               <Feedback />
             </ProtectedRoute>
           }
@@ -145,7 +148,7 @@ function App() {
         <Route
           path="/cases"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'trainee']}>
+            <ProtectedRoute allowedRoles={['admin', 'trainee', 'researcher']}>
               <Cases />
             </ProtectedRoute>
           }
@@ -161,7 +164,7 @@ function App() {
         <Route
           path="/analytics"
           element={
-            <ProtectedRoute allowedRoles={['admin', 'trainee']}>
+            <ProtectedRoute allowedRoles={['admin', 'trainee', 'researcher']}>
               <Analytics />
             </ProtectedRoute>
           }
@@ -179,7 +182,7 @@ function App() {
         <Route
           path="/research"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'researcher']}>
               <Research />
             </ProtectedRoute>
           }
@@ -187,8 +190,16 @@ function App() {
         <Route
           path="/research/sessions"
           element={
-            <ProtectedRoute allowedRoles={['admin']}>
+            <ProtectedRoute allowedRoles={['admin', 'researcher']}>
               <ResearchSessions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/research/evaluate/:sessionId"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'researcher']}>
+              <ResearchEvaluationSessionPage />
             </ProtectedRoute>
           }
         />

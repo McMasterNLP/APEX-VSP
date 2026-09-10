@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import app
-from core.deps import get_current_user, get_db, require_admin
+from core.deps import get_current_user, get_db, require_admin, require_admin_or_researcher
 from domain.entities.case import Case
 from domain.entities.feedback import Feedback
 from domain.entities.session import Session as SessionEntity
@@ -44,6 +44,7 @@ def _overrides():
     yield
     app.dependency_overrides.pop(get_db, None)
     app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_or_researcher, None)
     app.dependency_overrides.pop(get_current_user, None)
 
 
@@ -61,9 +62,10 @@ def users(db_session):
     suffix = uuid.uuid4().hex[:10]
     admin = User(email=f"annotation-admin-{suffix}@test.local", role="admin")
     trainee = User(email=f"annotation-trainee-{suffix}@test.local", role="trainee")
-    db_session.add_all([admin, trainee])
+    researcher = User(email=f"annotation-researcher-{suffix}@test.local", role="researcher")
+    db_session.add_all([admin, trainee, researcher])
     db_session.commit()
-    return admin, trainee
+    return admin, trainee, researcher
 
 
 @pytest.fixture
@@ -146,13 +148,27 @@ def completed_session(db_session, users):
 
 
 def _as_admin(user):
+    """Override get_current_user so real role-checking logic runs for the admin user.
+
+    Routes here are gated by a mix of `require_admin` and
+    `require_admin_or_researcher`; overriding `get_current_user` exercises
+    both dependencies' real permission logic against this fake user.
+    """
+
     async def override():
         return user
 
-    app.dependency_overrides[require_admin] = override
+    app.dependency_overrides[get_current_user] = override
 
 
 def _as_trainee(user):
+    async def override():
+        return user
+
+    app.dependency_overrides[get_current_user] = override
+
+
+def _as_researcher(user):
     async def override():
         return user
 
@@ -462,3 +478,28 @@ async def test_save_rejects_incomplete_and_live_refusal(users, completed_session
     assert incomplete.status_code == 409
     assert refused.status_code == 409
     assert refused.json()["message"]["category"] == "live_execution_refused"
+
+
+@pytest.mark.anyio
+async def test_researcher_can_run_save_and_create_annotation_set(users, completed_session):
+    _as_researcher(users[2])
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, annotation_set = await _save_and_create(client, completed_session.id)
+    assert run.status_code == 200
+    assert annotation_set.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_researcher_can_read_run_and_annotation_set(users, completed_session):
+    _as_admin(users[0])
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, annotation_set = await _save_and_create(client, completed_session.id)
+        _as_researcher(users[2])
+        run_read = await client.get(f"/v1/research/evaluation-runs/{run.json()['run_uuid']}")
+        set_read = await client.get(
+            f"/v1/research/annotation-sets/{annotation_set.json()['annotation_set_uuid']}"
+        )
+    assert run_read.status_code == 200
+    assert set_read.status_code == 200

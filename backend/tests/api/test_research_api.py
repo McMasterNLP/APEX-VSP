@@ -24,7 +24,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import app
-from core.deps import get_current_user, get_db, require_admin
+from core.deps import get_current_user, get_db, require_admin, require_admin_or_researcher
 from domain.entities.case import Case
 from domain.entities.feedback import Feedback
 from domain.entities.session import Session as SessionEntity
@@ -68,6 +68,7 @@ def _override_db():
     yield
     app.dependency_overrides.pop(get_db, None)
     app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides.pop(require_admin_or_researcher, None)
     app.dependency_overrides.pop(get_current_user, None)
 
 
@@ -99,6 +100,19 @@ def trainee_user(db_session):
         email=f"research_trainee_{uuid.uuid4().hex[:12]}@test.com",
         role="trainee",
         full_name="Test Trainee",
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
+def researcher_user(db_session):
+    user = User(
+        email=f"research_researcher_{uuid.uuid4().hex[:12]}@test.com",
+        role="researcher",
+        full_name="Test Researcher",
     )
     db_session.add(user)
     db_session.commit()
@@ -152,14 +166,31 @@ def seeded_session(db_session, admin_user, test_case):
 
 
 def _override_admin(user: User):
-    async def _fake_admin():
+    """Override get_current_user so real role-checking logic runs for the admin user.
+
+    Several research routes are gated by `require_admin` and others by
+    `require_admin_or_researcher`; overriding `get_current_user` (rather than
+    one specific role dependency) lets both kinds of routes exercise their
+    real permission logic against this fake user.
+    """
+
+    async def _fake_user():
         return user
 
-    app.dependency_overrides[require_admin] = _fake_admin
+    app.dependency_overrides[get_current_user] = _fake_user
 
 
 def _override_trainee(user: User):
     """Override get_current_user so require_role('admin') can reject the user."""
+
+    async def _fake_user():
+        return user
+
+    app.dependency_overrides[get_current_user] = _fake_user
+
+
+def _override_researcher(user: User):
+    """Override get_current_user so real role-checking logic runs for the researcher user."""
 
     async def _fake_user():
         return user
@@ -704,4 +735,107 @@ async def test_research_session_transcript_csv_403_for_trainee(trainee_user, see
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         response = await ac.get(f"/v1/research/export/session/{anon_id}.csv")
 
+    assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# researcher role: allowed on the evaluation/annotation workflow, 403 on
+# admin-only anonymized-analytics routes
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.anyio
+async def test_researcher_can_reach_evaluator_descriptors(researcher_user):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/research/evaluators")
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_researcher_can_run_evaluation(researcher_user, seeded_session):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.post(
+            f"/v1/research/sessions/{seeded_session.id}/evaluations",
+            json={"evaluator_identifiers": ["baseline"], "allow_live": False},
+        )
+    assert response.status_code == 200, response.text
+
+
+@pytest.mark.anyio
+async def test_researcher_can_list_saved_evaluation_runs(researcher_user, seeded_session):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            f"/v1/research/sessions/{seeded_session.id}/evaluation-runs"
+        )
+    assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_researcher_forbidden_on_anonymized_sessions_list(researcher_user):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/research/sessions")
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_researcher_forbidden_on_session_detail(researcher_user, seeded_session):
+    anon_id = generate_anon_session_id(seeded_session.id)
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(f"/v1/research/sessions/{anon_id}")
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_researcher_forbidden_on_export_json(researcher_user):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/research/export")
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_researcher_forbidden_on_export_csv(researcher_user):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/research/export.csv")
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_researcher_forbidden_on_metrics_csv(researcher_user):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/research/export/metrics.csv")
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_researcher_forbidden_on_transcripts_csv(researcher_user):
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/research/export/transcripts.csv")
+    assert response.status_code == 403
+
+
+@pytest.mark.anyio
+async def test_researcher_forbidden_on_session_transcript_csv(researcher_user, seeded_session):
+    anon_id = generate_anon_session_id(seeded_session.id)
+    _override_researcher(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(f"/v1/research/export/session/{anon_id}.csv")
     assert response.status_code == 403
