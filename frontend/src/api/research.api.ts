@@ -5,11 +5,18 @@ import api from '@/api/client'
 import { useAuthStore } from '@/store/authStore'
 import type { AxiosError } from 'axios'
 import type {
+  AnnotationExportProfile,
+  AnnotationSetCreateRequest,
+  AnnotationSetRecord,
+  EvaluationRunRecord,
+  EvaluationRunSummary,
   ResearchEvaluationEnvelope,
   ResearchEvaluationResponse,
   ResearchEvaluationRunRequest,
+  ResearchEvaluationRunSaveRequest,
   ResearchEvaluatorDescriptorsResponse,
   ResearchExportProfile,
+  ReviewDecisionWriteRequest,
 } from '@/types/researchEvaluation'
 
 const BASE = '/v1/research'
@@ -320,4 +327,119 @@ export async function downloadResearchEvaluationExport(
     }
     throw err
   }
+}
+
+/** Lists immutable server-generated evaluation runs for one source session. */
+export async function fetchSavedResearchRuns(
+  sessionId: number
+): Promise<EvaluationRunSummary[]> {
+  const { data } = await api.get<EvaluationRunSummary[]>(
+    `${BASE}/sessions/${sessionId}/evaluation-runs`
+  )
+  return data
+}
+
+/** Explicitly reruns one evaluator on the server and saves the validated result. */
+export async function saveResearchEvaluationRun(
+  sessionId: number,
+  request: ResearchEvaluationRunSaveRequest
+): Promise<EvaluationRunRecord> {
+  const { data } = await api.post<EvaluationRunRecord>(
+    `${BASE}/sessions/${sessionId}/evaluation-runs`,
+    request
+  )
+  return data
+}
+
+/** Loads one immutable saved run with its exact annotation transcript snapshot. */
+export async function fetchSavedResearchRun(runUuid: string): Promise<EvaluationRunRecord> {
+  const { data } = await api.get<EvaluationRunRecord>(
+    `${BASE}/evaluation-runs/${encodeURIComponent(runUuid)}`
+  )
+  return data
+}
+
+/** Creates or opens the reviewer's compatible guideline-specific annotation set. */
+export async function createResearchAnnotationSet(
+  runUuid: string,
+  request: AnnotationSetCreateRequest
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.post<AnnotationSetRecord>(
+    `${BASE}/evaluation-runs/${encodeURIComponent(runUuid)}/annotation-sets`,
+    request
+  )
+  return data
+}
+
+/** Refreshes an annotation set after navigation or an optimistic conflict. */
+export async function fetchResearchAnnotationSet(
+  annotationSetUuid: string
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.get<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}`
+  )
+  return data
+}
+
+/** Saves one append-only decision revision using optimistic concurrency. */
+export async function saveResearchReviewDecision(
+  annotationSetUuid: string,
+  predictionId: string,
+  request: ReviewDecisionWriteRequest
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.put<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/decisions/${encodeURIComponent(predictionId)}`,
+    request
+  )
+  return data
+}
+
+/** Completes and locks an annotation set after server-side coverage validation. */
+export async function completeResearchAnnotationSet(
+  annotationSetUuid: string,
+  expectedSetRevision: number
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.post<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/complete`,
+    { expected_set_revision: expectedSetRevision }
+  )
+  return data
+}
+
+/** Explicitly reopens a locked set with an audited bounded reason. */
+export async function reopenResearchAnnotationSet(
+  annotationSetUuid: string,
+  expectedSetRevision: number,
+  reason: string
+): Promise<AnnotationSetRecord> {
+  const { data } = await api.post<AnnotationSetRecord>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/reopen`,
+    { expected_set_revision: expectedSetRevision, reason }
+  )
+  return data
+}
+
+/** Downloads one sanitized annotation export; transcript text is never requested by this UI. */
+export async function downloadResearchAnnotationExport(
+  annotationSetUuid: string,
+  profile: AnnotationExportProfile
+): Promise<void> {
+  const { data } = await api.post<Blob>(
+    `${BASE}/annotation-sets/${encodeURIComponent(annotationSetUuid)}/exports`,
+    { profile, include_transcript_content: false },
+    { responseType: 'blob' }
+  )
+  triggerBlobDownload(data, `apex_research_annotation_${profile}.json`)
+}
+
+/** Extracts the backend's bounded research message from an unknown API failure. */
+export function getResearchApiMessage(
+  error: unknown,
+  fallback: string
+): string {
+  const axiosError = error as AxiosError<{ message?: string | { message?: string } }>
+  const payload = axiosError.response?.data?.message
+  if (typeof payload === 'string') return payload
+  if (payload && typeof payload.message === 'string') return payload.message
+  return error instanceof Error ? error.message : fallback
 }

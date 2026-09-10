@@ -12,7 +12,7 @@ from db.base import Base
 from config.settings import get_settings
 
 # Import all entity models to ensure they're registered with Base
-from domain.entities import case, feedback, session, turn, user  # noqa: F401
+from domain.entities import case, feedback, research_annotation, session, turn, user  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -87,4 +87,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-

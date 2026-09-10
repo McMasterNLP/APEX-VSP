@@ -8,7 +8,28 @@ evaluator, produces `FeedbackResponse`, persists learner feedback, and runs the
 frozen metrics plugins. The administrator Session Logs view reads that saved
 session, transcript, feedback, and metrics timeline.
 
-Item 1 does not modify that path.
+Items 1 and 2A do not modify that path.
+
+## Item 2A persistence boundary
+
+Preview continues to use the non-persisting Item 1 path. The separate
+run-and-save action executes the evaluator server-side and transactionally
+stores an immutable envelope plus the minimal canonical transcript snapshot.
+Dedicated annotation tables store reviewer/guideline sets, append-only decision
+revisions, and audited lifecycle transitions. Resolved projections are derived
+and never written into the saved envelope or production tables.
+
+```mermaid
+flowchart LR
+    S[Completed session] --> P[Preview: no writes]
+    S --> R[Run and save: server executes]
+    R --> I[Immutable envelope and transcript snapshot]
+    I --> A[Reviewer and guideline annotation set]
+    A --> D[Append-only decision revisions]
+    D --> X[Derived resolved projection]
+    D --> L[Complete and lock]
+    L --> O[Audited reopen]
+```
 
 ## Research-result path
 

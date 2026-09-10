@@ -23,7 +23,9 @@ from domain.models.research_evaluation import (
     ApexTimelineEvent,
     FrameworkNativeResult,
     GlobalMetric,
+    AnnotationOperationCapabilities,
     OutputCapabilities,
+    ProjectionAnnotationCapabilities,
     ProjectedRelation,
     ProjectionProvenance,
     ResearchCapabilities,
@@ -127,7 +129,29 @@ class ApexResearchAdapter:
                 evidence_turns=True,
                 framework_native_view=True,
                 live_execution=live_execution,
-            )
+            ),
+            annotation_operations=AnnotationOperationCapabilities(
+                confirm=True,
+                reject=True,
+                change_label=True,
+                change_dimension=True,
+            ),
+            annotation_by_projection=ProjectionAnnotationCapabilities(
+                span_annotation=AnnotationOperationCapabilities(
+                    confirm=True,
+                    reject=True,
+                    change_label=True,
+                    change_dimension=True,
+                ),
+                turn_label=AnnotationOperationCapabilities(
+                    confirm=True,
+                    reject=True,
+                    change_label=True,
+                    change_dimension=True,
+                ),
+                relation=AnnotationOperationCapabilities(confirm=True, reject=True),
+                finding=AnnotationOperationCapabilities(confirm=True, reject=True),
+            ),
         )
 
     @staticmethod

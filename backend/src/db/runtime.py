@@ -28,7 +28,7 @@ SessionLocal = sessionmaker(
 def init_db() -> None:
     """Initialize database tables."""
     # Import all models so they register with Base.metadata.
-    from domain.entities import case, feedback, session, turn, user  # noqa: F401
+    from domain.entities import case, feedback, research_annotation, session, turn, user  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 

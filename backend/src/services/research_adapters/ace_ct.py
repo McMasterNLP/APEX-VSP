@@ -5,11 +5,13 @@ from __future__ import annotations
 from domain.models.evaluator_comparison import EvaluatorRunResult
 from domain.models.research_evaluation import (
     ACECTNativeResearchResult,
+    AnnotationOperationCapabilities,
     COMPATIBILITY_COMPARABILITY_STATEMENT,
     DimensionRating,
     FrameworkNativeResult,
     GlobalMetric,
     OutputCapabilities,
+    ProjectionAnnotationCapabilities,
     ProjectionProvenance,
     ResearchCapabilities,
     ResearchFinding,
@@ -60,7 +62,23 @@ class ACECTResearchAdapter:
             evidence_turns=True,
             framework_native_view=True,
             live_execution=True,
-        )
+        ),
+        annotation_operations=AnnotationOperationCapabilities(
+            confirm=True,
+            reject=True,
+            change_rating=True,
+            mark_insufficient_evidence=True,
+            change_evidence=True,
+        ),
+        annotation_by_projection=ProjectionAnnotationCapabilities(
+            dimension_rating=AnnotationOperationCapabilities(
+                confirm=True,
+                change_rating=True,
+                mark_insufficient_evidence=True,
+                change_evidence=True,
+            ),
+            finding=AnnotationOperationCapabilities(confirm=True, reject=True),
+        ),
     )
 
     def build_native_result(

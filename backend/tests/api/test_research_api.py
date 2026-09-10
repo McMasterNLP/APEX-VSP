@@ -184,10 +184,16 @@ async def test_research_evaluator_descriptors_are_admin_only_and_typed(admin_use
     assert set(by_id) == {"baseline", "hybrid_v1", "hybrid_v2", "ace_ct_inspired"}
     assert by_id["baseline"]["capabilities"]["outputs"]["character_spans"] is True
     assert by_id["ace_ct_inspired"]["capabilities"]["outputs"]["dimension_ratings"] is True
-    assert all(
-        enabled is False
-        for enabled in by_id["baseline"]["capabilities"]["annotation_operations"].values()
-    )
+    baseline_operations = by_id["baseline"]["capabilities"]["annotation_operations"]
+    assert baseline_operations["confirm"] is True
+    assert baseline_operations["reject"] is True
+    assert baseline_operations["adjust_span"] is False
+    assert baseline_operations["add_annotation"] is False
+    rating_operations = by_id["ace_ct_inspired"]["capabilities"][
+        "annotation_by_projection"
+    ]["dimension_rating"]
+    assert rating_operations["change_rating"] is True
+    assert rating_operations["mark_insufficient_evidence"] is True
 
 
 @pytest.mark.anyio

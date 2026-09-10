@@ -86,9 +86,15 @@ def test_extension_contract_rejects_nested_arbitrary_provider_output():
         )
 
 
-def test_annotation_operations_are_read_only_in_item_one():
+def test_item_2_annotation_capabilities_keep_future_operations_disabled():
+    capabilities = AnnotationOperationCapabilities(confirm=True, reject=True)
+    assert capabilities.confirm is True
+    assert capabilities.reject is True
+    assert capabilities.adjust_span is False
+    assert capabilities.add_annotation is False
+    assert capabilities.add_relation is False
     with pytest.raises(ValidationError):
-        AnnotationOperationCapabilities(confirm=True)
+        AnnotationOperationCapabilities(adjust_span=True)
 
 
 @pytest.mark.parametrize(
