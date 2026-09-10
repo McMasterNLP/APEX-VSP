@@ -147,6 +147,7 @@ class EvaluatorRunResult(BaseModel):
     scores: EvaluatorScores | None = None
     structured_feedback: ComputedFeedback | None = None
     framework_results: EvaluatorFrameworkResults | None = None
+    compatibility_projection: ACECTCompatibilityProjection | None = None
     error: SanitizedEvaluatorError | None = None
 
     model_config = ConfigDict(frozen=True)

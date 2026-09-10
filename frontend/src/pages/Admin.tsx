@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateInUserTimeZone, formatDateTimeInUserTimeZone } from '@/lib/dateTime'
 import { formatPluginName, formatMetricsPluginsDisplay } from '@/lib/formatPluginName'
 import { cn } from '@/lib/utils'
+import { ResearchEvaluationPanel } from '@/components/admin/research/ResearchEvaluationPanel'
 
 // ---- Session detail panel ----
 
@@ -156,6 +157,8 @@ function SessionDetailPanel({
             </ul>
           )}
         </section>
+
+        <ResearchEvaluationPanel sessionId={session.id} sessionState={session.state} />
       </CardContent>
     </Card>
   )

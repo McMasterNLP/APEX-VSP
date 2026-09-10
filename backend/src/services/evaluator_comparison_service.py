@@ -707,6 +707,7 @@ class EvaluatorComparisonService:
                     scores=computation.compatibility_projection.scores,
                     structured_feedback=computation.computed_feedback,
                     framework_results=computation.framework_results,
+                    compatibility_projection=computation.compatibility_projection,
                 )
 
             feedback = await self._compute(evaluator_identifier, session_id)
