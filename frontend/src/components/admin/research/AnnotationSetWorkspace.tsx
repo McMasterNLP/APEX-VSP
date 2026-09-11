@@ -23,7 +23,6 @@ import { Button } from '@/components/ui/button'
 import { TranscriptAnnotationView } from './TranscriptAnnotationView'
 import { PredictionReviewCard } from './PredictionReviewCard'
 import { AnnotationSetActions } from './AnnotationSetActions'
-import { ReviewProgress } from './ReviewProgress'
 
 function evidenceTurns(
   prediction: ReviewablePrediction,
@@ -318,7 +317,6 @@ export function AnnotationSetWorkspace({
           Transcript mismatch: this review remains tied to the immutable saved snapshot.
         </p>
       )}
-      <ReviewProgress progress={annotationSet.progress} />
       <div className="flex flex-wrap gap-2" role="toolbar" aria-label="Annotation modes">
         <Button ref={modeButtonRef} type="button" size="sm" variant={mode === 'review' ? 'default' : 'outline'} onClick={() => chooseMode('review')}>Review</Button>
         <Button type="button" size="sm" variant={mode === 'add' ? 'default' : 'outline'} disabled={annotationSet.locked || !annotationSet.annotation_policy.span_authoring?.supported} onClick={() => chooseMode('add')}>Add annotation</Button>

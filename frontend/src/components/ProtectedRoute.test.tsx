@@ -105,6 +105,57 @@ describe('ProtectedRoute', () => {
     expect(screen.queryByText('Admin')).not.toBeInTheDocument()
   })
 
+  it('allows a researcher into a research-gated route', () => {
+    useAuthStore.setState({
+      loading: false,
+      isAuthenticated: true,
+      token: 't',
+      user: { id: 1, email: 'r@r.com', role: 'researcher' },
+    })
+    render(
+      <MemoryRouter initialEntries={['/research']}>
+        <Routes>
+          <Route path="/dashboard" element={<div>Dashboard</div>} />
+          <Route
+            path="/research"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'researcher']}>
+                <div>Research</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('Research')).toBeInTheDocument()
+  })
+
+  it('redirects a researcher away from an admin-only route', () => {
+    useAuthStore.setState({
+      loading: false,
+      isAuthenticated: true,
+      token: 't',
+      user: { id: 1, email: 'r@r.com', role: 'researcher' },
+    })
+    render(
+      <MemoryRouter initialEntries={['/admin-only']}>
+        <Routes>
+          <Route path="/dashboard" element={<div>Dashboard</div>} />
+          <Route
+            path="/admin-only"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <div>Admin</div>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    )
+    expect(screen.getByText('Dashboard')).toBeInTheDocument()
+    expect(screen.queryByText('Admin')).not.toBeInTheDocument()
+  })
+
   it('calls refreshProfile when authenticated but user is missing', async () => {
     useAuthStore.setState({
       loading: false,

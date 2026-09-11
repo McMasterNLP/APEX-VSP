@@ -8,11 +8,12 @@ import {
   fetchAdminSessionDetail,
   fetchAdminPluginRegistry,
   fetchAdminUserOverview,
+  updateUserRole,
   type AdminStats,
-  type AdminSessionListResponse,
   type AdminSessionDetailResponse,
   type AdminUserOverviewResponseDTO,
   type AdminUserOverviewSort,
+  type AssignableRole,
 } from '@/api/admin.api'
 import type { PluginsResponse } from '@/types/plugins'
 import { MetricCard } from '@/components/MetricCard'
@@ -24,7 +25,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateInUserTimeZone, formatDateTimeInUserTimeZone } from '@/lib/dateTime'
 import { formatPluginName, formatMetricsPluginsDisplay } from '@/lib/formatPluginName'
 import { cn } from '@/lib/utils'
-import { ResearchEvaluationPanel } from '@/components/admin/research/ResearchEvaluationPanel'
+import { AdminSessionsTable } from '@/components/sessions/AdminSessionsTable'
 
 // ---- Session detail panel ----
 
@@ -157,8 +158,6 @@ function SessionDetailPanel({
             </ul>
           )}
         </section>
-
-        <ResearchEvaluationPanel sessionId={session.id} sessionState={session.state} />
       </CardContent>
     </Card>
   )
@@ -245,9 +244,6 @@ export const Admin = () => {
   const [submitting, setSubmitting] = useState(false)
 
   // ---- Session logs state ----
-  const [sessionsData, setSessionsData] = useState<AdminSessionListResponse | null>(null)
-  const [sessionsLoading, setSessionsLoading] = useState(false)
-  const [sessionsError, setSessionsError] = useState<string | null>(null)
   const [selectedDetail, setSelectedDetail] = useState<AdminSessionDetailResponse | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailError, setDetailError] = useState<string | null>(null)
@@ -319,29 +315,6 @@ export const Admin = () => {
   }, [activeTab])
 
   /**
-   * Refetches admin session logs (first page) for the Session Logs tab.
-   */
-  const refreshSessions = async () => {
-    setSessionsLoading(true)
-    setSessionsError(null)
-    try {
-      const data = await fetchAdminSessions(0, 50)
-      setSessionsData(data)
-    } catch (e) {
-      console.error('Failed to fetch sessions:', e)
-      setSessionsError('Failed to load session logs')
-    } finally {
-      setSessionsLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    if (activeTab === 'sessions') {
-      void refreshSessions()
-    }
-  }, [activeTab])
-
-  /**
    * Loads the plugin registry (evaluators, patient models, metrics) for the Plugins tab.
    */
   const loadPlugins = async () => {
@@ -395,6 +368,36 @@ export const Admin = () => {
       cancelled = true
     }
   }, [activeTab, usersSkip, usersSort])
+
+  const [roleUpdatingUserId, setRoleUpdatingUserId] = useState<number | null>(null)
+  const [roleUpdateError, setRoleUpdateError] = useState<string | null>(null)
+
+  /**
+   * Changes a user's role (admin only) and splices the updated row into the current page.
+   *
+   * @param userId - Target user id
+   * @param role - New role selected from the dropdown
+   */
+  const handleRoleChange = async (userId: number, role: AssignableRole) => {
+    setRoleUpdatingUserId(userId)
+    setRoleUpdateError(null)
+    try {
+      const updated = await updateUserRole(userId, role)
+      setUserOverviewData((prev) =>
+        prev
+          ? {
+              ...prev,
+              users: prev.users.map((u) => (u.id === userId ? updated : u)),
+            }
+          : prev
+      )
+    } catch (e) {
+      console.error('Failed to update user role:', e)
+      setRoleUpdateError('Failed to update role')
+    } finally {
+      setRoleUpdatingUserId(null)
+    }
+  }
 
   /**
    * Fetches full session detail (transcript, feedback, timeline) for the side panel.
@@ -646,6 +649,9 @@ export const Admin = () => {
                 </div>
               </CardHeader>
               <CardContent>
+                {roleUpdateError && (
+                  <p className="mb-3 text-sm text-destructive">{roleUpdateError}</p>
+                )}
                 {userOverviewLoading ? (
                   <p className="text-gray-500 py-8 text-center">Loading users…</p>
                 ) : userOverviewError ? (
@@ -693,16 +699,26 @@ export const Admin = () => {
                               <td className="px-4 py-2.5 align-top">{user.full_name?.trim() || '—'}</td>
                               <td className="px-4 py-2.5 align-top">{user.email}</td>
                               <td className="px-4 py-2.5 align-top">
-                                <span
+                                <select
                                   className={cn(
-                                    'inline-flex px-2 py-1 rounded-full text-xs font-medium',
+                                    'rounded-full border-0 px-2 py-1 text-xs font-medium',
                                     user.role === 'admin'
                                       ? 'bg-purple-100 text-purple-800'
-                                      : 'bg-apex-100 text-apex-800'
+                                      : user.role === 'researcher'
+                                        ? 'bg-amber-100 text-amber-800'
+                                        : 'bg-apex-100 text-apex-800'
                                   )}
+                                  value={user.role}
+                                  disabled={roleUpdatingUserId === user.id}
+                                  onChange={(e) =>
+                                    handleRoleChange(user.id, e.target.value as AssignableRole)
+                                  }
+                                  aria-label={`Role for ${user.email}`}
                                 >
-                                  {user.role}
-                                </span>
+                                  <option value="trainee">trainee</option>
+                                  <option value="researcher">researcher</option>
+                                  <option value="admin">admin</option>
+                                </select>
                               </td>
                               <td className="px-4 py-2.5 text-left tabular-nums whitespace-nowrap">
                                 {user.session_count}
@@ -769,54 +785,19 @@ export const Admin = () => {
 
       case 'sessions':
         return (
-          <div className="flex h-full min-h-0 flex-col space-y-6">
-            <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="space-y-6">
+            <Card>
               <CardHeader>
                 <CardTitle>Session Logs</CardTitle>
                 <p className="text-sm text-gray-500 mt-1">
                   Click a row to view transcript and feedback
                 </p>
               </CardHeader>
-              <CardContent className="min-h-0 flex-1">
-                {sessionsLoading ? (
-                  <p className="text-gray-500 py-8 text-center">Loading sessions…</p>
-                ) : sessionsError ? (
-                  <p className="text-red-600 py-8 text-center">{sessionsError}</p>
-                ) : !sessionsData || sessionsData.sessions.length === 0 ? (
-                  <p className="text-gray-500 py-8 text-center">No sessions found</p>
-                ) : (
-                  <div className="h-full overflow-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-2 font-medium">Session ID</th>
-                          <th className="text-left py-2 font-medium">User</th>
-                          <th className="text-left py-2 font-medium">Case ID</th>
-                          <th className="text-left py-2 font-medium">Started</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sessionsData.sessions.map((s) => (
-                          <tr
-                            key={s.id}
-                            onClick={() => handleSessionRowClick(s.id)}
-                            className={cn(
-                              'border-b cursor-pointer transition-colors',
-                              selectedDetail?.session.id === s.id
-                                ? 'bg-apex-50'
-                                : 'hover:bg-gray-50'
-                            )}
-                          >
-                            <td className="py-2">{s.id}</td>
-                            <td className="py-2">{formatSessionUserLabel(s)}</td>
-                            <td className="py-2">{s.case_id}</td>
-                            <td className="py-2">{formatDateTimeInUserTimeZone(s.started_at)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+              <CardContent>
+                <AdminSessionsTable
+                  onRowClick={(s) => handleSessionRowClick(s.id)}
+                  selectedSessionId={selectedDetail?.session.id ?? null}
+                />
               </CardContent>
             </Card>
 
@@ -1088,18 +1069,8 @@ export const Admin = () => {
       <Navbar />
       <div className="flex flex-1 min-h-0">
         <Sidebar />
-        <main
-          className={cn(
-            'flex-1 md:ml-64',
-            activeTab === 'sessions' && !selectedDetail ? 'overflow-hidden' : 'overflow-y-auto'
-          )}
-        >
-          <div
-            className={cn(
-              'mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8',
-              activeTab === 'sessions' && !selectedDetail && 'flex h-full min-h-0 flex-col'
-            )}
-          >
+        <main className="flex-1 overflow-y-auto md:ml-64">
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
             <nav className="mb-4 text-sm text-gray-500">
               Dashboard / <span className="text-gray-900">Admin</span>
             </nav>
@@ -1142,9 +1113,7 @@ export const Admin = () => {
               <div className="mt-4 border-b border-gray-200" />
             </div>
 
-            <div className={cn(activeTab === 'sessions' && !selectedDetail && 'min-h-0 flex-1')}>
-              {renderTabContent()}
-            </div>
+            <div>{renderTabContent()}</div>
           </div>
         </main>
       </div>

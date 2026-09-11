@@ -2,11 +2,22 @@
 
 ## Authorization and non-persistence
 
-All Item 1 routes use the existing `require_admin` dependency. There is no new
-researcher role. Administrators may evaluate any completed session visible in
-the existing Session Logs workflow; trainees and unauthenticated callers are
-rejected. Research execution never changes feedback, turns, session state,
-metrics, or plugin selections.
+The evaluator/annotation-workflow routes (`/v1/research/evaluators`, the
+evaluation/evaluation-run/annotation-set/annotation/relation/coverage/
+complete/reopen/export endpoints, plus `GET /v1/admin/sessions` and
+`GET /v1/admin/sessions/{session_id}`, which the workflow uses to pick a
+session and read its transcript) use a `require_admin_or_researcher`
+dependency. A dedicated `researcher` role exists for this purpose: a
+researcher can run the full evaluation/annotation workflow and read real
+(non-anonymized) session content needed for it, but cannot reach admin-only
+config, plugin, or user-management routes, and cannot reach the anonymized
+analytics/export routes described below (`GET /v1/research/sessions`,
+`GET /v1/research/sessions/{anon_session_id}`, and the `/export*` routes),
+which remain `require_admin`-only. Trainees and unauthenticated callers are
+rejected everywhere. Research execution never changes feedback, turns,
+session state, metrics, or plugin selections. Role promotion (assigning
+`researcher`) is itself admin-only, via `PATCH /v1/admin/users/{user_id}/role`
+or the Admin → User Management role selector.
 
 ## Evaluator descriptors
 
@@ -146,12 +157,24 @@ projection tables: `spans.csv`, `turn_labels.csv`, `relations.csv`,
 flat CSV—is the lossless representation. Raw transcript and exact span/evidence
 text are redacted from exports by default.
 
-## Administrator UI sequence
+## Administrator/researcher UI sequence
 
-Within **Admin → Session Logs → selected completed session**:
+Entry point: **Research (top-level nav, visible to admin and researcher) →
+Evaluate Sessions tab → select a session → evaluation workspace at
+`/research/evaluate/:sessionId`**.
 
-1. The existing transcript, feedback, evaluation details, and metrics timeline
-   remain visible.
+The Research page is a tabbed shell (same tab pattern as Admin.tsx): the
+**Analytics** tab holds the pre-existing anonymized-analytics dashboard
+(score trends, fairness metrics, anonymized session table, exports — admin
+only); the **Evaluate Sessions** tab lists real sessions (shared with Admin's
+Session Logs tab via the `AdminSessionsTable` component) and, on row click,
+navigates to the evaluation workspace page. `/research/sessions` still exists
+as the full anonymized-session drill-down, linked from the Analytics tab's
+"View All Sessions" link.
+
+Within the evaluation workspace page:
+
+1. Session context (transcript) loads for orientation.
 2. The Research Evaluation area loads descriptors.
 3. Baseline is selected by default; live evaluators show provider requirements
    and remain unselected.

@@ -64,6 +64,55 @@ class ResearchAnnotationRepository:
             query = query.with_for_update()
         return query.first()
 
+    def get_evaluation_statuses_for_sessions(
+        self, session_ids: list[int]
+    ) -> dict[int, tuple[bool, ResearchAnnotationSet | None]]:
+        """Return, per session id, whether it has any saved run and its latest annotation set.
+
+        @remarks
+        Backs the Sessions-list status chip: one aggregation query over existing
+        `research_evaluation_runs`/`research_annotation_sets` rows, no new tables. "Latest"
+        is the most recently updated annotation set across all of that session's saved runs
+        and reviewers.
+        """
+
+        if not session_ids:
+            return {}
+
+        runs = (
+            self.db.query(ResearchEvaluationRun.id, ResearchEvaluationRun.source_session_id)
+            .filter(ResearchEvaluationRun.source_session_id.in_(session_ids))
+            .all()
+        )
+        run_ids_by_session: dict[int, list[UUID]] = {}
+        for run_id, session_id in runs:
+            run_ids_by_session.setdefault(session_id, []).append(run_id)
+
+        all_run_ids = [run_id for run_id, _ in runs]
+        latest_set_by_run_id: dict[UUID, ResearchAnnotationSet] = {}
+        if all_run_ids:
+            sets = (
+                self.db.query(ResearchAnnotationSet)
+                .filter(ResearchAnnotationSet.evaluation_run_id.in_(all_run_ids))
+                .order_by(ResearchAnnotationSet.updated_at.desc())
+                .all()
+            )
+            for annotation_set in sets:
+                # Rows arrive newest-first; keep only the first (latest) per run id.
+                latest_set_by_run_id.setdefault(annotation_set.evaluation_run_id, annotation_set)
+
+        result: dict[int, tuple[bool, ResearchAnnotationSet | None]] = {}
+        for session_id in session_ids:
+            run_ids = run_ids_by_session.get(session_id, [])
+            candidates = [
+                latest_set_by_run_id[run_id]
+                for run_id in run_ids
+                if run_id in latest_set_by_run_id
+            ]
+            latest = max(candidates, key=lambda item: item.updated_at, default=None)
+            result[session_id] = (len(run_ids) > 0, latest)
+        return result
+
     def find_annotation_set(
         self,
         *,

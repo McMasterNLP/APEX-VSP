@@ -28,28 +28,28 @@ export const Sidebar = () => {
       name: 'Dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['trainee', 'admin'],
+      roles: ['trainee', 'admin', 'researcher'],
       isActive: (loc: Location) => loc.pathname === '/dashboard',
     },
     {
       name: 'Sessions',
       href: '/sessions',
       icon: ClipboardList,
-      roles: ['trainee', 'admin'],
+      roles: ['trainee', 'admin', 'researcher'],
       isActive: (loc: Location) => loc.pathname === '/sessions' || loc.pathname.startsWith('/sessions/'),
     },
     {
       name: 'Cases',
       href: '/cases',
       icon: FileText,
-      roles: ['trainee', 'admin'],
+      roles: ['trainee', 'admin', 'researcher'],
       isActive: (loc: Location) => loc.pathname === '/cases' || loc.pathname.startsWith('/case/'),
     },
     {
       name: 'Analytics',
       href: '/analytics',
       icon: LineChart,
-      roles: ['trainee', 'admin'],
+      roles: ['trainee', 'admin', 'researcher'],
     },
   ].filter((item) => item.roles.includes(user?.role || 'trainee'))
 
@@ -58,15 +58,17 @@ export const Sidebar = () => {
       name: 'Research',
       href: '/research',
       icon: BarChart3,
+      roles: ['admin', 'researcher'],
       isActive: (loc: Location) => loc.pathname === '/research' || loc.pathname.startsWith('/research/'),
     },
     {
       name: 'Admin',
       href: '/admin',
       icon: Shield,
+      roles: ['admin'],
       isActive: (loc: Location) => loc.pathname === '/admin' || loc.pathname.startsWith('/admin/'),
     },
-  ]
+  ].filter((item) => item.roles.includes(user?.role || 'trainee'))
 
   return (
     <div
@@ -115,10 +117,10 @@ export const Sidebar = () => {
             )
           })}
 
-          {user?.role === 'admin' && (
+          {adminNavigation.length > 0 && (
             <div className="pt-4">
               <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                Admin
+                {user?.role === 'admin' ? 'Admin' : 'Research'}
               </div>
               <div className="space-y-1">
                 {adminNavigation.map((item) => {

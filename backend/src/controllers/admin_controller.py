@@ -9,12 +9,14 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from config.settings import get_settings
-from core.deps import get_db, require_admin
+from core.deps import get_db, require_admin, require_admin_or_researcher
+from core.security import RoleScopes
 from domain.entities.user import User
 from core.time import UTCDateTime
 from domain.models.admin import (
     AdminUserOverviewResponse,
     AdminUserOverviewRow,
+    AdminUserRoleUpdateRequest,
     AnalyticsDashboard,
 )
 from plugins.registry import PluginRegistry
@@ -141,7 +143,7 @@ async def db_health(
 @router.get("/sessions", response_model=AdminSessionListResponse)
 async def list_all_sessions(
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
     user_id: Optional[int] = Query(None),
     case_id: Optional[int] = Query(None),
     start_date: Optional[UTCDateTime] = Query(None),
@@ -189,7 +191,7 @@ async def list_all_sessions(
 async def get_admin_session_detail(
     session_id: int,
     db: Annotated[Session, Depends(get_db)],
-    current_user: Annotated[User, Depends(require_admin)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
     """Get transcript, feedback summary, and metrics timeline for a session (admin only)."""
     session_service = SessionService(db)
@@ -266,6 +268,44 @@ async def get_users_overview(
         total=total,
         skip=skip,
         limit=limit,
+    )
+
+
+@router.patch("/users/{user_id}/role", response_model=AdminUserOverviewRow)
+async def update_user_role(
+    user_id: int,
+    request: AdminUserRoleUpdateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    """Change a user's role (admin only). Role promotion is deliberately admin-only."""
+    if request.role not in RoleScopes.get_all_scopes():
+        raise HTTPException(
+            status_code=422,
+            detail=f"role must be one of: {', '.join(RoleScopes.get_all_scopes())}",
+        )
+    user_repo = UserRepository(db)
+    user = user_repo.get_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.role = request.role
+    user_repo.update(user)
+
+    rows, _ = user_repo.list_admin_overview(skip=0, limit=1, sort="email_asc", role=None, q=user.email)
+    if rows:
+        return AdminUserOverviewRow(**rows[0])
+    # Fallback if aggregate lookup somehow misses (should not normally happen).
+    return AdminUserOverviewRow(
+        id=user.id,
+        email=user.email,
+        full_name=user.full_name,
+        role=user.role,
+        created_at=user.created_at,
+        session_count=0,
+        completed_session_count=0,
+        last_session_at=None,
+        average_overall_score=None,
+        average_empathy_score=None,
     )
 
 

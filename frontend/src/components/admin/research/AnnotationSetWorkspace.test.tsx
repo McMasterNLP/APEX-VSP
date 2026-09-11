@@ -338,7 +338,6 @@ describe('AnnotationSetWorkspace', () => {
       />
     )
 
-    expect(screen.getByText('0 / 1 (0%)')).toBeInTheDocument()
     expect(screen.getByText(/span boundaries cannot be changed/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/start offset|end offset|corrected text/i)).not.toBeInTheDocument()
 

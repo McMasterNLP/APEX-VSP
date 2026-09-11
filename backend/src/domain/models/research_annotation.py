@@ -640,6 +640,24 @@ class AnnotationWorkspaceRecord(StrictAnnotationModel):
     annotation_set: AnnotationSetRecord
 
 
+class SessionEvaluationStatusDTO(StrictAnnotationModel):
+    """Minimal per-session evaluation/annotation summary for the Sessions-list chip.
+
+    @remarks
+    Deliberately excludes full run/annotation-set payloads: this exists only to let
+    a session table render a status chip without an N+1 per-row fetch.
+    """
+
+    session_id: int
+    has_saved_runs: bool
+    latest_annotation_set_status: AnnotationSetStatus | None = None
+    latest_annotation_set_locked: bool | None = None
+
+
+class SessionEvaluationStatusResponse(StrictAnnotationModel):
+    statuses: tuple[SessionEvaluationStatusDTO, ...]
+
+
 def prediction_identifier(prediction: ReviewableProjection) -> str:
     """Return the stable Item 1 identifier for any reviewable projection."""
 
