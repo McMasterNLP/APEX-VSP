@@ -37,6 +37,11 @@ from domain.models.research_evaluation import (
     ResearchEvaluatorDescriptorsResponse,
     ResearchExportRequest,
 )
+from domain.models.research_validation import (
+    ValidationRunCreateRequest,
+    ValidationRunExportRequest,
+    ValidationRunRecord,
+)
 from services.research_evaluation_service import (
     ResearchEvaluationService,
     ResearchEvaluationServiceError,
@@ -53,6 +58,11 @@ from services.research_evaluation_run_service import (
 from repositories.research_annotation_repo import ResearchAnnotationRepository
 from services.research_export_service import ResearchExportService
 from services.research_service import ResearchService, resolve_anon_to_session_id
+from services.research_validation_export_service import ResearchValidationExportService
+from services.research_validation_service import (
+    ResearchValidationService,
+    ResearchValidationServiceError,
+)
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/research", tags=["research"])
@@ -116,6 +126,23 @@ def _raise_annotation_http_error(error: ResearchAnnotationServiceError) -> None:
     if error.current_decision_revision is not None:
         detail["current_decision_revision"] = error.current_decision_revision
     raise HTTPException(status_code=status_by_category[error.category], detail=detail) from error
+
+
+def _raise_validation_http_error(error: ResearchValidationServiceError) -> None:
+    status_by_category = {
+        "evaluation_run_not_found": 404,
+        "annotation_set_not_found": 404,
+        "annotation_set_not_complete": 409,
+        "transcript_mismatch": 409,
+        "unknown_matching_policy": 422,
+        "invalid_projection": 422,
+        "validation_run_not_found": 404,
+        "persistence_failed": 500,
+    }
+    raise HTTPException(
+        status_code=status_by_category[error.category],
+        detail={"category": error.category, "message": str(error)},
+    ) from error
 
 
 @router.get("/evaluators", response_model=ResearchEvaluatorDescriptorsResponse)
@@ -439,6 +466,80 @@ async def export_research_annotation_set(
         annotation_set_uuid,
         request.profile,
         request.include_transcript_content,
+    )
+    return Response(
+        content=artifact.content,
+        media_type=artifact.media_type,
+        headers={"Content-Disposition": f'attachment; filename="{artifact.filename}"'},
+    )
+
+
+@router.post(
+    "/validation-runs",
+    response_model=ValidationRunRecord,
+)
+async def create_research_validation_run(
+    request: ValidationRunCreateRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """Score one saved evaluator run's own predictions against a completed reference.
+
+    @remarks
+    `evaluation_run_uuid` need not equal the annotation set's own run: validating
+    a different evaluator's raw predictions against an existing human-resolved
+    reference (same transcript) is intentionally supported.
+    """
+
+    try:
+        record = ResearchValidationService(db).create_validation_run(request, current_user)
+    except ResearchValidationServiceError as error:
+        _raise_validation_http_error(error)
+    logger.info(
+        "Research validation run created admin_user_id=%s evaluation_run_uuid=%s "
+        "annotation_set_uuid=%s validation_run_uuid=%s",
+        current_user.id,
+        request.evaluation_run_uuid,
+        request.annotation_set_uuid,
+        record.validation_run_uuid,
+    )
+    return record
+
+
+@router.get(
+    "/validation-runs/{validation_run_uuid}",
+    response_model=ValidationRunRecord,
+)
+async def get_research_validation_run(
+    validation_run_uuid: UUID,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    try:
+        return ResearchValidationService(db).get_validation_run(validation_run_uuid)
+    except ResearchValidationServiceError as error:
+        _raise_validation_http_error(error)
+
+
+@router.post("/validation-runs/{validation_run_uuid}/exports")
+async def export_research_validation_run(
+    validation_run_uuid: UUID,
+    request: ValidationRunExportRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    validation_service = ResearchValidationService(db)
+    try:
+        artifact = ResearchValidationExportService(
+            validation_service, validation_service.run_service
+        ).render(validation_run_uuid, request)
+    except ResearchValidationServiceError as error:
+        _raise_validation_http_error(error)
+    logger.info(
+        "Research validation export admin_user_id=%s validation_run_uuid=%s profile=%s",
+        current_user.id,
+        validation_run_uuid,
+        request.profile,
     )
     return Response(
         content=artifact.content,

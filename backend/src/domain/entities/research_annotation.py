@@ -349,6 +349,64 @@ class ResearchCoverageDeclarationRevision(Base):
     created_at = Column(UTCDateTimeType(), nullable=False, default=utc_now)
 
 
+class ResearchValidationRun(Base):
+    """Immutable Item 3A evaluator-performance validation result.
+
+    @remarks
+    ``evaluation_run_id`` is the run being validated -- it is deliberately NOT
+    constrained to equal the annotation set's own ``evaluation_run_id``: a second
+    evaluator's raw predictions may be validated against a reference some other
+    reviewed run produced, provided both share a transcript hash.
+    """
+
+    __tablename__ = "research_validation_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "annotation_set_revision_at_validation >= 0",
+            name="ck_research_validation_runs_revision",
+        ),
+        Index("ix_research_validation_runs_evaluation_run", "evaluation_run_id"),
+        Index("ix_research_validation_runs_annotation_set", "annotation_set_id"),
+        {"schema": "core"},
+    )
+
+    id = Column(Uuid(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    evaluation_run_id = Column(
+        Uuid(as_uuid=True),
+        ForeignKey("core.research_evaluation_runs.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    annotation_set_id = Column(
+        Uuid(as_uuid=True),
+        ForeignKey("core.research_annotation_sets.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    annotation_set_revision_at_validation = Column(Integer, nullable=False)
+    transcript_hash = Column(String(64), nullable=False)
+    evaluator_identifier = Column(String(100), nullable=False)
+    evaluator_version = Column(String(50), nullable=False)
+    matching_policy_identifier = Column(String(100), nullable=False)
+    matching_policy_version = Column(String(50), nullable=False)
+    metric_implementation_version = Column(String(100), nullable=False)
+    coverage_level = Column(String(40), nullable=False)
+    results_json = Column(Text, nullable=False)
+    warnings_json = Column(Text, nullable=False, default="[]")
+    created_by_user_id = Column(
+        Integer,
+        ForeignKey("core.users.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    created_at = Column(UTCDateTimeType(), nullable=False, default=utc_now)
+
+    evaluation_run = relationship(
+        "ResearchEvaluationRun", foreign_keys=[evaluation_run_id], viewonly=True
+    )
+    annotation_set = relationship(
+        "ResearchAnnotationSet", foreign_keys=[annotation_set_id], viewonly=True
+    )
+    created_by = relationship("User", foreign_keys=[created_by_user_id], viewonly=True)
+
+
 def _prevent_mutation(mapper, connection, target) -> None:
     del mapper, connection, target
     raise ValueError("Immutable research records cannot be updated or deleted.")
@@ -361,6 +419,7 @@ for _append_only_entity in (
     ResearchHumanAnnotationRevision,
     ResearchAuthoredRelationRevision,
     ResearchCoverageDeclarationRevision,
+    ResearchValidationRun,
 ):
     event.listen(_append_only_entity, "before_update", _prevent_mutation)
     event.listen(_append_only_entity, "before_delete", _prevent_mutation)
