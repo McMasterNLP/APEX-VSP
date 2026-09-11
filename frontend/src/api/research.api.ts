@@ -8,6 +8,7 @@ import type {
   AnnotationExportProfile,
   AnnotationSetCreateRequest,
   AnnotationSetRecord,
+  AnnotationSetStatus,
   CanonicalSpanSelection,
   CoverageLevel,
   EvaluationRunRecord,
@@ -331,6 +332,35 @@ export async function downloadResearchEvaluationExport(
     }
     throw err
   }
+}
+
+/** One session's small evaluation/annotation summary from the bulk status endpoint. */
+export interface SessionEvaluationStatusDTO {
+  session_id: number
+  has_saved_runs: boolean
+  latest_annotation_set_status: AnnotationSetStatus | null
+  latest_annotation_set_locked: boolean | null
+}
+
+/**
+ * Batch-fetches per-session evaluation/annotation status for the Sessions-list chip.
+ *
+ * @remarks
+ * Single call for all currently-listed session ids (not one request per row); backed by
+ * `GET /v1/research/sessions/evaluation-status`, capped server-side at 200 ids per call.
+ *
+ * @param sessionIds - Session ids currently shown in the table
+ * @returns One status row per id the backend recognized
+ */
+export async function fetchSessionEvaluationStatuses(
+  sessionIds: number[]
+): Promise<SessionEvaluationStatusDTO[]> {
+  if (sessionIds.length === 0) return []
+  const { data } = await api.get<{ statuses: SessionEvaluationStatusDTO[] }>(
+    `${BASE}/sessions/evaluation-status`,
+    { params: { session_ids: sessionIds.join(',') } }
+  )
+  return data.statuses
 }
 
 /** Lists immutable server-generated evaluation runs for one source session. */

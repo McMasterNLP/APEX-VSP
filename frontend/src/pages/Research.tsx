@@ -502,7 +502,7 @@ type ScoreTrendGranularity = 'hourly' | 'daily' | 'weekly'
 /** Tab definitions for the Research page: id, label, and icon for the sub-navigation. */
 const RESEARCH_TABS = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'evaluate', label: 'Evaluate Sessions', icon: ClipboardCheck },
+  { id: 'evaluate', label: 'Sessions', icon: ClipboardCheck },
 ] as const
 
 type ResearchTabId = (typeof RESEARCH_TABS)[number]['id']
@@ -1077,14 +1077,15 @@ export const Research = () => {
   }
 
   /**
-   * Renders the Evaluate Sessions tab: real (non-anonymized) session picker for the
+   * Renders the Sessions tab: real (non-anonymized) session picker for the
    * Item 1/2A/2B evaluation/annotation workflow. Reuses {@link AdminSessionsTable}, the same
-   * shared session-list component Admin's Session Logs tab uses.
+   * shared session-list component Admin's Session Logs tab uses, with its evaluation-status
+   * chip and default sort enabled (Admin's own Sessions tab leaves this off).
    */
   const renderEvaluateSessionsTab = () => (
     <Card>
       <CardHeader>
-        <CardTitle>Evaluate Sessions</CardTitle>
+        <CardTitle>Evaluation Sessions</CardTitle>
         <p className="text-sm text-gray-500 mt-1">
           Select a session to open the evaluator checklist, saved evaluation runs, and
           annotation workspace. These are real (non-anonymized) sessions, shown only to
@@ -1094,6 +1095,7 @@ export const Research = () => {
       <CardContent>
         <AdminSessionsTable
           onRowClick={(session) => navigate(`/research/evaluate/${session.id}`)}
+          showEvaluationStatus
         />
       </CardContent>
     </Card>

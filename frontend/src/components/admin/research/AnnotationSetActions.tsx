@@ -2,13 +2,11 @@ import { useState } from 'react'
 import type { AxiosError } from 'axios'
 import {
   completeResearchAnnotationSet,
-  downloadResearchAnnotationExport,
   fetchResearchAnnotationSet,
   getResearchApiMessage,
   reopenResearchAnnotationSet,
 } from '@/api/research.api'
 import type {
-  AnnotationExportProfile,
   AnnotationSetRecord,
   ResearchRevisionConflict,
 } from '@/types/researchEvaluation'
@@ -21,12 +19,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
-
-const exportProfiles: Array<[AnnotationExportProfile, string]> = [
-  ['full_review', 'Full review JSON'],
-  ['resolved_projection', 'Resolved projection JSON'],
-  ['audit_history', 'Audit history JSON'],
-]
+import { AnnotationExportButtons } from './AnnotationExportButtons'
 
 function revisionConflict(error: unknown): ResearchRevisionConflict | null {
   const payload = (error as AxiosError<{ message?: ResearchRevisionConflict }>).response?.data
@@ -110,18 +103,6 @@ export function AnnotationSetActions({
     }
   }
 
-  const download = async (profile: AnnotationExportProfile) => {
-    setBusyAction(profile)
-    setError(null)
-    try {
-      await downloadResearchAnnotationExport(annotationSet.annotation_set_uuid, profile)
-    } catch (caught) {
-      setError(getResearchApiMessage(caught, 'The annotation export could not be downloaded.'))
-    } finally {
-      setBusyAction(null)
-    }
-  }
-
   return (
     <section aria-labelledby="annotation-set-actions-heading" className="space-y-3 rounded-md border border-gray-200 p-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -159,19 +140,8 @@ export function AnnotationSetActions({
       <div>
         <p className="text-sm font-medium text-gray-800">Sanitized exports</p>
         <p className="text-xs text-gray-600">Transcript text is excluded by default.</p>
-        <div className="mt-2 flex flex-wrap gap-2" aria-label="Annotation export controls">
-          {exportProfiles.map(([profile, label]) => (
-            <Button
-              key={profile}
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={busyAction !== null}
-              onClick={() => void download(profile)}
-            >
-              {busyAction === profile ? 'Preparing…' : label}
-            </Button>
-          ))}
+        <div className="mt-2">
+          <AnnotationExportButtons annotationSetUuid={annotationSet.annotation_set_uuid} />
         </div>
       </div>
 

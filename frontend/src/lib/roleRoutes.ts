@@ -12,6 +12,7 @@ import type { Role } from '@/store/authStore'
  * named helper (rather than inlining `/dashboard`) so a future role with a
  * different default landing page only needs a change here.
  */
-export const getHomeRouteForRole = (_role?: Role): string => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- role kept in the signature so a future role-specific default needs no call-site changes
+export const getHomeRouteForRole = (role?: Role): string => {
   return '/dashboard'
 }

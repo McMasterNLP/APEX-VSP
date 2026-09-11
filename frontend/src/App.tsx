@@ -18,7 +18,12 @@ import { Analytics } from './pages/Analytics'
 import { Admin } from './pages/Admin'
 import { Research } from './pages/Research'
 import { ResearchSessions } from './pages/ResearchSessions'
-import { ResearchEvaluationSessionPage } from './pages/ResearchEvaluationSessionPage'
+import { ResearchEvaluationWorkspace } from './pages/ResearchEvaluationWorkspace'
+import { OverviewTab } from './pages/research-workspace/OverviewTab'
+import { RunCompareTab } from './pages/research-workspace/RunCompareTab'
+import { SavedRunsTab } from './pages/research-workspace/SavedRunsTab'
+import { ReviewAnnotateTab } from './pages/research-workspace/ReviewAnnotateTab'
+import { ExportTab } from './pages/research-workspace/ExportTab'
 import { AdminResearchSessionPage } from './pages/AdminResearchSessionPage'
 import { PluginDeveloperGuide } from './pages/PluginDeveloperGuide'
 import { DeveloperOnboarding } from './pages/DeveloperOnboarding'
@@ -195,14 +200,27 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/*
+          Nested route: this is the first use of react-router's parent-route +
+          <Outlet> pattern in this codebase. ResearchEvaluationWorkspace is the shared
+          parent — it fetches session/evaluation state once (useEvaluationSession) and
+          passes it to whichever child tab route is active via <Outlet context={...} />.
+        */}
         <Route
           path="/research/evaluate/:sessionId"
           element={
             <ProtectedRoute allowedRoles={['admin', 'researcher']}>
-              <ResearchEvaluationSessionPage />
+              <ResearchEvaluationWorkspace />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={<OverviewTab />} />
+          <Route path="run" element={<RunCompareTab />} />
+          <Route path="runs" element={<SavedRunsTab />} />
+          <Route path="review" element={<ReviewAnnotateTab />} />
+          <Route path="export" element={<ExportTab />} />
+        </Route>
         <Route
           path="/admin/sessions/:sessionId"
           element={

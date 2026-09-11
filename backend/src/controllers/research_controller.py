@@ -28,6 +28,8 @@ from domain.models.research_annotation import (
     HumanAnnotationRevisionRequest,
     ResearchEvaluationRunSaveRequest,
     ReviewDecisionWriteRequest,
+    SessionEvaluationStatusDTO,
+    SessionEvaluationStatusResponse,
 )
 from domain.models.research_evaluation import (
     ResearchEvaluationRequest,
@@ -48,11 +50,14 @@ from services.research_evaluation_run_service import (
     ResearchEvaluationRunService,
     ResearchEvaluationRunServiceError,
 )
+from repositories.research_annotation_repo import ResearchAnnotationRepository
 from services.research_export_service import ResearchExportService
 from services.research_service import ResearchService, resolve_anon_to_session_id
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/research", tags=["research"])
+
+MAX_EVALUATION_STATUS_SESSION_IDS = 200
 
 
 def _raise_research_evaluation_http_error(error: ResearchEvaluationServiceError) -> None:
@@ -139,6 +144,61 @@ async def evaluate_research_session(
         return await ResearchEvaluationService(db).evaluate(session_id, request)
     except ResearchEvaluationServiceError as error:
         _raise_research_evaluation_http_error(error)
+
+
+@router.get(
+    "/sessions/evaluation-status",
+    response_model=SessionEvaluationStatusResponse,
+)
+async def get_session_evaluation_statuses(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+    session_ids: str = Query(
+        ...,
+        description="Comma-separated session ids, at most "
+        f"{MAX_EVALUATION_STATUS_SESSION_IDS}.",
+    ),
+):
+    """Return a small per-session evaluation/annotation summary for a Sessions-list chip.
+
+    @remarks
+    Batched to avoid an N+1 per-row fetch on the sessions table; backed entirely by
+    existing `research_evaluation_runs`/`research_annotation_sets` rows (no new tables).
+    Returns only whether a session has saved runs and its latest annotation set's
+    `status`/`locked` — never full run or annotation-set payloads.
+    """
+
+    try:
+        parsed_ids = sorted(
+            {int(raw.strip()) for raw in session_ids.split(",") if raw.strip()}
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=422, detail="session_ids must be a comma-separated list of integers."
+        ) from error
+    if len(parsed_ids) > MAX_EVALUATION_STATUS_SESSION_IDS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"session_ids may include at most {MAX_EVALUATION_STATUS_SESSION_IDS} ids.",
+        )
+
+    statuses_by_session = ResearchAnnotationRepository(db).get_evaluation_statuses_for_sessions(
+        parsed_ids
+    )
+    statuses = tuple(
+        SessionEvaluationStatusDTO(
+            session_id=session_id,
+            has_saved_runs=has_saved_runs,
+            latest_annotation_set_status=(
+                latest_set.status if latest_set is not None else None
+            ),
+            latest_annotation_set_locked=(
+                latest_set.status == "complete" if latest_set is not None else None
+            ),
+        )
+        for session_id, (has_saved_runs, latest_set) in statuses_by_session.items()
+    )
+    return SessionEvaluationStatusResponse(statuses=statuses)
 
 
 @router.post(
