@@ -10,6 +10,7 @@ from domain.entities.research_annotation import (
     ResearchEvaluationRun,
     ResearchHumanAnnotationRevision,
     ResearchReviewDecisionRevision,
+    ResearchValidationRun,
 )
 from domain.entities.session import Session
 from domain.entities.turn import Turn
@@ -28,4 +29,5 @@ __all__ = [
     "ResearchAuthoredRelationRevision",
     "ResearchCoverageDeclarationRevision",
     "ResearchHumanAnnotationRevision",
+    "ResearchValidationRun",
 ]

@@ -14,6 +14,7 @@ from domain.entities.research_annotation import (
     ResearchEvaluationRun,
     ResearchHumanAnnotationRevision,
     ResearchReviewDecisionRevision,
+    ResearchValidationRun,
 )
 
 
@@ -210,3 +211,15 @@ class ResearchAnnotationRepository:
         return self.db.query(ResearchCoverageDeclarationRevision).filter(
             ResearchCoverageDeclarationRevision.annotation_set_id == annotation_set_id
         ).order_by(ResearchCoverageDeclarationRevision.coverage_revision.asc()).all()
+
+    def add_validation_run(self, validation_run: ResearchValidationRun) -> ResearchValidationRun:
+        self.db.add(validation_run)
+        self.db.flush()
+        return validation_run
+
+    def get_validation_run(self, validation_run_uuid: UUID) -> ResearchValidationRun | None:
+        return (
+            self.db.query(ResearchValidationRun)
+            .filter(ResearchValidationRun.id == validation_run_uuid)
+            .first()
+        )
