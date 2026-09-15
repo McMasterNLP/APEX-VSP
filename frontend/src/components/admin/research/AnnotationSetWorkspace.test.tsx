@@ -338,8 +338,10 @@ describe('AnnotationSetWorkspace', () => {
       />
     )
 
+    fireEvent.click(screen.getByRole('button', { name: 'Correct prediction' }))
     expect(screen.getByText(/span boundaries cannot be changed/i)).toBeInTheDocument()
     expect(screen.queryByLabelText(/start offset|end offset|corrected text/i)).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel correction' }))
 
     fireEvent.change(screen.getByLabelText('Reviewer note'), { target: { value: 'Verified.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Confirm prediction' }))
@@ -351,6 +353,7 @@ describe('AnnotationSetWorkspace', () => {
       reviewer_note: 'Verified.',
     }))
 
+    fireEvent.click(screen.getByRole('button', { name: 'Correct prediction' }))
     fireEvent.change(screen.getByLabelText('Corrected dimension'), { target: { value: 'judgment' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save label correction' }))
     await waitFor(() => expect(mockedSave).toHaveBeenLastCalledWith('set-uuid', 'span-1', expect.objectContaining({
@@ -375,6 +378,7 @@ describe('AnnotationSetWorkspace', () => {
       />
     )
 
+    fireEvent.click(screen.getByRole('button', { name: 'Correct prediction' }))
     fireEvent.change(screen.getByLabelText('Corrected score'), { target: { value: '3' } })
     fireEvent.click(screen.getByLabelText('Turn 2'))
     fireEvent.click(screen.getByRole('button', { name: 'Save rating correction' }))
@@ -502,6 +506,11 @@ describe('AnnotationSetWorkspace', () => {
       />
     )
     fireEvent.click(screen.getByRole('button', { name: 'Complete and lock review' }))
+    // Completing now opens a single "finish and lock" dialog that declares coverage and
+    // completes the set together, rather than requiring a separate "save coverage" step first.
+    expect(screen.getByRole('heading', { name: 'Finish and lock review?' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Finish and lock' }))
+    await waitFor(() => expect(mockedCoverage).toHaveBeenCalledWith('set-uuid', 3, 'prediction_review_only'))
     await waitFor(() => expect(mockedComplete).toHaveBeenCalledWith('set-uuid', 3))
     expect(onChange).toHaveBeenCalledWith(locked)
   })
@@ -563,7 +572,7 @@ describe('AnnotationSetWorkspace', () => {
     expect(screen.getByText(/transcript text is excluded by default/i)).toBeInTheDocument()
   })
 
-  it('authors selected text explicitly, supports Escape cancellation, and declares coverage', async () => {
+  it('authors selected text explicitly and supports Escape cancellation', async () => {
     const annotationSet = makeAuthoringSet()
     const onChange = vi.fn()
     render(<AnnotationSetWorkspace run={makeRun([spanPrediction])} annotationSet={annotationSet} onChange={onChange} />)
@@ -596,10 +605,6 @@ describe('AnnotationSetWorkspace', () => {
       selection: expect.objectContaining({ start_offset: 12, end_offset: 21, selected_text: 'difficult' }),
       label: 'empathic_response',
     })))
-
-    fireEvent.change(screen.getByLabelText('Annotation coverage'), { target: { value: 'prediction_review_only' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Save coverage' }))
-    await waitFor(() => expect(mockedCoverage).toHaveBeenCalledWith('set-uuid', 3, 'prediction_review_only'))
   })
 
   it('relabels into an attribute-requiring label with a default attribute value', async () => {

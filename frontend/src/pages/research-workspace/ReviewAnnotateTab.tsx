@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { AnnotationSetWorkspace } from '@/components/admin/research/AnnotationSetWorkspace'
 import { ReviewProgress } from '@/components/admin/research/ReviewProgress'
+import type { AnnotationSetRecord } from '@/types/researchEvaluation'
 import type { EvaluationSessionContext } from './useEvaluationSession'
 
 export function ReviewAnnotateTab() {
@@ -26,11 +27,25 @@ export function ReviewAnnotateTab() {
     openSavedRun,
     createOrOpenSet,
     setAnnotationSet,
+    refetchAnnotationSets,
     error,
   } = useOutletContext<EvaluationSessionContext>()
   const [searchParams] = useSearchParams()
   const requestedRunUuid = searchParams.get('run')
   const [resolvingRunUuid, setResolvingRunUuid] = useState<string | null>(null)
+
+  // The Validate tab (and the Export tab's "Validation exports" group) read from the
+  // separately-fetched `annotationSets` summary list, not this tab's own `annotationSet`
+  // record — so completing/locking (or reopening) a set here has to explicitly refresh
+  // that list, or Validate keeps showing the pre-completion state until a full reload.
+  const handleAnnotationSetChange = (next: AnnotationSetRecord | null) => {
+    const completionChanged =
+      next !== null &&
+      annotationSet !== null &&
+      (next.status !== annotationSet.status || next.locked !== annotationSet.locked)
+    setAnnotationSet(next)
+    if (completionChanged) void refetchAnnotationSets()
+  }
 
   const openForReview = async (runUuid: string) => {
     setResolvingRunUuid(runUuid)
@@ -135,7 +150,7 @@ export function ReviewAnnotateTab() {
       {resolved && (
         <>
           <ReviewProgress progress={annotationSet.progress} />
-          <AnnotationSetWorkspace run={selectedRun} annotationSet={annotationSet} onChange={setAnnotationSet} />
+          <AnnotationSetWorkspace run={selectedRun} annotationSet={annotationSet} onChange={handleAnnotationSetChange} />
         </>
       )}
     </section>
