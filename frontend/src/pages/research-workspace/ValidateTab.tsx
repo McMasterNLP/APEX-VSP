@@ -35,6 +35,18 @@ export function ValidateTab() {
   const [annotationSetUuid, setAnnotationSetUuid] = useState('')
   const [viewedRunUuid, setViewedRunUuid] = useState<string | null>(null)
 
+  const selectedEvaluationRun = savedRuns.find((run) => run.run_uuid === evaluationRunUuid) ?? null
+  const selectedAnnotationSet =
+    completeAnnotationSets.find((set) => set.annotation_set_uuid === annotationSetUuid) ?? null
+  // The backend only lets a validation run be created when the evaluator run and the
+  // reference annotation set share the same transcript hash (Item 3A's own gate) --
+  // checking that here, before the request, turns a generic server rejection into an
+  // explanation of exactly which two selections disagree and why.
+  const transcriptMismatch =
+    selectedEvaluationRun !== null &&
+    selectedAnnotationSet !== null &&
+    selectedEvaluationRun.transcript_hash !== selectedAnnotationSet.transcript_hash
+
   useEffect(() => {
     if (viewedRunUuid === null && validationRuns.length > 0) {
       setViewedRunUuid(validationRuns[0].validation_run_uuid)
@@ -42,7 +54,7 @@ export function ValidateTab() {
   }, [validationRuns, viewedRunUuid])
 
   const onValidate = async () => {
-    if (!evaluationRunUuid || !annotationSetUuid) return
+    if (!evaluationRunUuid || !annotationSetUuid || transcriptMismatch) return
     const created = await createValidationRun(evaluationRunUuid, annotationSetUuid)
     if (created) setViewedRunUuid(created.validation_run_uuid)
   }
@@ -172,10 +184,19 @@ export function ValidateTab() {
             )}
           </label>
 
+          {transcriptMismatch && (
+            <p role="status" className="rounded border border-amber-300 bg-amber-50 p-2 text-sm text-amber-900">
+              This evaluator run and annotation set were scored against different
+              transcripts (their transcript hashes don&apos;t match), so a validation run
+              between them would be rejected. Choose a run and reference set captured from
+              the same transcript.
+            </p>
+          )}
+
           <Button
             type="button"
             onClick={() => void onValidate()}
-            disabled={!evaluationRunUuid || !annotationSetUuid || creatingValidationRun}
+            disabled={!evaluationRunUuid || !annotationSetUuid || transcriptMismatch || creatingValidationRun}
           >
             {creatingValidationRun ? 'Validating…' : 'Run validation'}
           </Button>

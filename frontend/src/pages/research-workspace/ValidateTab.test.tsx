@@ -220,6 +220,27 @@ describe('ValidateTab', () => {
     await waitFor(() => expect(createValidationRun).toHaveBeenCalledWith('run-1', 'set-1'))
   })
 
+  it('warns and disables validation when the selected run and set have different transcript hashes', () => {
+    renderTab(
+      baseContext({
+        savedRuns: [savedRun('run-1')],
+        annotationSets: [
+          annotationSetSummary({ annotation_set_uuid: 'set-1', transcript_hash: 'b'.repeat(64) }),
+        ],
+      })
+    )
+
+    fireEvent.change(screen.getByLabelText(/evaluator run to score/i), {
+      target: { value: 'run-1' },
+    })
+    fireEvent.change(screen.getByLabelText(/reference annotation set/i), {
+      target: { value: 'set-1' },
+    })
+
+    expect(screen.getByText(/different transcripts/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /run validation/i })).toBeDisabled()
+  })
+
   it('only offers complete annotation sets as reference options, and notes the excluded ones', () => {
     renderTab(
       baseContext({
