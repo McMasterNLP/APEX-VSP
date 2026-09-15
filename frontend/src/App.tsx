@@ -27,6 +27,7 @@ import { ValidateTab } from './pages/research-workspace/ValidateTab'
 import { ExportTab } from './pages/research-workspace/ExportTab'
 import { AdminResearchSessionPage } from './pages/AdminResearchSessionPage'
 import { PluginDeveloperGuide } from './pages/PluginDeveloperGuide'
+import { ResearchWorkflowGuide } from './pages/ResearchWorkflowGuide'
 import { DeveloperOnboarding } from './pages/DeveloperOnboarding'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuthGate } from './hooks/useAuthGate'
@@ -236,6 +237,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <PluginDeveloperGuide />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docs/research-workflow-guide"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'researcher']}>
+              <ResearchWorkflowGuide />
             </ProtectedRoute>
           }
         />

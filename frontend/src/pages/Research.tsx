@@ -13,6 +13,10 @@ import {
 } from '@/api/research.api'
 import { useAuthStore } from '@/store/authStore'
 import { ResearchSessionsTable } from '@/components/research/ResearchSessionsTable'
+import {
+  MockAnalyticsPreview,
+  MockSpanCorrectionPreview,
+} from '@/components/research/WorkflowPreviewMocks'
 import { AdminSessionsTable } from '@/components/sessions/AdminSessionsTable'
 import { Navbar } from '@/components/Navbar'
 import { Sidebar } from '@/components/Sidebar'
@@ -20,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { parseUtcDateTime } from '@/lib/dateTime'
 import { cn } from '@/lib/utils'
-import { AlertTriangle, Download, Shield, BarChart3, TrendingUp, ClipboardCheck } from 'lucide-react'
+import { AlertTriangle, Download, Shield, BarChart3, TrendingUp, ClipboardCheck, Home, BookOpen, Sparkles, Crosshair, Lock, Puzzle, CheckCircle2 } from 'lucide-react'
 import {
   LineChart,
   Line,
@@ -501,6 +505,7 @@ type ScoreTrendGranularity = 'hourly' | 'daily' | 'weekly'
 
 /** Tab definitions for the Research page: id, label, and icon for the sub-navigation. */
 const RESEARCH_TABS = [
+  { id: 'overview', label: 'Overview', icon: Home },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'evaluate', label: 'Evaluate Sessions', icon: ClipboardCheck },
 ] as const
@@ -518,7 +523,8 @@ export const Research = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
-  const activeTab: ResearchTabId = tabParam === 'evaluate' ? 'evaluate' : 'analytics'
+  const activeTab: ResearchTabId =
+    tabParam === 'analytics' ? 'analytics' : tabParam === 'evaluate' ? 'evaluate' : 'overview'
 
   /**
    * Switches tabs and reflects the choice in the URL (`?tab=analytics|evaluate`) so the
@@ -1092,6 +1098,184 @@ export const Research = () => {
   }
 
   /**
+   * Renders the Overview tab: the default landing view for `/research` with no `?tab=`
+   * param -- a short orientation (what Analytics vs. Evaluate Sessions each are, and a
+   * couple of quick stats from data already loaded for Analytics) plus links into both
+   * tabs and the workflow guide, rather than dropping a first-time visitor straight into
+   * a charts dashboard with no context.
+   */
+  const renderOverviewTab = () => {
+    const totalAnonymizedSessions = data?.anonymizedSessions.length ?? null
+    const fairness = data?.fairnessMetrics
+
+    return (
+      <div className="space-y-10">
+        {/* Hero */}
+        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-apex-700 via-apex-600 to-emerald-600 px-8 py-12 text-white shadow-sm">
+          <div className="flex items-center gap-2 text-apex-100">
+            <Sparkles className="h-5 w-5" />
+            <span className="text-sm font-semibold uppercase tracking-wide">Research at APEX</span>
+          </div>
+          <h1 className="mt-3 max-w-2xl text-3xl font-bold sm:text-4xl">
+            Turn every training session into a reproducible research record
+          </h1>
+          <p className="mt-3 max-w-2xl text-apex-50">
+            Anonymized analytics for fairness auditing, and a full evaluate &rarr; annotate &rarr;
+            validate &rarr; export pipeline for real sessions -- built for reproducibility from the
+            ground up.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Button
+              size="sm"
+              className="bg-white text-apex-800 hover:bg-apex-50"
+              onClick={() => setActiveTab('analytics')}
+            >
+              Explore Analytics
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-white/60 bg-transparent text-white hover:bg-white/10"
+              onClick={() => setActiveTab('evaluate')}
+            >
+              Open Evaluate Sessions
+            </Button>
+            {totalAnonymizedSessions !== null && (
+              <span className="ml-1 text-sm text-apex-100">
+                <span className="font-semibold text-white">{totalAnonymizedSessions}</span>{' '}
+                anonymized session{totalAnonymizedSessions === 1 ? '' : 's'} on record
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Analytics showcase */}
+        <div>
+          <div className="mb-4 flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-apex-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Analytics capabilities</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="space-y-3 py-5">
+                <TrendingUp className="h-5 w-5 text-apex-600" />
+                <p className="font-medium text-gray-900">Score trends over time</p>
+                <p className="text-sm text-gray-600">
+                  Hourly, daily, and weekly rolling views of empathy, communication, and clinical
+                  scores across every session.
+                </p>
+                <MockAnalyticsPreview />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="space-y-2 py-5">
+                <Shield className="h-5 w-5 text-apex-600" />
+                <p className="font-medium text-gray-900">Fairness &amp; demographic parity</p>
+                <p className="text-sm text-gray-600">
+                  {fairness
+                    ? `Live demographic parity currently at ${(fairness.demographicParity * 100).toFixed(0)}%, `
+                    : 'Bias-probe consistency and demographic parity metrics, '}
+                  flagged automatically when they drop below threshold.
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="space-y-2 py-5">
+                <Download className="h-5 w-5 text-apex-600" />
+                <p className="font-medium text-gray-900">Anonymized bulk export</p>
+                <p className="text-sm text-gray-600">
+                  Metrics and transcript CSVs, hashed and demographic-binned -- never real trainee
+                  identity, by design.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="mt-3">
+            <Button size="sm" variant="outline" onClick={() => setActiveTab('analytics')}>
+              Open Analytics
+            </Button>
+          </div>
+        </div>
+
+        {/* Evaluate Sessions showcase */}
+        <div>
+          <div className="mb-4 flex items-center gap-2">
+            <ClipboardCheck className="h-5 w-5 text-apex-600" />
+            <h2 className="text-lg font-semibold text-gray-900">Evaluate Sessions capabilities</h2>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Card>
+              <CardContent className="space-y-2 py-5">
+                <Puzzle className="h-5 w-5 text-apex-600" />
+                <p className="font-medium text-gray-900">Pluggable evaluators</p>
+                <p className="text-sm text-gray-600">
+                  Run any registered evaluator plugin against a real transcript as an immutable,
+                  reproducible evaluation run.
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="border-apex-200 bg-apex-50/60">
+              <CardContent className="space-y-3 py-5">
+                <div className="flex items-center gap-2">
+                  <Crosshair className="h-5 w-5 text-apex-600" />
+                  <span className="rounded-full bg-apex-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-apex-800">
+                    Fan favorite
+                  </span>
+                </div>
+                <p className="font-medium text-gray-900">Span-level corrections</p>
+                <p className="text-sm text-gray-600">
+                  Reviewers can flag and correct exactly the prediction that's wrong -- adjust a
+                  label or rating on a specific span without touching anything else.
+                </p>
+                <MockSpanCorrectionPreview />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="space-y-2 py-5">
+                <Lock className="h-5 w-5 text-apex-600" />
+                <p className="font-medium text-gray-900">Validate &amp; lock</p>
+                <p className="text-sm text-gray-600">
+                  Run the validation engine, resolve transcript-hash mismatches, then lock an
+                  annotation set once review is complete.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Button size="sm" variant="outline" onClick={() => setActiveTab('evaluate')}>
+              Open Evaluate Sessions
+            </Button>
+            <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              Trainee identity is redacted for researchers here; the real transcript is unaffected.
+            </span>
+          </div>
+        </div>
+
+        <Card className="border-apex-200 bg-apex-50">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 py-5">
+            <div className="flex items-start gap-3">
+              <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-apex-600" />
+              <div>
+                <p className="font-medium text-apex-900">New to this workflow?</p>
+                <p className="text-sm text-apex-700">
+                  The workflow guide walks through finding a session, running an evaluator,
+                  annotating its predictions, validating, and exporting -- start to finish.
+                </p>
+              </div>
+            </div>
+            <Link to="/docs/research-workflow-guide">
+              <Button size="sm" variant="outline">
+                Read the workflow guide
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  /**
    * Renders the Sessions tab: real (non-anonymized) session picker for the
    * Item 1/2A/2B evaluation/annotation workflow. Reuses {@link AdminSessionsTable}, the same
    * shared session-list component Admin's Session Logs tab uses, with its evaluation-status
@@ -1100,12 +1284,22 @@ export const Research = () => {
   const renderEvaluateSessionsTab = () => (
     <Card>
       <CardHeader>
-        <CardTitle>Evaluation Sessions</CardTitle>
-        <p className="text-sm text-gray-500 mt-1">
-          Select a session to open the evaluator checklist, saved evaluation runs, and
-          annotation workspace. These are real (non-anonymized) sessions, shown only to
-          admins and researchers.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle>Evaluation Sessions</CardTitle>
+            <p className="text-sm text-gray-500 mt-1">
+              Select a session to open the evaluator checklist, saved evaluation runs, and
+              annotation workspace. These are real (non-anonymized) sessions, shown only to
+              admins and researchers.
+            </p>
+          </div>
+          <Link to="/docs/research-workflow-guide">
+            <Button size="sm" variant="outline" className="shrink-0">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Workflow guide
+            </Button>
+          </Link>
+        </div>
       </CardHeader>
       <CardContent>
         <AdminSessionsTable
@@ -1160,7 +1354,11 @@ export const Research = () => {
             </div>
 
             <div>
-              {activeTab === 'analytics' ? renderAnalyticsTab() : renderEvaluateSessionsTab()}
+              {activeTab === 'analytics'
+                ? renderAnalyticsTab()
+                : activeTab === 'evaluate'
+                  ? renderEvaluateSessionsTab()
+                  : renderOverviewTab()}
             </div>
           </div>
         </main>

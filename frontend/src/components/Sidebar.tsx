@@ -3,7 +3,7 @@
  */
 import { Link, useLocation, type Location } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList, ClipboardCheck } from 'lucide-react'
+import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList, ClipboardCheck, FlaskConical } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -53,13 +53,16 @@ export const Sidebar = () => {
     },
   ].filter((item) => item.roles.includes(user?.role || 'trainee'))
 
+  const researchOverviewIsActive = (loc: Location) =>
+    loc.pathname === '/research' && loc.search !== '?tab=analytics' && loc.search !== '?tab=evaluate'
+
   const researchSubNavigation = [
     {
       name: 'Analytics',
       href: '/research?tab=analytics',
       icon: BarChart3,
       isActive: (loc: Location) =>
-        loc.pathname === '/research' && loc.search !== '?tab=evaluate',
+        loc.pathname === '/research' && loc.search === '?tab=analytics',
     },
     {
       name: 'Evaluate Sessions',
@@ -131,14 +134,31 @@ export const Sidebar = () => {
           {showResearch && (
             <div className="pt-4">
               {/*
-                Research's Analytics and Sessions views are exposed directly as sub-links here
-                (rather than only as in-page tabs after landing on /research) so both are one
-                click away from anywhere in the app.
+                "Research" is a real link to the Overview tab (not just a section label) so
+                it's pressable like every other top-level item, with Analytics and Evaluate
+                Sessions nested as sub-links directly beneath it -- one click away from
+                anywhere in the app, and visually a child of Research rather than a sibling.
               */}
-              <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                Research
-              </div>
-              <div className="space-y-1">
+              <Link
+                to="/research"
+                className={cn(
+                  'group flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  researchOverviewIsActive(location)
+                    ? 'bg-emerald-100 text-emerald-900'
+                    : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-900'
+                )}
+              >
+                <FlaskConical
+                  className={cn(
+                    'h-5 w-5 shrink-0',
+                    researchOverviewIsActive(location)
+                      ? 'text-emerald-900'
+                      : 'text-gray-600 group-hover:text-emerald-900'
+                  )}
+                />
+                <span>Research</span>
+              </Link>
+              <div className="mt-1 ml-5 space-y-1 border-l border-gray-200 pl-3">
                 {researchSubNavigation.map((item) => {
                   const isActive = item.isActive(location)
                   return (
@@ -146,7 +166,7 @@ export const Sidebar = () => {
                       key={item.name}
                       to={item.href}
                       className={cn(
-                        'group flex items-center space-x-3 rounded-lg py-2 pl-6 pr-3 text-sm font-medium transition-colors',
+                        'group flex items-center space-x-3 rounded-lg py-2 pl-3 pr-3 text-sm font-medium transition-colors',
                         isActive
                           ? 'bg-emerald-100 text-emerald-900'
                           : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-900'
