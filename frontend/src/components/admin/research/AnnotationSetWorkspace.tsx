@@ -61,6 +61,7 @@ export function AnnotationSetWorkspace({
   onChange: (next: AnnotationSetRecord) => void
 }) {
   const [index, setIndex] = useState(0)
+  const [earlierUnreviewedIndex, setEarlierUnreviewedIndex] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -238,21 +239,42 @@ export function AnnotationSetWorkspace({
 
   /**
    * After a decision is saved, jumps the queue to the nearest still-unreviewed prediction
-   * (searching forward from the current position and wrapping around) so a reviewer working
-   * through the queue doesn't have to click Next after every single decision. Leaves the
-   * index untouched once nothing remains unreviewed — the "all reviewed" banner covers that.
+   * ahead of the current position, so a reviewer working through the queue top-to-bottom
+   * doesn't have to click Next after every single decision. Deliberately forward-only: it
+   * never wraps back past earlier items on its own, because a silent backward jump near the
+   * end of a queue reads as the tool losing your place. If nothing unreviewed remains ahead
+   * but some do remain earlier in the queue (e.g. skipped items, or ones reopened after a
+   * conflict), it surfaces `earlierUnreviewedIndex` instead so the UI can offer an explicit
+   * "back to top" affordance rather than teleporting there unannounced. Leaves the index
+   * untouched once nothing remains unreviewed at all -- the "all reviewed" banner covers that.
    */
   const autoAdvanceToNextUnreviewed = (updated: AnnotationSetRecord) => {
     const decidedIds = new Set(updated.effective_decisions.map((item) => item.prediction_id))
     const queue = updated.eligible_predictions
     if (queue.length === 0) return
-    for (let offset = 1; offset <= queue.length; offset += 1) {
-      const candidateIndex = (index + offset) % queue.length
+
+    for (let candidateIndex = index + 1; candidateIndex < queue.length; candidateIndex += 1) {
       if (!decidedIds.has(queue[candidateIndex]!.prediction_id)) {
         setIndex(candidateIndex)
+        setEarlierUnreviewedIndex(null)
         return
       }
     }
+
+    for (let candidateIndex = 0; candidateIndex <= index && candidateIndex < queue.length; candidateIndex += 1) {
+      if (!decidedIds.has(queue[candidateIndex]!.prediction_id)) {
+        setEarlierUnreviewedIndex(candidateIndex)
+        return
+      }
+    }
+
+    setEarlierUnreviewedIndex(null)
+  }
+
+  const jumpToEarlierUnreviewed = () => {
+    if (earlierUnreviewedIndex === null) return
+    setIndex(earlierUnreviewedIndex)
+    setEarlierUnreviewedIndex(null)
   }
 
   const save = async (
@@ -372,6 +394,14 @@ export function AnnotationSetWorkspace({
             {!annotationSet.locked && annotationSet.progress.unreviewed === 0 && (
               <p role="status" className="rounded border border-emerald-300 bg-emerald-50 p-2 text-sm font-medium text-emerald-950">
                 All predictions reviewed. Finish and lock the review above when you're ready.
+              </p>
+            )}
+            {earlierUnreviewedIndex !== null && annotationSet.progress.unreviewed > 0 && (
+              <p role="status" className="flex flex-wrap items-center justify-between gap-2 rounded border border-amber-300 bg-amber-50 p-2 text-sm font-medium text-amber-900">
+                <span>No more unreviewed items ahead in the queue -- some earlier items still need review.</span>
+                <Button type="button" size="sm" variant="outline" className="border-amber-400 bg-white" onClick={jumpToEarlierUnreviewed}>
+                  Jump to earlier unreviewed item
+                </Button>
               </p>
             )}
             <div className="flex items-center justify-between gap-2">

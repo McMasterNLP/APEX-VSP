@@ -118,6 +118,21 @@ const relationPrediction: ReviewablePrediction = {
   },
 }
 
+const relationPrediction2: ReviewablePrediction = {
+  prediction_id: 'relation-2',
+  projection_type: 'relation',
+  allowed_operations: { ...noOperations, confirm: true, reject: true },
+  original_prediction: {
+    relation_id: 'relation-2',
+    framework_identifier: 'apex-spikes-afce',
+    projection_type: 'relation',
+    source_annotation_id: 'span-1',
+    target_annotation_id: 'span-3',
+    relation_type: 'elicits',
+    source_reference: sourceReference,
+  },
+}
+
 const ratingPrediction: ReviewablePrediction = {
   prediction_id: 'rating-1',
   projection_type: 'dimension_rating',
@@ -420,6 +435,70 @@ describe('AnnotationSetWorkspace', () => {
     expect(screen.getByRole('button', { name: 'Confirm prediction' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reject prediction' })).toBeInTheDocument()
     expect(screen.queryByText(/typed label correction|typed rating correction/i)).not.toBeInTheDocument()
+  })
+
+  it('auto-advances forward only, offering an explicit jump back to earlier unreviewed items', async () => {
+    const predictions = [spanPrediction, relationPrediction, relationPrediction2]
+    const baseSet = makeSet(predictions)
+    const onChange = vi.fn()
+
+    const withDecisions = (decidedIds: string[]): AnnotationSetRecord => ({
+      ...baseSet,
+      effective_decisions: decidedIds.map((id, position) => ({
+        decision_uuid: `${id}-decision`,
+        prediction_id: id,
+        projection_type: predictions.find((item) => item.prediction_id === id)!.projection_type,
+        revision_number: position + 1,
+        decision: 'confirmed',
+        reviewer_reference: 'reviewer_123',
+        created_at: '2026-09-02T00:00:00Z',
+      })),
+      progress: {
+        ...baseSet.progress,
+        confirmed: decidedIds.length,
+        unreviewed: predictions.length - decidedIds.length,
+      },
+    })
+
+    mockedSave.mockResolvedValueOnce(withDecisions(['span-1']))
+    const { rerender } = render(
+      <AnnotationSetWorkspace run={makeRun(predictions)} annotationSet={baseSet} onChange={onChange} />
+    )
+
+    expect(screen.getByText('Item 1 of 3')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm prediction' }))
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(withDecisions(['span-1'])))
+    rerender(
+      <AnnotationSetWorkspace run={makeRun(predictions)} annotationSet={withDecisions(['span-1'])} onChange={onChange} />
+    )
+    // Forward-only auto-advance skipped straight to the next unreviewed item (index 1).
+    expect(screen.getByText('Item 2 of 3')).toBeInTheDocument()
+
+    // Skip ahead manually to the last item, leaving item 2 (relation-1) unreviewed.
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    expect(screen.getByText('Item 3 of 3')).toBeInTheDocument()
+
+    mockedSave.mockResolvedValueOnce(withDecisions(['span-1', 'relation-2']))
+    fireEvent.click(screen.getByRole('button', { name: 'Confirm prediction' }))
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith(withDecisions(['span-1', 'relation-2'])))
+    rerender(
+      <AnnotationSetWorkspace
+        run={makeRun(predictions)}
+        annotationSet={withDecisions(['span-1', 'relation-2'])}
+        onChange={onChange}
+      />
+    )
+
+    // Nothing unreviewed ahead of the last item -- stays put and offers an explicit jump
+    // back, rather than silently wrapping to the earlier unreviewed item (relation-1).
+    expect(screen.getByText('Item 3 of 3')).toBeInTheDocument()
+    expect(
+      screen.getByText(/no more unreviewed items ahead/i)
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Jump to earlier unreviewed item' }))
+    expect(screen.getByText('Item 2 of 3')).toBeInTheDocument()
+    expect(screen.queryByText(/no more unreviewed items ahead/i)).not.toBeInTheDocument()
   })
 
   it('surfaces revision conflicts and refreshes the annotation set', async () => {
