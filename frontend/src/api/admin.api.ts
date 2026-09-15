@@ -259,22 +259,43 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
   }
 }
 
+/** Optional filters for {@link fetchAdminSessions}, ANDed together server-side. */
+export interface AdminSessionListFilters {
+  userId?: number
+  caseId?: number
+  /** Inclusive lower bound on `started_at`, as an ISO-8601 string. */
+  startDate?: string
+  /** Inclusive upper bound on `started_at`, as an ISO-8601 string. */
+  endDate?: string
+}
+
 /**
  * Lists sessions for admin review (transcripts, metadata).
  *
  * @remarks
- * JWT is sent via the shared API client. Requires admin role server-side.
+ * JWT is sent via the shared API client. Requires admin role server-side. `total` in
+ * the response is the full count of rows matching `filters`, not just this page's
+ * size -- safe to use directly for "page X of Y" or a total-results count.
  *
  * @param skip - Pagination offset
  * @param limit - Page size
+ * @param filters - Optional user/case/date-range filters, all ANDed together
  * @returns Paginated session rows
  */
 export async function fetchAdminSessions(
   skip = 0,
-  limit = 20
+  limit = 20,
+  filters: AdminSessionListFilters = {}
 ): Promise<AdminSessionListResponse> {
   const { data } = await api.get<AdminSessionListResponse>(`${BASE}/sessions`, {
-    params: { skip, limit },
+    params: {
+      skip,
+      limit,
+      user_id: filters.userId,
+      case_id: filters.caseId,
+      start_date: filters.startDate,
+      end_date: filters.endDate,
+    },
   })
   return data
 }

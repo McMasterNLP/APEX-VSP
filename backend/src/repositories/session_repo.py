@@ -1,6 +1,6 @@
 """Session repository for database operations."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy import func
@@ -80,6 +80,43 @@ class SessionRepository:
             .limit(limit)
             .all()
         )
+
+    def list_filtered(
+        self,
+        *,
+        user_id: int | None = None,
+        case_id: int | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> tuple[list[SessionEntity], int]:
+        """List sessions matching any combination of filters, newest first.
+
+        @remarks
+        Replaces the admin sessions endpoint's old if/elif chain (which could only
+        apply one of `user_id`/`case_id` at a time and silently ignored
+        `start_date`/`end_date` entirely). All provided filters are ANDed together.
+        Returns `(page, total_matching_count)` -- the count is computed from the
+        same filtered query before `offset`/`limit` are applied, so pagination UI
+        can tell how many total pages exist rather than only how many rows came
+        back on this one page.
+        """
+        query = self.db.query(SessionEntity)
+        if user_id is not None:
+            query = query.filter(SessionEntity.user_id == user_id)
+        if case_id is not None:
+            query = query.filter(SessionEntity.case_id == case_id)
+        if start_date is not None:
+            query = query.filter(SessionEntity.started_at >= start_date)
+        if end_date is not None:
+            query = query.filter(SessionEntity.started_at <= end_date)
+
+        total = query.count()
+        page = (
+            query.order_by(SessionEntity.started_at.desc()).offset(skip).limit(limit).all()
+        )
+        return page, total
     
     def create(self, session: SessionEntity) -> SessionEntity:
         """Create a new session."""

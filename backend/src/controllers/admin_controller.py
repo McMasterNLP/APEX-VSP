@@ -26,15 +26,35 @@ from repositories.feedback_repo import FeedbackRepository
 from repositories.user_repo import UserRepository
 from services.analytics_service import AnalyticsService
 from services.case_service import CaseService
+from services.research_service import pseudonymous_participant_reference
 from services.session_service import SessionService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
-def _with_session_user_info(detail: SessionDetailResponse, row: User | None) -> SessionDetailResponse:
-    """Attach email/name from the users table for admin UI (not stored on session)."""
+def _with_session_user_info(
+    detail: SessionDetailResponse, row: User | None, *, redact_identity: bool
+) -> SessionDetailResponse:
+    """Attach email/name from the users table for admin UI (not stored on session).
+
+    @remarks
+    `redact_identity=True` swaps the real name/email for a stable pseudonymous
+    participant reference instead. This is for researcher-role callers: the
+    evaluation/annotation pipeline needs the real transcript to score and review
+    against, but never needs the trainee's real identity to do that work, so a
+    researcher sees the same session and transcript content an admin does, just
+    without the name and email attached. Admins (`redact_identity=False`) keep
+    seeing real identity, matching today's behavior.
+    """
     if not row:
         return detail
+    if redact_identity:
+        return detail.model_copy(
+            update={
+                "user_email": None,
+                "user_full_name": pseudonymous_participant_reference(row.id),
+            }
+        )
     return detail.model_copy(
         update={
             "user_email": row.email,
@@ -151,19 +171,19 @@ async def list_all_sessions(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
 ):
-    """Filter sessions by user, case, date (admin only)."""
+    """Filter sessions by any combination of user, case, and date range (admin only)."""
     from repositories.session_repo import SessionRepository
-    
+
     session_repo = SessionRepository(db)
-    
-    # Get sessions with filters
-    # Note: This is a simplified version - you'd add proper filtering in the repo
-    if user_id:
-        sessions = session_repo.get_by_user(user_id, skip, limit)
-    elif case_id:
-        sessions = session_repo.get_by_case(case_id, skip, limit)
-    else:
-        sessions = session_repo.get_all(skip, limit)
+
+    sessions, total = session_repo.list_filtered(
+        user_id=user_id,
+        case_id=case_id,
+        start_date=start_date,
+        end_date=end_date,
+        skip=skip,
+        limit=limit,
+    )
 
     user_ids = list({s.user_id for s in sessions})
     users_by_id: dict[int, User] = {}
@@ -171,17 +191,24 @@ async def list_all_sessions(
         for u in db.query(User).filter(User.id.in_(user_ids)).all():
             users_by_id[u.id] = u
 
+    # Real name/email are attached only for admins; a researcher sees the same
+    # sessions and transcripts but with a pseudonymous participant reference instead
+    # (see `_with_session_user_info`).
+    redact_identity = current_user.role != "admin"
+
     # Convert to detailed responses
     session_service = SessionService(db)
     detailed_sessions = []
     for sess in sessions:
         detailed = await session_service.get_session(sess.id)
-        detailed = _with_session_user_info(detailed, users_by_id.get(sess.user_id))
+        detailed = _with_session_user_info(
+            detailed, users_by_id.get(sess.user_id), redact_identity=redact_identity
+        )
         detailed_sessions.append(detailed)
 
     return AdminSessionListResponse(
         sessions=detailed_sessions,
-        total=len(sessions),
+        total=total,
         skip=skip,
         limit=limit,
     )
@@ -193,11 +220,20 @@ async def get_admin_session_detail(
     db: Annotated[Session, Depends(get_db)],
     current_user: Annotated[User, Depends(require_admin_or_researcher)],
 ):
-    """Get transcript, feedback summary, and metrics timeline for a session (admin only)."""
+    """Get transcript, feedback summary, and metrics timeline for a session.
+
+    @remarks
+    Admin and researcher roles both get the real transcript and feedback -- see
+    `verify_session_access` for why researchers need real transcript content. Only
+    the trainee's name/email are role-scoped: admins see them, researchers see a
+    pseudonymous participant reference instead (`_with_session_user_info`).
+    """
     session_service = SessionService(db)
     session_detail = await session_service.get_session(session_id)
     owner = db.query(User).filter(User.id == session_detail.user_id).first()
-    session_detail = _with_session_user_info(session_detail, owner)
+    session_detail = _with_session_user_info(
+        session_detail, owner, redact_identity=current_user.role != "admin"
+    )
 
     # Fetch feedback (no ownership restriction for admin)
     feedback_repo = FeedbackRepository(db)

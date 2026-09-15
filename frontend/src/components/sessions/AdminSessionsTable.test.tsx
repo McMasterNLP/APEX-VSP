@@ -49,7 +49,7 @@ describe('AdminSessionsTable', () => {
     await waitFor(() => {
       expect(screen.getByText('Jane Doe')).toBeInTheDocument()
     })
-    expect(mockedFetch).toHaveBeenCalledWith(0, 50)
+    expect(mockedFetch).toHaveBeenCalledWith(0, 50, {})
   })
 
   it('shows an empty state when there are no sessions', async () => {
@@ -140,5 +140,66 @@ describe('AdminSessionsTable', () => {
     expect(screen.getByText('In review')).toBeInTheDocument()
     expect(screen.getByText('No runs yet')).toBeInTheDocument()
     expect(screen.getAllByText('Needs review').length).toBe(2)
+  })
+
+  it('shows a pagination summary and pages forward and back using skip', async () => {
+    mockedFetch.mockResolvedValueOnce({
+      sessions: [session({ id: 1 })],
+      total: 120,
+      skip: 0,
+      limit: 50,
+    } as never)
+
+    render(<AdminSessionsTable onRowClick={vi.fn()} />)
+    await waitFor(() => {
+      expect(screen.getByText('Showing 1–50 of 120')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+
+    mockedFetch.mockResolvedValueOnce({
+      sessions: [session({ id: 2 })],
+      total: 120,
+      skip: 50,
+      limit: 50,
+    } as never)
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }))
+    await waitFor(() => expect(mockedFetch).toHaveBeenCalledWith(50, 50, {}))
+    await waitFor(() => {
+      expect(screen.getByText('Showing 51–100 of 120')).toBeInTheDocument()
+    })
+    expect(screen.getByRole('button', { name: 'Previous' })).not.toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Next' })).not.toBeDisabled()
+
+    mockedFetch.mockResolvedValueOnce({
+      sessions: [session({ id: 1 })],
+      total: 120,
+      skip: 0,
+      limit: 50,
+    } as never)
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+    await waitFor(() => expect(mockedFetch).toHaveBeenLastCalledWith(0, 50, {}))
+  })
+
+  it('filters by user id and resets to the first page', async () => {
+    mockedFetch.mockResolvedValue({
+      sessions: [session({ id: 1 })],
+      total: 1,
+      skip: 0,
+      limit: 50,
+    } as never)
+
+    render(<AdminSessionsTable onRowClick={vi.fn()} />)
+    await waitFor(() => expect(mockedFetch).toHaveBeenCalledWith(0, 50, {}))
+
+    fireEvent.change(screen.getByLabelText('User ID'), {
+      target: { value: '7' },
+    })
+    await waitFor(() =>
+      expect(mockedFetch).toHaveBeenLastCalledWith(0, 50, { userId: 7 })
+    )
+    expect(screen.getByRole('button', { name: 'Clear filters' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    await waitFor(() => expect(mockedFetch).toHaveBeenLastCalledWith(0, 50, {}))
   })
 })
