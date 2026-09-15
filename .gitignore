@@ -11,3 +11,6 @@ SUBSYSTEM_AUDIT.md
 presentation/feb-27-meeting.md
 local/
 handoff.txt
+
+# Accidental root-level installs (frontend/backend each manage their own)
+node_modules/

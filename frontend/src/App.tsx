@@ -23,9 +23,11 @@ import { OverviewTab } from './pages/research-workspace/OverviewTab'
 import { RunCompareTab } from './pages/research-workspace/RunCompareTab'
 import { SavedRunsTab } from './pages/research-workspace/SavedRunsTab'
 import { ReviewAnnotateTab } from './pages/research-workspace/ReviewAnnotateTab'
+import { ValidateTab } from './pages/research-workspace/ValidateTab'
 import { ExportTab } from './pages/research-workspace/ExportTab'
 import { AdminResearchSessionPage } from './pages/AdminResearchSessionPage'
 import { PluginDeveloperGuide } from './pages/PluginDeveloperGuide'
+import { ResearchWorkflowGuide } from './pages/ResearchWorkflowGuide'
 import { DeveloperOnboarding } from './pages/DeveloperOnboarding'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuthGate } from './hooks/useAuthGate'
@@ -219,6 +221,7 @@ function App() {
           <Route path="run" element={<RunCompareTab />} />
           <Route path="runs" element={<SavedRunsTab />} />
           <Route path="review" element={<ReviewAnnotateTab />} />
+          <Route path="validate" element={<ValidateTab />} />
           <Route path="export" element={<ExportTab />} />
         </Route>
         <Route
@@ -234,6 +237,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin']}>
               <PluginDeveloperGuide />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docs/research-workflow-guide"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'researcher']}>
+              <ResearchWorkflowGuide />
             </ProtectedRoute>
           }
         />

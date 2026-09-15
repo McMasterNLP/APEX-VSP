@@ -14,21 +14,27 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchAdminSessionDetail, type AdminSessionDetailResponse } from '@/api/admin.api'
 import {
   createResearchAnnotationSet,
+  createResearchValidationRun,
   downloadResearchEvaluationExport,
+  fetchAnnotationSetsForSession,
   fetchSavedResearchRun,
   fetchSavedResearchRuns,
   fetchResearchEvaluatorDescriptors,
+  fetchValidationRunsForSession,
   getResearchApiMessage,
   runResearchEvaluations,
   saveResearchEvaluationRun,
+  setResearchValidationRunArchived,
 } from '@/api/research.api'
 import type {
   AnnotationSetRecord,
+  AnnotationSetSummary,
   EvaluationRunRecord,
   EvaluationRunSummary,
   ResearchEvaluationResponse,
   ResearchEvaluatorDescriptor,
   ResearchExportProfile,
+  ValidationRunRecord,
 } from '@/types/researchEvaluation'
 
 /** Shared state and actions handed to every tab via `useOutletContext`. */
@@ -72,6 +78,26 @@ export interface EvaluationSessionContext {
   exporting: ResearchExportProfile | null
   downloadPreviewExport: (profile: ResearchExportProfile) => Promise<void>
 
+  annotationSets: AnnotationSetSummary[]
+  loadingAnnotationSets: boolean
+  refetchAnnotationSets: () => Promise<void>
+
+  validationRuns: ValidationRunRecord[]
+  loadingValidationRuns: boolean
+  refetchValidationRuns: () => Promise<void>
+  creatingValidationRun: boolean
+  createValidationRun: (
+    evaluationRunUuid: string,
+    annotationSetUuid: string
+  ) => Promise<ValidationRunRecord | null>
+  includeArchivedValidationRuns: boolean
+  setIncludeArchivedValidationRuns: (value: boolean) => void
+  archivingValidationRunUuid: string | null
+  setValidationRunArchived: (
+    validationRunUuid: string,
+    archived: boolean
+  ) => Promise<ValidationRunRecord | null>
+
   error: string | null
   setError: (message: string | null) => void
 }
@@ -103,6 +129,17 @@ export function useEvaluationSession(sessionId: number): EvaluationSessionContex
   const [annotationSet, setAnnotationSet] = useState<AnnotationSetRecord | null>(null)
   const [busyRunUuid, setBusyRunUuid] = useState<string | null>(null)
   const [exporting, setExporting] = useState<ResearchExportProfile | null>(null)
+
+  const [annotationSets, setAnnotationSets] = useState<AnnotationSetSummary[]>([])
+  const [loadingAnnotationSets, setLoadingAnnotationSets] = useState(false)
+  const [validationRuns, setValidationRuns] = useState<ValidationRunRecord[]>([])
+  const [loadingValidationRuns, setLoadingValidationRuns] = useState(false)
+  const [creatingValidationRun, setCreatingValidationRun] = useState(false)
+  const [includeArchivedValidationRuns, setIncludeArchivedValidationRuns] = useState(false)
+  const [archivingValidationRunUuid, setArchivingValidationRunUuid] = useState<string | null>(
+    null
+  )
+
   const [error, setError] = useState<string | null>(null)
 
   const sessionState = detail?.session.state ?? null
@@ -185,6 +222,52 @@ export function useEvaluationSession(sessionId: number): EvaluationSessionContex
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, sessionState])
+
+  const loadAnnotationSets = async (onCancelled?: () => boolean) => {
+    setLoadingAnnotationSets(true)
+    try {
+      const response = await fetchAnnotationSetsForSession(sessionId)
+      if (!onCancelled?.()) setAnnotationSets(response)
+    } catch (caught) {
+      if (!onCancelled?.()) {
+        setError(getResearchApiMessage(caught, 'Annotation sets unavailable.'))
+      }
+    } finally {
+      if (!onCancelled?.()) setLoadingAnnotationSets(false)
+    }
+  }
+
+  const loadValidationRuns = async (onCancelled?: () => boolean) => {
+    setLoadingValidationRuns(true)
+    try {
+      const response = await fetchValidationRunsForSession(
+        sessionId,
+        includeArchivedValidationRuns
+      )
+      if (!onCancelled?.()) setValidationRuns(response)
+    } catch (caught) {
+      if (!onCancelled?.()) {
+        setError(getResearchApiMessage(caught, 'Validation runs unavailable.'))
+      }
+    } finally {
+      if (!onCancelled?.()) setLoadingValidationRuns(false)
+    }
+  }
+
+  useEffect(() => {
+    // Same rationale as the saved-runs fetch above: needed at the shared-hook level so
+    // the Validate tab (and the Export tab's "Validation exports" group) are accurate on
+    // direct navigation, not only after visiting Saved Runs first. Also reloads whenever
+    // the "show archived" toggle changes, since that changes which rows the backend sends.
+    if (sessionState !== 'completed') return
+    let cancelled = false
+    void loadAnnotationSets(() => cancelled)
+    void loadValidationRuns(() => cancelled)
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, sessionState, includeArchivedValidationRuns])
 
   const selectedDescriptors = useMemo(
     () => descriptors.filter((descriptor) => selected.includes(descriptor.identifier)),
@@ -305,6 +388,55 @@ export function useEvaluationSession(sessionId: number): EvaluationSessionContex
     }
   }
 
+  const createValidationRun = async (
+    evaluationRunUuid: string,
+    annotationSetUuid: string
+  ): Promise<ValidationRunRecord | null> => {
+    setCreatingValidationRun(true)
+    setError(null)
+    try {
+      const created = await createResearchValidationRun({
+        evaluation_run_uuid: evaluationRunUuid,
+        annotation_set_uuid: annotationSetUuid,
+      })
+      setValidationRuns((current) => [created, ...current])
+      return created
+    } catch (caught) {
+      setError(getResearchApiMessage(caught, 'Validation run could not be created.'))
+      return null
+    } finally {
+      setCreatingValidationRun(false)
+    }
+  }
+
+  const setValidationRunArchived = async (
+    validationRunUuid: string,
+    archived: boolean
+  ): Promise<ValidationRunRecord | null> => {
+    setArchivingValidationRunUuid(validationRunUuid)
+    setError(null)
+    try {
+      const updated = await setResearchValidationRunArchived(validationRunUuid, archived)
+      setValidationRuns((current) => {
+        // Archiving without "show archived" on should drop the row from view immediately,
+        // the same way finishing a review drops it from an unreviewed queue -- refetching
+        // would do the same thing, but updating in place avoids the round trip.
+        if (updated.archived && !includeArchivedValidationRuns) {
+          return current.filter((run) => run.validation_run_uuid !== validationRunUuid)
+        }
+        return current.map((run) =>
+          run.validation_run_uuid === validationRunUuid ? updated : run
+        )
+      })
+      return updated
+    } catch (caught) {
+      setError(getResearchApiMessage(caught, "The validation run's archived state could not be changed."))
+      return null
+    } finally {
+      setArchivingValidationRunUuid(null)
+    }
+  }
+
   const downloadPreviewExport = async (profile: ResearchExportProfile) => {
     if (!result) return
     setExporting(profile)
@@ -357,6 +489,20 @@ export function useEvaluationSession(sessionId: number): EvaluationSessionContex
 
     exporting,
     downloadPreviewExport,
+
+    annotationSets,
+    loadingAnnotationSets,
+    refetchAnnotationSets: loadAnnotationSets,
+
+    validationRuns,
+    loadingValidationRuns,
+    refetchValidationRuns: loadValidationRuns,
+    creatingValidationRun,
+    createValidationRun,
+    includeArchivedValidationRuns,
+    setIncludeArchivedValidationRuns,
+    archivingValidationRunUuid,
+    setValidationRunArchived,
 
     error,
     setError,

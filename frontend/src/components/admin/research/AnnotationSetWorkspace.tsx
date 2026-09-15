@@ -4,7 +4,6 @@ import {
   fetchResearchAnnotationSet,
   createAuthoredRelation,
   createHumanAnnotation,
-  declareAnnotationCoverage,
   getResearchApiMessage,
   saveResearchReviewDecision,
   reviseHumanAnnotation,
@@ -12,7 +11,6 @@ import {
 import type {
   AnnotationSetRecord,
   CanonicalSpanSelection,
-  CoverageLevel,
   DecisionRevisionRecord,
   EvaluationRunRecord,
   ResearchRevisionConflict,
@@ -63,6 +61,7 @@ export function AnnotationSetWorkspace({
   onChange: (next: AnnotationSetRecord) => void
 }) {
   const [index, setIndex] = useState(0)
+  const [earlierUnreviewedIndex, setEarlierUnreviewedIndex] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -76,7 +75,6 @@ export function AnnotationSetWorkspace({
   const [relationSource, setRelationSource] = useState('')
   const [relationTarget, setRelationTarget] = useState('')
   const [relationType, setRelationType] = useState('')
-  const [coverage, setCoverage] = useState<CoverageLevel>(annotationSet.coverage_level ?? 'not_assessed')
   const modeButtonRef = useRef<HTMLButtonElement>(null)
   const inventory = annotationSet.eligible_predictions
   const prediction = inventory[index] ?? null
@@ -239,11 +237,44 @@ export function AnnotationSetWorkspace({
     } catch (caught) { setError(getResearchApiMessage(caught, 'The relation could not be saved.')) }
   }
 
-  const saveCoverage = async () => {
-    try {
-      const next = await declareAnnotationCoverage(annotationSet.annotation_set_uuid, annotationSet.revision, coverage)
-      onChange(next); setAnnouncement('Coverage declaration saved.')
-    } catch (caught) { setError(getResearchApiMessage(caught, 'Coverage could not be saved.')) }
+  /**
+   * After a decision is saved, jumps the queue to the nearest still-unreviewed prediction
+   * ahead of the current position, so a reviewer working through the queue top-to-bottom
+   * doesn't have to click Next after every single decision. Deliberately forward-only: it
+   * never wraps back past earlier items on its own, because a silent backward jump near the
+   * end of a queue reads as the tool losing your place. If nothing unreviewed remains ahead
+   * but some do remain earlier in the queue (e.g. skipped items, or ones reopened after a
+   * conflict), it surfaces `earlierUnreviewedIndex` instead so the UI can offer an explicit
+   * "back to top" affordance rather than teleporting there unannounced. Leaves the index
+   * untouched once nothing remains unreviewed at all -- the "all reviewed" banner covers that.
+   */
+  const autoAdvanceToNextUnreviewed = (updated: AnnotationSetRecord) => {
+    const decidedIds = new Set(updated.effective_decisions.map((item) => item.prediction_id))
+    const queue = updated.eligible_predictions
+    if (queue.length === 0) return
+
+    for (let candidateIndex = index + 1; candidateIndex < queue.length; candidateIndex += 1) {
+      if (!decidedIds.has(queue[candidateIndex]!.prediction_id)) {
+        setIndex(candidateIndex)
+        setEarlierUnreviewedIndex(null)
+        return
+      }
+    }
+
+    for (let candidateIndex = 0; candidateIndex <= index && candidateIndex < queue.length; candidateIndex += 1) {
+      if (!decidedIds.has(queue[candidateIndex]!.prediction_id)) {
+        setEarlierUnreviewedIndex(candidateIndex)
+        return
+      }
+    }
+
+    setEarlierUnreviewedIndex(null)
+  }
+
+  const jumpToEarlierUnreviewed = () => {
+    if (earlierUnreviewedIndex === null) return
+    setIndex(earlierUnreviewedIndex)
+    setEarlierUnreviewedIndex(null)
   }
 
   const save = async (
@@ -268,6 +299,7 @@ export function AnnotationSetWorkspace({
         }
       )
       onChange(next)
+      autoAdvanceToNextUnreviewed(next)
     } catch (caught) {
       const conflictPayload = revisionConflict(caught)
       if (conflictPayload) {
@@ -359,6 +391,19 @@ export function AnnotationSetWorkspace({
             )}
           </div>
           <section tabIndex={0} onKeyDown={onQueueKeyDown} aria-label="Prediction review queue" className="space-y-3 rounded-md outline-none focus:ring-2 focus:ring-indigo-600">
+            {!annotationSet.locked && annotationSet.progress.unreviewed === 0 && (
+              <p role="status" className="rounded border border-emerald-300 bg-emerald-50 p-2 text-sm font-medium text-emerald-950">
+                All predictions reviewed. Finish and lock the review above when you're ready.
+              </p>
+            )}
+            {earlierUnreviewedIndex !== null && annotationSet.progress.unreviewed > 0 && (
+              <p role="status" className="flex flex-wrap items-center justify-between gap-2 rounded border border-amber-300 bg-amber-50 p-2 text-sm font-medium text-amber-900">
+                <span>No more unreviewed items ahead in the queue -- some earlier items still need review.</span>
+                <Button type="button" size="sm" variant="outline" className="border-amber-400 bg-white" onClick={jumpToEarlierUnreviewed}>
+                  Jump to earlier unreviewed item
+                </Button>
+              </p>
+            )}
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-medium">Item {index + 1} of {inventory.length}</p>
               <div className="flex gap-2">
@@ -387,7 +432,6 @@ export function AnnotationSetWorkspace({
         {(annotationSet.human_annotation_revisions ?? []).filter((item, index, all) => item.status === 'retired' && !all.slice(index + 1).some((candidate) => candidate.annotation_id === item.annotation_id)).map((item) => <div key={item.annotation_id} className="flex justify-between rounded border border-dashed p-2 text-sm"><span>Retired: {item.label} · revision {item.revision_number}</span><Button type="button" size="sm" variant="outline" onClick={() => void lifecycleHuman(item.annotation_id, 'restore')}>Restore</Button></div>)}
       </section>
       {mode === 'relation' && <section aria-label="Relation composer" className="grid gap-2 rounded-md border border-violet-300 p-3 sm:grid-cols-3"><label className="text-sm">Source<select aria-label="Relation source" className="block w-full rounded border p-2" value={relationSource} onChange={(event) => setRelationSource(event.target.value)}><option value="">Choose…</option>{resolvedSpans.map((item) => <option value={item.prediction_id} key={item.prediction_id}>{item.label} · turn {item.turn_number}</option>)}</select></label><label className="text-sm">Target<select aria-label="Relation target" className="block w-full rounded border p-2" value={relationTarget} onChange={(event) => setRelationTarget(event.target.value)}><option value="">Choose…</option>{resolvedSpans.map((item) => <option value={item.prediction_id} key={item.prediction_id}>{item.label} · turn {item.turn_number}</option>)}</select></label><label className="text-sm">Type<select aria-label="Relation type" className="block w-full rounded border p-2" value={relationType} onChange={(event) => setRelationType(event.target.value)}><option value="">Choose…</option>{annotationSet.annotation_policy.relation_types?.map((item) => <option key={item.relation_type}>{item.relation_type}</option>)}</select></label><Button type="button" size="sm" disabled={!relationSource || !relationTarget || !relationType} onClick={() => void saveRelation()}>Save relation</Button><ul className="sm:col-span-3">{(annotationSet.active_authored_relations ?? []).map((item) => <li key={item.relation_id} className="text-sm">{item.relation_type}: {item.source_annotation_id} → {item.target_annotation_id} · revision {item.revision_number}</li>)}</ul></section>}
-      <section aria-label="Coverage declaration" className="flex flex-wrap items-end gap-2 rounded-md border p-3"><label className="text-sm font-medium">Annotation coverage<select aria-label="Annotation coverage" className="mt-1 block rounded border p-2" value={coverage} onChange={(event) => setCoverage(event.target.value as CoverageLevel)}>{(annotationSet.annotation_policy.coverage?.supported_values ?? ['not_assessed', 'prediction_review_only', 'fixed_inventory_complete']).map((item) => <option key={item} value={item}>{item.replaceAll('_', ' ')}</option>)}</select></label><Button type="button" size="sm" disabled={annotationSet.locked} onClick={() => void saveCoverage()}>Save coverage</Button><p className="text-xs text-gray-600">Recall and F1 remain ineligible unless coverage is exhaustive.</p></section>
     </section>
   )
 }

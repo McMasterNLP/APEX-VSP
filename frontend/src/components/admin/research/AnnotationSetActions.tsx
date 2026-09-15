@@ -2,12 +2,14 @@ import { useState } from 'react'
 import type { AxiosError } from 'axios'
 import {
   completeResearchAnnotationSet,
+  declareAnnotationCoverage,
   fetchResearchAnnotationSet,
   getResearchApiMessage,
   reopenResearchAnnotationSet,
 } from '@/api/research.api'
 import type {
   AnnotationSetRecord,
+  CoverageLevel,
   ResearchRevisionConflict,
 } from '@/types/researchEvaluation'
 import { Button } from '@/components/ui/button'
@@ -27,6 +29,24 @@ function revisionConflict(error: unknown): ResearchRevisionConflict | null {
   return payload?.category === 'revision_conflict' ? payload : null
 }
 
+/** Coverage values a reviewer can actually finish on (`not_assessed` blocks completion server-side). */
+const ASSESSABLE_COVERAGE_VALUES: CoverageLevel[] = [
+  'prediction_review_only',
+  'exhaustive',
+  'fixed_inventory_complete',
+]
+
+/** One-line explanation of what each assessed coverage level unlocks for validation. */
+const COVERAGE_HELP_TEXT: Record<CoverageLevel, string> = {
+  not_assessed: 'No completeness claim — recall and F1 will not be eligible.',
+  prediction_review_only:
+    'Only the evaluator\'s own predictions were reviewed. Precision may be eligible; recall and F1 will not.',
+  exhaustive:
+    'The full transcript was searched for anything the evaluator missed. Precision, recall, and F1 are all eligible.',
+  fixed_inventory_complete:
+    'A fixed, known inventory of items was reviewed in full. Inventory-specific accuracy is eligible.',
+}
+
 export function AnnotationSetActions({
   annotationSet,
   onChange,
@@ -39,6 +59,18 @@ export function AnnotationSetActions({
   const [conflict, setConflict] = useState<ResearchRevisionConflict | null>(null)
   const [reopenDialog, setReopenDialog] = useState(false)
   const [reopenReason, setReopenReason] = useState('')
+  const [finishDialog, setFinishDialog] = useState(false)
+  const supportedCoverageValues =
+    annotationSet.annotation_policy.coverage?.supported_values ??
+    (['not_assessed', 'prediction_review_only', 'fixed_inventory_complete'] as const)
+  const assessableCoverageValues = supportedCoverageValues.filter((value) =>
+    ASSESSABLE_COVERAGE_VALUES.includes(value)
+  )
+  const [selectedCoverage, setSelectedCoverage] = useState<CoverageLevel>(
+    (annotationSet.coverage_level && assessableCoverageValues.includes(annotationSet.coverage_level)
+      ? annotationSet.coverage_level
+      : assessableCoverageValues[0]) ?? 'prediction_review_only'
+  )
   const trimmedReason = reopenReason.trim()
   const completionReady = annotationSet.progress.unreviewed === 0
 
@@ -67,11 +99,27 @@ export function AnnotationSetActions({
     }
   }
 
-  const complete = () => runMutation(
-    'complete',
-    () => completeResearchAnnotationSet(annotationSet.annotation_set_uuid, annotationSet.revision),
-    'The annotation set could not be completed.'
-  )
+  /**
+   * Declares the chosen coverage level and completes/locks the set as a single reviewer
+   * action, rather than two separate "save coverage" then "complete" steps: coverage is
+   * re-affirmed immediately before the set is frozen, using whichever revision the coverage
+   * declaration itself returns (not the possibly-stale prop) to complete against.
+   */
+  const finishAndLock = async () => {
+    const changed = await runMutation(
+      'finish',
+      async () => {
+        const withCoverage = await declareAnnotationCoverage(
+          annotationSet.annotation_set_uuid,
+          annotationSet.revision,
+          selectedCoverage
+        )
+        return completeResearchAnnotationSet(annotationSet.annotation_set_uuid, withCoverage.revision)
+      },
+      'The annotation set could not be finished and locked.'
+    )
+    if (changed) setFinishDialog(false)
+  }
 
   const reopen = async () => {
     if (!trimmedReason || trimmedReason.length > 500) return
@@ -120,8 +168,8 @@ export function AnnotationSetActions({
             Reopen locked set
           </Button>
         ) : (
-          <Button type="button" size="sm" onClick={() => void complete()} disabled={!completionReady || busyAction !== null}>
-            {busyAction === 'complete' ? 'Completing…' : 'Complete and lock review'}
+          <Button type="button" size="sm" onClick={() => setFinishDialog(true)} disabled={!completionReady || busyAction !== null}>
+            Complete and lock review
           </Button>
         )}
       </div>
@@ -129,6 +177,11 @@ export function AnnotationSetActions({
       {!annotationSet.locked && !completionReady && (
         <p role="status" className="text-xs text-gray-700">
           Review all {annotationSet.progress.unreviewed} remaining predictions before completion.
+        </p>
+      )}
+      {!annotationSet.locked && completionReady && (
+        <p role="status" className="rounded border border-emerald-300 bg-emerald-50 p-2 text-sm font-medium text-emerald-950">
+          All {annotationSet.progress.total} predictions reviewed. Ready to finish and lock.
         </p>
       )}
       {annotationSet.locked && (
@@ -155,6 +208,44 @@ export function AnnotationSetActions({
           )}
         </div>
       )}
+
+      <Dialog open={finishDialog} onOpenChange={setFinishDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Finish and lock review?</DialogTitle>
+            <DialogDescription>
+              Declare how thoroughly this set was reviewed, then complete and lock it. Locking is
+              one-way; an administrator can reopen it later with a recorded reason, but the
+              coverage you declare here determines which validation metrics can ever be computed
+              against this set.
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block text-sm font-medium text-gray-800">
+            Annotation coverage
+            <select
+              aria-label="Annotation coverage"
+              className="mt-1 block w-full rounded border p-2"
+              value={selectedCoverage}
+              onChange={(event) => setSelectedCoverage(event.target.value as CoverageLevel)}
+            >
+              {assessableCoverageValues.map((value) => (
+                <option key={value} value={value}>
+                  {value.replaceAll('_', ' ')}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="text-xs text-gray-600">{COVERAGE_HELP_TEXT[selectedCoverage]}</p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={() => setFinishDialog(false)} disabled={busyAction !== null}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={() => void finishAndLock()} disabled={busyAction !== null}>
+              {busyAction === 'finish' ? 'Finishing…' : 'Finish and lock'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={reopenDialog} onOpenChange={setReopenDialog}>
         <DialogContent className="sm:max-w-md">

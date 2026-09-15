@@ -120,7 +120,7 @@ describe('ResearchEvaluationWorkspace', () => {
     expect(screen.getByRole('heading', { name: 'Transcript' })).toBeInTheDocument()
   })
 
-  it('renders tab links pointing at the five relative tab paths', async () => {
+  it('renders tab links pointing at the six relative tab paths', async () => {
     renderWorkspace('/research/evaluate/42/overview')
     await waitFor(() => {
       expect(screen.getByText('Session 42 evaluation workspace')).toBeInTheDocument()
@@ -132,6 +132,7 @@ describe('ResearchEvaluationWorkspace', () => {
       '/research/evaluate/42/run',
       '/research/evaluate/42/runs',
       '/research/evaluate/42/review',
+      '/research/evaluate/42/validate',
       '/research/evaluate/42/export',
     ])
   })

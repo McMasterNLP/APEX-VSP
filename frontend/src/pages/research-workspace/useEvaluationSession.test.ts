@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useEvaluationSession } from './useEvaluationSession'
 import { fetchAdminSessionDetail } from '@/api/admin.api'
 import {
+  fetchAnnotationSetsForSession,
   fetchResearchEvaluatorDescriptors,
   fetchSavedResearchRuns,
+  fetchValidationRunsForSession,
   runResearchEvaluations,
   saveResearchEvaluationRun,
 } from '@/api/research.api'
@@ -16,10 +18,13 @@ vi.mock('@/api/admin.api', async () => {
 
 vi.mock('@/api/research.api', () => ({
   createResearchAnnotationSet: vi.fn(),
+  createResearchValidationRun: vi.fn(),
   downloadResearchEvaluationExport: vi.fn(),
+  fetchAnnotationSetsForSession: vi.fn(),
   fetchSavedResearchRun: vi.fn(),
   fetchSavedResearchRuns: vi.fn(),
   fetchResearchEvaluatorDescriptors: vi.fn(),
+  fetchValidationRunsForSession: vi.fn(),
   getResearchApiMessage: (_error: unknown, fallback: string) => fallback,
   runResearchEvaluations: vi.fn(),
   saveResearchEvaluationRun: vi.fn(),
@@ -28,6 +33,8 @@ vi.mock('@/api/research.api', () => ({
 const mockedFetchDetail = vi.mocked(fetchAdminSessionDetail)
 const mockedDescriptors = vi.mocked(fetchResearchEvaluatorDescriptors)
 const mockedSavedRuns = vi.mocked(fetchSavedResearchRuns)
+const mockedAnnotationSets = vi.mocked(fetchAnnotationSetsForSession)
+const mockedValidationRuns = vi.mocked(fetchValidationRunsForSession)
 const mockedRun = vi.mocked(runResearchEvaluations)
 const mockedSave = vi.mocked(saveResearchEvaluationRun)
 
@@ -58,11 +65,19 @@ describe('useEvaluationSession', () => {
     } as never)
     mockedDescriptors.mockResolvedValue({ schema_version: '1.0', evaluators: [descriptor()] } as never)
     mockedSavedRuns.mockResolvedValue([])
+    mockedAnnotationSets.mockResolvedValue([])
+    mockedValidationRuns.mockResolvedValue([])
   })
 
   it('fetches saved runs on mount regardless of which tab will render (completed session)', async () => {
     renderHook(() => useEvaluationSession(42))
     await waitFor(() => expect(mockedSavedRuns).toHaveBeenCalledWith(42))
+  })
+
+  it('fetches annotation sets and validation runs on mount regardless of which tab will render', async () => {
+    renderHook(() => useEvaluationSession(42))
+    await waitFor(() => expect(mockedAnnotationSets).toHaveBeenCalledWith(42))
+    expect(mockedValidationRuns).toHaveBeenCalledWith(42)
   })
 
   it('does not fetch saved runs for an incomplete session', async () => {
@@ -74,6 +89,8 @@ describe('useEvaluationSession', () => {
     renderHook(() => useEvaluationSession(42))
     await waitFor(() => expect(mockedFetchDetail).toHaveBeenCalled())
     expect(mockedSavedRuns).not.toHaveBeenCalled()
+    expect(mockedAnnotationSets).not.toHaveBeenCalled()
+    expect(mockedValidationRuns).not.toHaveBeenCalled()
   })
 
   it('execute() runs a non-persisting preview with the selected evaluators', async () => {

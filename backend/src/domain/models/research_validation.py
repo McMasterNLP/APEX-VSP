@@ -141,6 +141,18 @@ class ValidationRunRecord(StrictValidationModel):
     warnings: tuple[str, ...] = ()
     created_by_reference: str
     created_at: UTCDateTime
+    # Display-only metadata layered on top of the immutable result above (see
+    # `ResearchValidationRunArchiveState`): archiving hides a run from the default
+    # session list without touching -- or requiring any exception to -- the
+    # immutability of the recorded validation result itself.
+    archived: bool = False
+    archived_at: UTCDateTime | None = None
+
+
+class ValidationRunArchiveRequest(StrictValidationModel):
+    """Set (or clear) the display-only archived flag on one validation run."""
+
+    archived: bool
 
 
 class ValidationRunExportRequest(StrictValidationModel):

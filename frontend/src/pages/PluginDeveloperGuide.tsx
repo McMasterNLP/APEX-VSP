@@ -1,6 +1,7 @@
 /**
  * Long-form admin documentation for plugin architecture and registration.
  */
+import { Link } from 'react-router-dom'
 import { Navbar } from '@/components/Navbar'
 import { Sidebar } from '@/components/Sidebar'
 import { Input } from '@/components/ui/input'
@@ -36,6 +37,12 @@ const DOC_NAV = [
     id: 'evaluator',
     label: 'Evaluator Plugins',
     keywords: 'evaluator evaluate feedbackresponse scores strengths improvement spikes empathy framework metadata',
+  },
+  {
+    id: 'research-evaluator',
+    label: 'Research Evaluator Plugins',
+    keywords:
+      'research evaluator adapter registry live execution provider openai gemini availability experimental ace-ct apex baseline hybrid researcher pseudonymized identity redaction evaluate sessions run compare',
   },
   {
     id: 'metrics',
@@ -259,6 +266,18 @@ export const PluginDeveloperGuide = () => {
                         Protocol: MetricsPlugin.compute(db, session_id) → dict[str, Any]
                       </p>
                     </div>
+                    <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+                      <h3 className="font-semibold text-indigo-900">Research Evaluator Plugin</h3>
+                      <p className="text-sm text-indigo-800 mt-1">
+                        A separate, admin/researcher-only evaluator used on the Evaluate Sessions{' '}
+                        <span className="font-semibold">Run &amp; Compare</span> and{' '}
+                        <span className="font-semibold">Saved Runs</span> tabs. Statically registered
+                        (not settings-driven) and operates on an identity-free transcript.
+                      </p>
+                      <p className="text-xs text-indigo-700 mt-2 font-mono">
+                        Protocol: ResearchResultAdapter.build_native_result / .project(...)
+                      </p>
+                    </div>
                   </div>
                 </section>
 
@@ -390,9 +409,170 @@ class MyCustomEvaluator:
                   </p>
                 </section>
 
-                {/* 4. Metrics Plugins */}
+                {/* 3b. Research Evaluator Plugins */}
                 <section
                   className={cn('mb-6', !docSectionVisible(DOC_NAV[5].keywords, docSearch) && 'hidden')}
+                  id="research-evaluator"
+                >
+                  <h2 className="text-xl font-semibold mt-8 mb-3">Research Evaluator Plugins</h2>
+                  <p className="text-gray-700 mb-3">
+                    These are a different, separate thing from the trainee-facing{' '}
+                    <span className="font-mono">Evaluator</span> plugins above. Research evaluators back
+                    the <span className="font-mono">Run &amp; Compare</span> and{' '}
+                    <span className="font-mono">Saved Runs</span> tabs on a session&apos;s{' '}
+                    <span className="font-mono">Evaluate Sessions</span> workspace (admin + researcher
+                    roles only) — they never touch trainee-facing feedback, and are never auto-run on
+                    session close.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Explicit static registry, not dynamic discovery</h3>
+                  <p className="text-gray-700 mb-3">
+                    Unlike <span className="font-mono">PatientModel</span> / <span className="font-mono">Evaluator</span>{' '}
+                    / <span className="font-mono">MetricsPlugin</span>, research evaluators are not
+                    resolved from a settings string at runtime. They implement the{' '}
+                    <span className="font-mono">ResearchResultAdapter</span> protocol (
+                    <span className="font-mono">services/research_adapters/base.py</span>:{' '}
+                    <span className="font-mono">build_native_result</span> and{' '}
+                    <span className="font-mono">project</span>) and are registered explicitly, by hand, in{' '}
+                    <span className="font-mono">services/research_adapters/defaults.py</span>&apos;s{' '}
+                    <span className="font-mono">build_default_research_adapter_registry()</span> via{' '}
+                    <span className="font-mono">ResearchAdapterRegistration(...)</span>. There is no{' '}
+                    <span className="font-mono">PLUGIN_MODULES</span>-style loader for these — add the
+                    adapter class, then add one registration call.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Identity-free by construction</h3>
+                  <p className="text-gray-700 mb-3">
+                    Adapters never see a session id or a trainee. They receive a{' '}
+                    <span className="font-mono">ResearchAdapterContext</span> — a canonical, already
+                    identity-stripped transcript (<span className="font-mono">transcript_hash</span>,{' '}
+                    <span className="font-mono">transcript_turns</span>) plus the evaluator/framework
+                    identifiers. This is what keeps the researcher-role redaction guarantee intact even as
+                    new evaluators are added: there is nothing identity-bearing to accidentally leak.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Live model execution is opt-in and gated</h3>
+                  <p className="text-gray-700 mb-3">
+                    If your adapter calls an LLM (currently OpenAI or Gemini, via{' '}
+                    <span className="font-mono">evaluator_llm_adapter_factory.py</span>), set{' '}
+                    <span className="font-mono">requires_live_execution=True</span> and declare{' '}
+                    <span className="font-mono">supported_providers</span> /{' '}
+                    <span className="font-mono">default_provider</span> on the registration — the registry
+                    validates these are consistent at startup. Two independent server flags then gate
+                    whether a live evaluator is selectable at all in the UI:
+                  </p>
+                  <ul className="list-disc pl-6 text-gray-700 space-y-1 mb-3">
+                    <li>
+                      <span className="font-mono">settings.research_allow_live_evaluations</span> (
+                      <span className="font-mono">research_allow_live_evaluations</span> in{' '}
+                      <span className="font-mono">.env</span>, default <span className="font-mono">false</span>) —
+                      must be on for any live (OpenAI/Gemini-backed) research evaluator to be selectable.
+                    </li>
+                    <li>
+                      <span className="font-mono">settings.ace_ct_allow_experimental_rubric</span> (default{' '}
+                      <span className="font-mono">false</span>) — an additional gate for evaluators marked{' '}
+                      <span className="font-mono">experimental=True</span> on their registration.
+                    </li>
+                  </ul>
+                  <p className="text-gray-700 mb-3">
+                    Offline evaluators (<span className="font-mono">requires_live_execution=False</span>,
+                    e.g. the APEX baseline / hybrid v1 / hybrid v2 research adapters) are always{' '}
+                    <span className="font-mono">available</span> regardless of these flags. The UI also
+                    requires a human to tick &quot;Explicitly allow live model execution for this run&quot;
+                    per run, on top of the server flag, before a live evaluator actually calls out.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Minimal registration example</h3>
+                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-md text-sm overflow-x-auto mb-3">
+                    <code>{`registry.register(
+    ResearchAdapterRegistration(
+        evaluator_identifier="my_research_evaluator",
+        display_name="My Research Evaluator",
+        evaluator_version="1.0.0",
+        evaluator_type="my_research_evaluator",
+        framework=my_framework_metadata,
+        adapter=MyResearchAdapter(),
+        requires_live_execution=False,  # or True + supported_providers/default_provider
+        default_selected=False,
+    )
+)`}</code>
+                  </pre>
+                  <p className="text-gray-700 text-sm mb-6">
+                    See the built-in <span className="font-mono">ApexResearchAdapter</span> and{' '}
+                    <span className="font-mono">ACECTResearchAdapter</span> (
+                    <span className="font-mono">services/research_adapters/</span>) for complete examples,
+                    and the <Link to="/docs/research-workflow-guide" className="text-apex-700 hover:underline">
+                      Research workflow guide
+                    </Link>{' '}
+                    for how these evaluators surface end-to-end for researchers running Evaluate Sessions.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Adding a new research evaluator today (developer task)</h3>
+                  <p className="text-gray-700 mb-3">
+                    There is no self-serve path yet &mdash; a researcher with a new evaluator idea needs a
+                    developer to make a code change and restart the backend. In order:
+                  </p>
+                  <ol className="list-decimal pl-6 text-gray-700 space-y-1 mb-3">
+                    <li>Implement the scoring logic (a new <span className="font-mono">ScoringService</span> compute
+                      method, or reuse an existing LLM adapter with a different prompt/rubric).</li>
+                    <li>Write a <span className="font-mono">ResearchResultAdapter</span> mapping that output onto
+                      the shared <span className="font-mono">ResearchProjection</span> schema.</li>
+                    <li>Add an <span className="font-mono">EvaluatorDefinition</span> entry in{' '}
+                      <span className="font-mono">evaluator_comparison_service.py</span>.</li>
+                    <li>Add a dispatch branch in <span className="font-mono">EvaluatorComparisonService._compute</span>
+                      /<span className="font-mono">_run_one</span> (currently a hardcoded per-identifier chain, not
+                      itself a registry &mdash; see the roadmap note below).</li>
+                    <li>Register it in <span className="font-mono">research_adapters/defaults.py</span> via{' '}
+                      <span className="font-mono">ResearchAdapterRegistration(...)</span>.</li>
+                    <li>If it calls a live model, set <span className="font-mono">requires_live_execution=True</span>,
+                      declare <span className="font-mono">supported_providers</span>/
+                      <span className="font-mono">default_provider</span>, and mark{' '}
+                      <span className="font-mono">experimental=True</span> with a warning string if it hasn&apos;t
+                      been validated yet (see the ACE-CT-inspired evaluator for the pattern).</li>
+                  </ol>
+                  <p className="text-gray-700 text-sm mb-3">
+                    This is deliberately reviewed and code-level, not dynamically discoverable &mdash; the research
+                    contract depends on the registered evaluator set being fixed and citable, not swappable at
+                    runtime.
+                  </p>
+
+                  <div className="rounded-lg border border-sky-200 bg-sky-50 p-4">
+                    <h4 className="font-semibold text-sky-900 mb-2">Roadmap: lowering this bar for researchers</h4>
+                    <ul className="list-disc pl-5 text-sm text-sky-900 space-y-2">
+                      <li>
+                        <span className="font-semibold">Soon &mdash; registry-fy the dispatch step.</span> Replace step
+                        4&apos;s hardcoded if/elif chain with a per-definition registered compute function, mirroring
+                        the <span className="font-mono">MatchingPolicyRegistry</span> pattern already used for
+                        Item 3A (&quot;write one function, register it, zero changes to existing calculation
+                        code&quot;). Doesn&apos;t add a new capability by itself, but every future evaluator addition
+                        stops touching shared dispatch code.
+                      </li>
+                      <li>
+                        <span className="font-semibold">Soon &mdash; prompt/rubric-only variants.</span> For the two
+                        LLM-backed evaluator types (hybrid, ACE-CT-inspired-style), add a lighter registration path
+                        that only needs a new (prompt_version, rubric config) entry against an existing adapter
+                        &mdash; not a whole new adapter class &mdash; when a researcher just wants to try a different
+                        prompt or rubric weighting.
+                      </li>
+                      <li>
+                        <span className="font-semibold">Medium &mdash; declarative evaluator definitions.</span> A
+                        small reviewed YAML/JSON spec (provider, prompt template, rubric dimensions, versioning) that
+                        a researcher without deep backend experience can draft themselves and hand to a developer for
+                        a quick review-and-merge, instead of hand-writing the Python registration boilerplate above.
+                      </li>
+                      <li>
+                        <span className="font-semibold">Later &mdash; sandboxed preview tier.</span> Let an
+                        unregistered/unreviewed evaluator config run in Run &amp; Compare preview only (never
+                        Saved Runs, never counted as citable/reproducible), so researchers can experiment before the
+                        formal registration step instead of needing it upfront.
+                      </li>
+                    </ul>
+                  </div>
+                </section>
+
+                {/* 4. Metrics Plugins */}
+                <section
+                  className={cn('mb-6', !docSectionVisible(DOC_NAV[6].keywords, docSearch) && 'hidden')}
                   id="metrics"
                 >
                   <h2 className="text-xl font-semibold mt-8 mb-3">Metrics Plugins</h2>
@@ -432,7 +612,7 @@ class MyMetricsPlugin:
 
                 {/* 5. Plugin Registration */}
                 <section
-                  className={cn('mb-6', !docSectionVisible(DOC_NAV[6].keywords, docSearch) && 'hidden')}
+                  className={cn('mb-6', !docSectionVisible(DOC_NAV[7].keywords, docSearch) && 'hidden')}
                   id="registration"
                 >
                   <h2 className="text-xl font-semibold mt-8 mb-3">Plugin Registration</h2>
@@ -482,7 +662,7 @@ class MyMetricsPlugin:
 
                 {/* 6. Testing Plugins */}
                 <section
-                  className={cn('mb-6', !docSectionVisible(DOC_NAV[7].keywords, docSearch) && 'hidden')}
+                  className={cn('mb-6', !docSectionVisible(DOC_NAV[8].keywords, docSearch) && 'hidden')}
                   id="testing"
                 >
                   <h2 className="text-xl font-semibold mt-8 mb-3">Testing Plugins</h2>
@@ -517,7 +697,7 @@ class MyMetricsPlugin:
 
                 {/* 7. Best Practices */}
                 <section
-                  className={cn('mb-6', !docSectionVisible(DOC_NAV[8].keywords, docSearch) && 'hidden')}
+                  className={cn('mb-6', !docSectionVisible(DOC_NAV[9].keywords, docSearch) && 'hidden')}
                   id="best-practices"
                 >
                   <h2 className="text-xl font-semibold mt-8 mb-3">Best Practices</h2>

@@ -30,6 +30,10 @@ export const DeveloperOnboarding = () => {
               <Link to="/docs/plugin-developer-guide" className="text-apex-700 font-medium hover:underline">
                 Plugin developer guide
               </Link>
+              . For the research evaluation workflow (admin/researcher roles), see the{' '}
+              <Link to="/docs/research-workflow-guide" className="text-apex-700 font-medium hover:underline">
+                Research workflow guide
+              </Link>
               .
             </p>
 
@@ -109,6 +113,49 @@ export const DeveloperOnboarding = () => {
                 <li>
                   <span className="font-medium">Test:</span> unit-test the plugin class; use service tests or mocks
                   for session create and feedback where your plugin is selected.
+                </li>
+              </ul>
+            </section>
+
+            <section className="mb-10">
+              <h2 className="text-xl font-semibold text-gray-900 mb-3">4. Roles &amp; research evaluation</h2>
+              <ul className="list-disc pl-5 space-y-2 text-gray-700 text-sm leading-relaxed">
+                <li>
+                  <span className="font-medium">Roles:</span> <code className="text-xs">trainee</code> only
+                  sees their own sessions and feedback; <code className="text-xs">admin</code> and{' '}
+                  <code className="text-xs">researcher</code> can both reach the Research area and its
+                  Evaluate Sessions workspace. Researchers see real transcripts (needed for evaluation) but
+                  trainee identity is pseudonymized for them &mdash; admins see real trainee names.
+                </li>
+                <li>
+                  <span className="font-medium">Evaluate Sessions:</span> under Research, this is where
+                  admins/researchers filter sessions (case, state, plugin, evaluation status, evaluator) and
+                  open a session&apos;s <span className="font-medium">Run &amp; Compare</span> (ephemeral
+                  preview) and <span className="font-medium">Saved Runs</span> (persisted, append-only)
+                  tabs. Walk through it once via the{' '}
+                  <Link to="/docs/research-workflow-guide" className="text-apex-700 font-medium hover:underline">
+                    Research workflow guide
+                  </Link>
+                  .
+                </li>
+                <li>
+                  <span className="font-medium">Live model evaluators:</span> OpenAI/Gemini-backed research
+                  evaluators are off by default locally &mdash; set{' '}
+                  <code className="rounded bg-gray-200 px-1.5 py-0.5 text-xs">research_allow_live_evaluations=true</code>{' '}
+                  (and <code className="rounded bg-gray-200 px-1.5 py-0.5 text-xs">ace_ct_allow_experimental_rubric=true</code>{' '}
+                  for the experimental ACE-CT-inspired one) in <code className="text-xs">backend/.env</code> and
+                  restart the backend. This is separate from having{' '}
+                  <code className="text-xs">openai_api_key</code> / <code className="text-xs">gemini_api_key</code>{' '}
+                  configured, which is required just to boot the backend.
+                </li>
+                <li>
+                  <span className="font-medium">Adding a research evaluator:</span> unlike the dynamic
+                  plugin types above, research evaluators are registered explicitly in{' '}
+                  <code className="text-xs">services/research_adapters/defaults.py</code> &mdash; see the{' '}
+                  <Link to="/docs/plugin-developer-guide" className="text-apex-700 font-medium hover:underline">
+                    Plugin developer guide
+                  </Link>
+                  &apos;s &quot;Research Evaluator Plugins&quot; section.
                 </li>
               </ul>
             </section>

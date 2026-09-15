@@ -19,6 +19,7 @@ from domain.models.research_annotation import (
     AnnotationSetCreateRequest,
     AnnotationSetRecord,
     AnnotationSetReopenRequest,
+    AnnotationSetSummary,
     AuthoredRelationCreateRequest,
     AuthoredRelationRevisionRequest,
     CoverageDeclarationWriteRequest,
@@ -38,6 +39,7 @@ from domain.models.research_evaluation import (
     ResearchExportRequest,
 )
 from domain.models.research_validation import (
+    ValidationRunArchiveRequest,
     ValidationRunCreateRequest,
     ValidationRunExportRequest,
     ValidationRunRecord,
@@ -138,6 +140,7 @@ def _raise_validation_http_error(error: ResearchValidationServiceError) -> None:
         "invalid_projection": 422,
         "validation_run_not_found": 404,
         "persistence_failed": 500,
+        "archive_state_persistence_failed": 500,
     }
     raise HTTPException(
         status_code=status_by_category[error.category],
@@ -284,6 +287,49 @@ async def get_saved_research_evaluation(
         return ResearchEvaluationRunService(db).get_run(run_uuid)
     except ResearchEvaluationRunServiceError as error:
         _raise_evaluation_run_http_error(error)
+
+
+@router.get(
+    "/sessions/{session_id}/annotation-sets",
+    response_model=tuple[AnnotationSetSummary, ...],
+)
+async def list_research_annotation_sets(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """List every annotation set for a session, across all runs and reviewers.
+
+    @remarks
+    Backs Item 3B's "pick a completed annotation set" reference picker: a
+    validation run's `annotation_set_uuid` need not come from the same
+    evaluation run being validated, so the picker must offer every set for the
+    session, not just the one tied to a single chosen evaluator run.
+    """
+
+    return ResearchAnnotationService(db).list_annotation_sets_for_session(session_id)
+
+
+@router.get(
+    "/sessions/{session_id}/validation-runs",
+    response_model=tuple[ValidationRunRecord, ...],
+)
+async def list_research_validation_runs(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+    include_archived: bool = False,
+):
+    """List validation runs for one session's evaluator runs, newest first.
+
+    @remarks
+    Archived runs are excluded by default -- pass `include_archived=true` to see
+    them too (still newest-first, interleaved with non-archived runs).
+    """
+
+    return ResearchValidationService(db).list_for_session(
+        session_id, include_archived=include_archived
+    )
 
 
 @router.post(
@@ -502,6 +548,40 @@ async def create_research_validation_run(
         request.evaluation_run_uuid,
         request.annotation_set_uuid,
         record.validation_run_uuid,
+    )
+    return record
+
+
+@router.post(
+    "/validation-runs/{validation_run_uuid}/archive-state",
+    response_model=ValidationRunRecord,
+)
+async def set_research_validation_run_archived(
+    validation_run_uuid: UUID,
+    request: ValidationRunArchiveRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """Archive or unarchive one validation run (a display-only flag, not a deletion).
+
+    @remarks
+    The validation run's own recorded result is never touched -- this only sets
+    a separate, mutable flag that hides it from the default session list, so it
+    can be reversed at any time by calling this again with `archived: false`.
+    """
+
+    try:
+        record = ResearchValidationService(db).set_validation_run_archived(
+            validation_run_uuid, archived=request.archived, current_user=current_user
+        )
+    except ResearchValidationServiceError as error:
+        _raise_validation_http_error(error)
+    logger.info(
+        "Research validation run archive-state changed admin_user_id=%s "
+        "validation_run_uuid=%s archived=%s",
+        current_user.id,
+        validation_run_uuid,
+        request.archived,
     )
     return record
 

@@ -777,3 +777,104 @@ export type AnnotationExportProfile =
   | 'full_review'
   | 'resolved_projection'
   | 'audit_history'
+
+/** Lightweight per-session annotation-set listing row (Item 3B reference picker). */
+export interface AnnotationSetSummary {
+  annotation_set_uuid: string
+  evaluation_run_uuid: string
+  transcript_hash: string
+  transcript_matches_current: boolean
+  guideline_identifier: string
+  guideline_version: string
+  reviewer_reference: string
+  status: AnnotationSetStatus
+  locked: boolean
+  coverage_level: CoverageLevel
+  revision: number
+  created_at: string
+  updated_at: string
+  completed_at?: string | null
+}
+
+export interface ValidationRunCreateRequest {
+  evaluation_run_uuid: string
+  annotation_set_uuid: string
+  matching_policy_identifier?: string
+}
+
+/**
+ * Status of one computed ratio (precision/recall/F1).
+ *
+ * @remarks
+ * `value` is a reduced fraction string (e.g. `"2/3"`), never a float, and is non-null
+ * iff `status === 'computed'` — the frontend must never render `ineligible`,
+ * `no_reference_support`, or `no_predicted_support` as if they were a numeric zero.
+ */
+export type RatioStatus = 'computed' | 'ineligible' | 'no_reference_support' | 'no_predicted_support'
+
+export interface RatioResult {
+  status: RatioStatus
+  value: string | null
+  note?: string | null
+}
+
+export interface SpanLabelClassificationMetric {
+  label: string
+  support: number
+  predicted_count: number
+  true_positives: number
+  false_positives: number
+  false_negatives: number
+  precision: RatioResult
+  recall: RatioResult
+  f1: RatioResult
+}
+
+export interface SpanClassificationAggregate {
+  true_positives: number
+  false_positives: number
+  false_negatives: number
+  precision: RatioResult
+  recall: RatioResult
+  f1: RatioResult
+  labels_included: number
+}
+
+export interface SpanClassificationMetrics {
+  metric_family: 'span_classification'
+  metric_implementation_version: string
+  matching_policy_identifier: string
+  matching_policy_version: string
+  per_label: SpanLabelClassificationMetric[]
+  micro: SpanClassificationAggregate
+  macro: SpanClassificationAggregate
+}
+
+export interface ValidationRunResult {
+  schema_version: '1.0'
+  coverage_level: CoverageLevel
+  eligibility: ValidationEligibilityRecord
+  span_classification: SpanClassificationMetrics
+}
+
+export interface ValidationRunRecord {
+  validation_run_uuid: string
+  evaluation_run_uuid: string
+  annotation_set_uuid: string
+  annotation_set_revision_at_validation: number
+  transcript_hash: string
+  evaluator_identifier: string
+  evaluator_version: string
+  matching_policy_identifier: string
+  matching_policy_version: string
+  metric_implementation_version: string
+  coverage_level: CoverageLevel
+  results: ValidationRunResult
+  warnings: string[]
+  created_by_reference: string
+  created_at: string
+  archived: boolean
+  archived_at: string | null
+}
+
+export type ValidationExportProfile = 'full' | 'results_only'

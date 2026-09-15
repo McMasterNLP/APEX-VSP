@@ -27,6 +27,25 @@ def generate_anon_session_id(session_id: int) -> str:
     return f"anon_{h[:12]}"
 
 
+def pseudonymous_participant_reference(user_id: int) -> str:
+    """Stable, deployment-scoped reference for the trainee/participant a session belongs
+    to -- never their real name or email.
+
+    @remarks
+    Same salted-hash pattern as `generate_anon_session_id` and (in the research-run
+    services) `pseudonymous_reviewer_reference`, but a distinct `participant_` prefix:
+    a "reviewer" reference identifies the researcher who authored an annotation or
+    validation run, while this identifies the trainee whose session is being viewed --
+    conflating the two in one prefix would be actively misleading in a UI that can show
+    both roles side by side. Used to redact identity from admin-session endpoints when
+    the caller is a researcher rather than an admin: researchers need the real transcript
+    to annotate and evaluate, but never need the trainee's real identity to do that work.
+    """
+    salt = get_settings().research_anon_salt
+    digest = hashlib.sha256(f"participant:{user_id}:{salt}".encode()).hexdigest()
+    return f"participant_{digest[:16]}"
+
+
 def _plugin_field_csv(val: str | None) -> str:
     """Single plugin id/path for a CSV cell (plain string, not JSON)."""
     if val is None:

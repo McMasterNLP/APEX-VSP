@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Info } from 'lucide-react'
 import type {
   AnnotationPolicyDescriptor,
   DecisionRevisionRecord,
@@ -36,9 +37,14 @@ export function ReviewControls({
   onSave,
 }: ReviewControlsProps) {
   const [note, setNote] = useState(currentDecision?.reviewer_note ?? '')
+  const [correcting, setCorrecting] = useState(false)
 
   useEffect(() => {
     setNote(currentDecision?.reviewer_note ?? '')
+    // Collapse the correction form whenever the prediction changes, or once this prediction's
+    // decision itself changes (a successful save gets a fresh decision_uuid) — so "Correct"
+    // doesn't stay open after the item it belonged to has moved on.
+    setCorrecting(false)
   }, [prediction.prediction_id, currentDecision?.decision_uuid, currentDecision?.reviewer_note])
 
   const save = (
@@ -46,42 +52,28 @@ export function ReviewControls({
     correction: TypedCorrection | null = null
   ) => onSave(decision, correction, note)
 
+  const supportsLabelCorrection =
+    (prediction.projection_type === 'span_annotation' || prediction.projection_type === 'turn_label') &&
+    (prediction.allowed_operations.change_label || prediction.allowed_operations.change_dimension)
+  const supportsRatingCorrection =
+    prediction.projection_type === 'dimension_rating' && prediction.allowed_operations.change_rating
+  const supportsCorrect = supportsLabelCorrection || supportsRatingCorrection
+  const supportsInsufficientEvidence =
+    prediction.projection_type === 'dimension_rating' && prediction.allowed_operations.mark_insufficient_evidence
+
+  const markInsufficientEvidence = () => {
+    const original = prediction.original_prediction as DimensionRating
+    save('insufficient_evidence', {
+      correction_type: 'dimension_rating',
+      corrected_assessability: original.assessability,
+      corrected_evidence_turns: original.evidence_turns,
+      corrected_score: null,
+      corrected_score_status: 'insufficient_evidence',
+    })
+  }
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2" aria-label="Prediction decision controls">
-        {prediction.allowed_operations.confirm && (
-          <Button type="button" size="sm" disabled={disabled} onClick={() => void save('confirmed')}>
-            Confirm prediction
-          </Button>
-        )}
-        {prediction.allowed_operations.reject && (
-          <Button type="button" size="sm" variant="destructive" disabled={disabled} onClick={() => void save('rejected')}>
-            Reject prediction
-          </Button>
-        )}
-      </div>
-
-      {(prediction.projection_type === 'span_annotation' || prediction.projection_type === 'turn_label') &&
-        (prediction.allowed_operations.change_label || prediction.allowed_operations.change_dimension) && (
-          <LabelCorrectionControls
-            prediction={prediction}
-            policy={policy}
-            disabled={disabled}
-            onSave={(correction) => void save('corrected', correction)}
-          />
-        )}
-
-      {prediction.projection_type === 'dimension_rating' && (
-        <RatingCorrectionControls
-          prediction={prediction}
-          policy={policy}
-          transcriptTurnNumbers={transcriptTurnNumbers}
-          disabled={disabled}
-          onCorrect={(correction) => void save('corrected', correction)}
-          onInsufficient={(correction) => void save('insufficient_evidence', correction)}
-        />
-      )}
-
       <label className="block text-sm font-medium text-gray-800">
         Reviewer note (optional, 1,000 characters maximum)
         <Textarea
@@ -93,6 +85,90 @@ export function ReviewControls({
           className="mt-1"
         />
       </label>
+
+      {/*
+        Confirm, Reject, Correct (and, for ratings, Mark insufficient evidence) are presented as
+        equal-weight peer decisions in one row, rather than Confirm/Reject as prominent buttons
+        with correction buried in an always-open form below. Correct can't be a single click —
+        it needs a label/score picked first — so it toggles the form open instead of saving
+        directly; every other button here is a genuine one-click decision.
+      */}
+      <div className="flex flex-wrap gap-2" aria-label="Prediction decision controls">
+        {prediction.allowed_operations.confirm && (
+          <Button type="button" size="sm" disabled={disabled} onClick={() => void save('confirmed')}>
+            Confirm prediction
+          </Button>
+        )}
+        {prediction.allowed_operations.reject && (
+          <Button type="button" size="sm" variant="destructive" disabled={disabled} onClick={() => void save('rejected')}>
+            Reject prediction
+          </Button>
+        )}
+        {supportsCorrect && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border-indigo-300 text-indigo-900 hover:bg-indigo-50"
+            aria-expanded={correcting}
+            disabled={disabled}
+            onClick={() => setCorrecting((current) => !current)}
+          >
+            {correcting ? 'Cancel correction' : 'Correct prediction'}
+          </Button>
+        )}
+        {supportsInsufficientEvidence && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="border-amber-300 text-amber-900 hover:bg-amber-50"
+            disabled={disabled}
+            onClick={() => void markInsufficientEvidence()}
+          >
+            Mark insufficient evidence
+          </Button>
+        )}
+      </div>
+
+      {/*
+        Confirm/Reject stay available for every prediction type, but correction is only
+        meaningful for span/turn-label/dimension-rating predictions (see supportsCorrect
+        above) — relations, global metrics, findings, and limitations have no correction
+        UI at all. Without this caption that reads as a missing button rather than a
+        deliberate scope boundary, so call it out explicitly instead of leaving it blank.
+      */}
+      {!supportsCorrect && !supportsInsufficientEvidence && (
+        <span
+          data-testid="correction-not-available"
+          title="Only span, turn-label, and dimension-rating predictions support correction."
+          className="inline-flex w-fit items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800"
+        >
+          <Info className="h-3 w-3" aria-hidden="true" />
+          N/A &middot; Correction not supported for this prediction type
+        </span>
+      )}
+
+      {correcting && supportsLabelCorrection && (
+        <LabelCorrectionControls
+          prediction={prediction}
+          policy={policy}
+          disabled={disabled}
+          onSave={(correction) => { void save('corrected', correction); setCorrecting(false) }}
+          onCancel={() => setCorrecting(false)}
+        />
+      )}
+
+      {correcting && supportsRatingCorrection && (
+        <RatingCorrectionControls
+          prediction={prediction}
+          policy={policy}
+          transcriptTurnNumbers={transcriptTurnNumbers}
+          disabled={disabled}
+          onCorrect={(correction) => { void save('corrected', correction); setCorrecting(false) }}
+          onCancel={() => setCorrecting(false)}
+        />
+      )}
     </div>
   )
 }
@@ -102,11 +178,13 @@ function LabelCorrectionControls({
   policy,
   disabled,
   onSave,
+  onCancel,
 }: {
   prediction: ReviewablePrediction
   policy: AnnotationPolicyDescriptor
   disabled: boolean
   onSave: (correction: SpanCorrection | TurnLabelCorrection) => void
+  onCancel: () => void
 }) {
   const original = prediction.original_prediction as SpanAnnotation | TurnLabel
   const labelPolicy = policy.label_policies.find(
@@ -168,9 +246,14 @@ function LabelCorrectionControls({
           </select>
         </label>
       )}
-      <Button type="button" variant="outline" size="sm" disabled={disabled || !canSave} onClick={() => onSave(correction())}>
-        Save label correction
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" disabled={disabled || !canSave} onClick={() => onSave(correction())}>
+          Save label correction
+        </Button>
+        <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onCancel}>
+          Cancel
+        </Button>
+      </div>
       <p className="text-xs text-gray-600">Span boundaries cannot be changed in Item 2A.</p>
     </fieldset>
   )
@@ -182,14 +265,14 @@ function RatingCorrectionControls({
   transcriptTurnNumbers,
   disabled,
   onCorrect,
-  onInsufficient,
+  onCancel,
 }: {
   prediction: ReviewablePrediction
   policy: AnnotationPolicyDescriptor
   transcriptTurnNumbers: number[]
   disabled: boolean
   onCorrect: (correction: DimensionRatingCorrection) => void
-  onInsufficient: (correction: DimensionRatingCorrection) => void
+  onCancel: () => void
 }) {
   const original = prediction.original_prediction as DimensionRating
   const scale = policy.rating_scales.find(
@@ -268,21 +351,9 @@ function RatingCorrectionControls({
             Save rating correction
           </Button>
         )}
-        {prediction.allowed_operations.mark_insufficient_evidence && (
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={disabled}
-            onClick={() => onInsufficient({
-              ...base,
-              corrected_score: null,
-              corrected_score_status: 'insufficient_evidence',
-            })}
-          >
-            Mark insufficient evidence
-          </Button>
-        )}
+        <Button type="button" variant="ghost" size="sm" disabled={disabled} onClick={onCancel}>
+          Cancel
+        </Button>
       </div>
     </fieldset>
   )

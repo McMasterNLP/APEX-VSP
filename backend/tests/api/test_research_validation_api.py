@@ -388,3 +388,166 @@ async def test_validation_run_not_found_and_unknown_policy(admin, db_session):
         )
         assert unknown_policy.status_code == 422
         assert unknown_policy.json()["message"]["category"] == "unknown_matching_policy"
+
+
+@pytest.mark.anyio
+async def test_list_annotation_sets_for_session_reports_every_set_regardless_of_status(
+    admin, db_session
+):
+    """Backs the Item 3B reference picker: every set for the session, not just complete ones."""
+
+    _as_admin(admin)
+    session = _make_completed_session(db_session, admin)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, created = await _save_and_create(client, session.id)
+        draft_uuid = created.json()["annotation_set_uuid"]
+
+        listing = await client.get(f"/v1/research/sessions/{session.id}/annotation-sets")
+        assert listing.status_code == 200, listing.text
+        summaries = listing.json()
+        assert len(summaries) == 1
+        assert summaries[0]["annotation_set_uuid"] == draft_uuid
+        assert summaries[0]["status"] == "draft"
+        assert summaries[0]["locked"] is False
+        assert summaries[0]["coverage_level"] == "not_assessed"
+
+        completed = await _confirm_all_and_complete(client, created.json())
+
+        listing_after_complete = await client.get(
+            f"/v1/research/sessions/{session.id}/annotation-sets"
+        )
+        assert listing_after_complete.status_code == 200
+        [summary] = listing_after_complete.json()
+        assert summary["annotation_set_uuid"] == completed["annotation_set_uuid"]
+        assert summary["status"] == "complete"
+        assert summary["locked"] is True
+        assert summary["coverage_level"] == "exhaustive"
+
+
+@pytest.mark.anyio
+async def test_list_validation_runs_for_session_is_newest_first(admin, db_session):
+    _as_admin(admin)
+    session = _make_completed_session(db_session, admin)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, created = await _save_and_create(client, session.id)
+        completed = await _confirm_all_and_complete(client, created.json())
+
+        empty_listing = await client.get(f"/v1/research/sessions/{session.id}/validation-runs")
+        assert empty_listing.status_code == 200
+        assert empty_listing.json() == []
+
+        first = await client.post(
+            "/v1/research/validation-runs",
+            json={
+                "evaluation_run_uuid": run.json()["run_uuid"],
+                "annotation_set_uuid": completed["annotation_set_uuid"],
+            },
+        )
+        assert first.status_code == 200, first.text
+        second = await client.post(
+            "/v1/research/validation-runs",
+            json={
+                "evaluation_run_uuid": run.json()["run_uuid"],
+                "annotation_set_uuid": completed["annotation_set_uuid"],
+            },
+        )
+        assert second.status_code == 200, second.text
+
+        listing = await client.get(f"/v1/research/sessions/{session.id}/validation-runs")
+        assert listing.status_code == 200
+        results = listing.json()
+        assert [item["validation_run_uuid"] for item in results] == [
+            second.json()["validation_run_uuid"],
+            first.json()["validation_run_uuid"],
+        ]
+
+
+@pytest.mark.anyio
+async def test_archiving_a_validation_run_hides_it_from_the_default_list_only(
+    admin, db_session
+):
+    """Archiving is a display-only flag: it hides a run from the default session
+    list and marks it on the record itself, but never touches the immutable
+    result, and it reverses cleanly with a second call.
+    """
+    _as_admin(admin)
+    session = _make_completed_session(db_session, admin)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, created = await _save_and_create(client, session.id)
+        completed = await _confirm_all_and_complete(client, created.json())
+
+        created_run = await client.post(
+            "/v1/research/validation-runs",
+            json={
+                "evaluation_run_uuid": run.json()["run_uuid"],
+                "annotation_set_uuid": completed["annotation_set_uuid"],
+            },
+        )
+        assert created_run.status_code == 200, created_run.text
+        validation_run_uuid = created_run.json()["validation_run_uuid"]
+        assert created_run.json()["archived"] is False
+        assert created_run.json()["archived_at"] is None
+
+        archived = await client.post(
+            f"/v1/research/validation-runs/{validation_run_uuid}/archive-state",
+            json={"archived": True},
+        )
+        assert archived.status_code == 200, archived.text
+        assert archived.json()["archived"] is True
+        assert archived.json()["archived_at"] is not None
+        # Archiving must not alter the immutable recorded result.
+        assert archived.json()["results"] == created_run.json()["results"]
+
+        default_listing = await client.get(
+            f"/v1/research/sessions/{session.id}/validation-runs"
+        )
+        assert default_listing.status_code == 200
+        assert default_listing.json() == []
+
+        inclusive_listing = await client.get(
+            f"/v1/research/sessions/{session.id}/validation-runs",
+            params={"include_archived": True},
+        )
+        assert inclusive_listing.status_code == 200
+        assert [item["validation_run_uuid"] for item in inclusive_listing.json()] == [
+            validation_run_uuid
+        ]
+        assert inclusive_listing.json()[0]["archived"] is True
+
+        get_response = await client.get(
+            f"/v1/research/validation-runs/{validation_run_uuid}"
+        )
+        assert get_response.status_code == 200
+        assert get_response.json()["archived"] is True
+
+        unarchived = await client.post(
+            f"/v1/research/validation-runs/{validation_run_uuid}/archive-state",
+            json={"archived": False},
+        )
+        assert unarchived.status_code == 200, unarchived.text
+        assert unarchived.json()["archived"] is False
+        assert unarchived.json()["archived_at"] is None
+
+        restored_listing = await client.get(
+            f"/v1/research/sessions/{session.id}/validation-runs"
+        )
+        assert restored_listing.status_code == 200
+        assert [item["validation_run_uuid"] for item in restored_listing.json()] == [
+            validation_run_uuid
+        ]
+
+
+@pytest.mark.anyio
+async def test_archiving_an_unknown_validation_run_is_not_found(admin, db_session):
+    _as_admin(admin)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            f"/v1/research/validation-runs/{uuid.uuid4()}/archive-state",
+            json={"archived": True},
+        )
+        assert response.status_code == 404
+        assert response.json()["message"]["category"] == "validation_run_not_found"
