@@ -241,6 +241,30 @@ describe('ValidateTab', () => {
     expect(screen.getByRole('button', { name: /run validation/i })).toBeDisabled()
   })
 
+  it('warns but does not block validation when the run\'s framework produces no span or relation predictions', () => {
+    renderTab(
+      baseContext({
+        savedRuns: [
+          { ...savedRun('run-1'), framework_identifier: 'ace-ct-inspired' },
+        ],
+        annotationSets: [
+          annotationSetSummary({ annotation_set_uuid: 'set-1' }),
+        ],
+      })
+    )
+
+    fireEvent.change(screen.getByLabelText(/evaluator run to score/i), {
+      target: { value: 'run-1' },
+    })
+
+    expect(screen.getByText(/doesn.t produce span or relation predictions/i)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/reference annotation set/i), {
+      target: { value: 'set-1' },
+    })
+    expect(screen.getByRole('button', { name: /run validation/i })).not.toBeDisabled()
+  })
+
   it('only offers complete annotation sets as reference options, and notes the excluded ones', () => {
     renderTab(
       baseContext({

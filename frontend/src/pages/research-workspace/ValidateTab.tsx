@@ -17,6 +17,8 @@ import { ValidationResultsTable } from '@/components/admin/research/ValidationRe
 import { formatDateTimeInUserTimeZone } from '@/lib/dateTime'
 import type { EvaluationSessionContext } from './useEvaluationSession'
 
+const SPAN_OR_RELATION_CAPABLE_FRAMEWORKS = new Set(['apex-spikes-afce'])
+
 export function ValidateTab() {
   const {
     savedRuns,
@@ -46,6 +48,19 @@ export function ValidateTab() {
     selectedEvaluationRun !== null &&
     selectedAnnotationSet !== null &&
     selectedEvaluationRun.transcript_hash !== selectedAnnotationSet.transcript_hash
+
+  // Item 3A implements exactly one metric family -- span/label classification -- and
+  // nothing else (no relation, rating, or global-score metrics exist yet; see
+  // `research_validation/metrics.py`). Frameworks that produce no span or relation
+  // predictions at all (today: `ace-ct-inspired`, dimension ratings only) will still let
+  // you create a validation run, but it comes back an empty per-label table with every
+  // recall/F1 cell reading "ineligible" -- a confusing result that has nothing to do with
+  // coverage. This is a soft heuristic (an allowlist of frameworks known to produce spans
+  // or relations, not a hard gate), so it warns rather than blocks: a future framework not
+  // yet added here defaults to "warn," never to a silent false negative.
+  const selectedFrameworkLacksSpanSupport =
+    selectedEvaluationRun !== null &&
+    !SPAN_OR_RELATION_CAPABLE_FRAMEWORKS.has(selectedEvaluationRun.framework_identifier)
 
   useEffect(() => {
     if (viewedRunUuid === null && validationRuns.length > 0) {
@@ -190,6 +205,16 @@ export function ValidateTab() {
               transcripts (their transcript hashes don&apos;t match), so a validation run
               between them would be rejected. Choose a run and reference set captured from
               the same transcript.
+            </p>
+          )}
+
+          {!transcriptMismatch && selectedFrameworkLacksSpanSupport && (
+            <p role="status" className="rounded border border-sky-300 bg-sky-50 p-2 text-sm text-sky-900">
+              This evaluator&apos;s framework doesn&apos;t produce span or relation
+              predictions. The only validation metrics implemented so far score span/label
+              classification, so this run will still create a validation record but every
+              per-label row and recall/F1 cell will come back empty or ineligible -- that
+              reflects a metric family gap, not something wrong with your review.
             </p>
           )}
 
