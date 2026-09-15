@@ -873,6 +873,8 @@ export interface ValidationRunRecord {
   warnings: string[]
   created_by_reference: string
   created_at: string
+  archived: boolean
+  archived_at: string | null
 }
 
 export type ValidationExportProfile = 'full' | 'results_only'

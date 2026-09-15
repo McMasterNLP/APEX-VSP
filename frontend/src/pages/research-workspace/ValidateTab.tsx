@@ -28,6 +28,10 @@ export function ValidateTab() {
     loadingValidationRuns,
     creatingValidationRun,
     createValidationRun,
+    includeArchivedValidationRuns,
+    setIncludeArchivedValidationRuns,
+    archivingValidationRunUuid,
+    setValidationRunArchived,
     error,
   } = useOutletContext<EvaluationSessionContext>()
 
@@ -229,29 +233,49 @@ export function ValidateTab() {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
           <CardTitle>Validation runs</CardTitle>
+          <label className="flex items-center gap-2 text-sm font-normal text-gray-700">
+            <input
+              type="checkbox"
+              checked={includeArchivedValidationRuns}
+              onChange={(event) => setIncludeArchivedValidationRuns(event.target.checked)}
+            />
+            Show archived runs
+          </label>
         </CardHeader>
         <CardContent className="space-y-3">
           {validationRuns.length === 0 ? (
-            <p className="text-sm text-gray-600">No validation runs yet for this session.</p>
+            <p className="text-sm text-gray-600">
+              {includeArchivedValidationRuns
+                ? 'No validation runs (including archived) yet for this session.'
+                : 'No validation runs yet for this session.'}
+            </p>
           ) : (
             <ul className="space-y-1">
               {validationRuns.map((run) => (
-                <li key={run.validation_run_uuid}>
+                <li
+                  key={run.validation_run_uuid}
+                  className={`flex flex-wrap items-center gap-2 rounded-md p-2 text-sm transition-colors ${
+                    run.validation_run_uuid === viewedRunUuid
+                      ? 'bg-apex-50 ring-1 ring-apex-300'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  } ${run.archived ? 'opacity-70' : ''}`}
+                >
                   <button
                     type="button"
                     onClick={() => setViewedRunUuid(run.validation_run_uuid)}
-                    className={`flex w-full flex-wrap items-center justify-between gap-2 rounded-md p-2 text-left text-sm transition-colors ${
-                      run.validation_run_uuid === viewedRunUuid
-                        ? 'bg-apex-50 ring-1 ring-apex-300'
-                        : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
+                    className="flex flex-1 flex-wrap items-center justify-between gap-2 text-left"
                   >
                     <span>
                       <span className="font-medium">
                         {run.evaluator_identifier} v{run.evaluator_version}
                       </span>
+                      {run.archived && (
+                        <span className="ml-2 rounded border border-gray-300 bg-white px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                          Archived
+                        </span>
+                      )}
                       <span className="ml-2 text-xs text-gray-600">
                         {run.matching_policy_identifier} · coverage:{' '}
                         {run.coverage_level.replaceAll('_', ' ')} ·{' '}
@@ -263,6 +287,19 @@ export function ValidateTab() {
                       <RatioValueCell ratio={run.results.span_classification.micro.f1} />
                     </span>
                   </button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={archivingValidationRunUuid === run.validation_run_uuid}
+                    onClick={() => void setValidationRunArchived(run.validation_run_uuid, !run.archived)}
+                  >
+                    {archivingValidationRunUuid === run.validation_run_uuid
+                      ? 'Saving…'
+                      : run.archived
+                        ? 'Unarchive'
+                        : 'Archive'}
+                  </Button>
                 </li>
               ))}
             </ul>

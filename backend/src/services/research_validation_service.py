@@ -33,7 +33,10 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from core.time import utc_now
-from domain.entities.research_annotation import ResearchValidationRun
+from domain.entities.research_annotation import (
+    ResearchValidationRun,
+    ResearchValidationRunArchiveState,
+)
 from domain.entities.user import User
 from domain.models.research_annotation import AnnotationSetRecord
 from domain.models.research_evaluation import (
@@ -75,6 +78,7 @@ class ResearchValidationServiceError(ValueError):
             "invalid_projection",
             "validation_run_not_found",
             "persistence_failed",
+            "archive_state_persistence_failed",
         ],
         message: str,
     ):
@@ -200,23 +204,58 @@ class ResearchValidationService:
         return self._record(entity)
 
     def get_validation_run(self, validation_run_uuid: UUID) -> ValidationRunRecord:
+        found = self.repository.get_validation_run_with_archive_state(validation_run_uuid)
+        if found is None:
+            raise ResearchValidationServiceError(
+                "validation_run_not_found", "The requested validation run was not found."
+            )
+        entity, archive_state = found
+        return self._record(entity, archive_state)
+
+    def list_for_session(
+        self, session_id: int, *, include_archived: bool = False
+    ) -> tuple[ValidationRunRecord, ...]:
+        """List validation runs for one session's evaluator runs, newest first."""
+
+        return tuple(
+            self._record(entity, archive_state)
+            for entity, archive_state in self.repository.list_validation_runs_for_session(
+                session_id, include_archived=include_archived
+            )
+        )
+
+    def set_validation_run_archived(
+        self, validation_run_uuid: UUID, *, archived: bool, current_user: User
+    ) -> ValidationRunRecord:
         entity = self.repository.get_validation_run(validation_run_uuid)
         if entity is None:
             raise ResearchValidationServiceError(
                 "validation_run_not_found", "The requested validation run was not found."
             )
-        return self._record(entity)
+        try:
+            self.repository.set_validation_run_archived(
+                validation_run_uuid,
+                archived=archived,
+                user_id=current_user.id,
+                now=utc_now(),
+            )
+            self.db.commit()
+        except Exception as error:
+            self.db.rollback()
+            raise ResearchValidationServiceError(
+                "archive_state_persistence_failed",
+                "The validation run's archived state could not be saved.",
+            ) from error
 
-    def list_for_session(self, session_id: int) -> tuple[ValidationRunRecord, ...]:
-        """List validation runs for one session's evaluator runs, newest first."""
-
-        return tuple(
-            self._record(entity)
-            for entity in self.repository.list_validation_runs_for_session(session_id)
-        )
+        found = self.repository.get_validation_run_with_archive_state(validation_run_uuid)
+        assert found is not None
+        return self._record(*found)
 
     @staticmethod
-    def _record(entity: ResearchValidationRun) -> ValidationRunRecord:
+    def _record(
+        entity: ResearchValidationRun,
+        archive_state: "ResearchValidationRunArchiveState | None" = None,
+    ) -> ValidationRunRecord:
         return ValidationRunRecord(
             validation_run_uuid=entity.id,
             evaluation_run_uuid=entity.evaluation_run_id,
@@ -233,6 +272,8 @@ class ResearchValidationService:
             warnings=tuple(json.loads(entity.warnings_json)),
             created_by_reference=pseudonymous_reviewer_reference(entity.created_by_user_id),
             created_at=entity.created_at,
+            archived=bool(archive_state and archive_state.archived),
+            archived_at=archive_state.archived_at if archive_state else None,
         )
 
 

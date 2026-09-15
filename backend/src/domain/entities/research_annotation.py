@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     Column,
     ForeignKey,
@@ -405,6 +406,46 @@ class ResearchValidationRun(Base):
         "ResearchAnnotationSet", foreign_keys=[annotation_set_id], viewonly=True
     )
     created_by = relationship("User", foreign_keys=[created_by_user_id], viewonly=True)
+
+
+class ResearchValidationRunArchiveState(Base):
+    """Mutable "hidden from the default list" flag for one validation run.
+
+    @remarks
+    Deliberately a separate, ordinary (mutable) table rather than a column on
+    `ResearchValidationRun` itself: that table's rows are immutable and durable
+    by design (see `_prevent_mutation` below) because a validation result must
+    never change once computed. Archiving is a display/organizational action a
+    reviewer takes on a growing list of runs -- e.g. after a
+    `metric_implementation_version` bump makes an older run redundant -- not a
+    change to the recorded result, so it belongs in its own row that can be
+    updated and reversed without touching, or needing an exception to, that
+    immutability guarantee. Absence of a row for a given `validation_run_id`
+    means "not archived" (the common case), so this table only ever holds rows
+    for runs someone has archived at least once.
+    """
+
+    __tablename__ = "research_validation_run_archive_state"
+    __table_args__ = {"schema": "core"}
+
+    validation_run_id = Column(
+        Uuid(as_uuid=True),
+        ForeignKey("core.research_validation_runs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    archived = Column(Boolean, nullable=False, default=False)
+    archived_at = Column(UTCDateTimeType(), nullable=True)
+    archived_by_user_id = Column(
+        Integer,
+        ForeignKey("core.users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    updated_at = Column(UTCDateTimeType(), nullable=False, default=utc_now, onupdate=utc_now)
+
+    validation_run = relationship(
+        "ResearchValidationRun", foreign_keys=[validation_run_id], viewonly=True
+    )
+    archived_by = relationship("User", foreign_keys=[archived_by_user_id], viewonly=True)
 
 
 def _prevent_mutation(mapper, connection, target) -> None:

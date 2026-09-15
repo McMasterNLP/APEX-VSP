@@ -99,6 +99,8 @@ const validationRun = (overrides: Partial<ValidationRunRecord> = {}): Validation
   warnings: [],
   created_by_reference: 'reviewer_abc123',
   created_at: '2026-01-03T00:00:00Z',
+  archived: false,
+  archived_at: null,
   ...overrides,
 })
 
@@ -144,6 +146,10 @@ function baseContext(overrides: Partial<EvaluationSessionContext> = {}): Evaluat
     refetchValidationRuns: vi.fn(),
     creatingValidationRun: false,
     createValidationRun: vi.fn(),
+    includeArchivedValidationRuns: false,
+    setIncludeArchivedValidationRuns: vi.fn(),
+    archivingValidationRunUuid: null,
+    setValidationRunArchived: vi.fn(),
     error: null,
     setError: vi.fn(),
     ...overrides,
@@ -316,5 +322,53 @@ describe('ValidateTab', () => {
     )
     expect(screen.getByText(/Evaluator projection includes out-of-scope content\./)).toBeInTheDocument()
     expect(screen.getByText('Micro average')).toBeInTheDocument()
+  })
+
+  it('archives a validation run from the list, without touching its recorded result', async () => {
+    const setValidationRunArchived = vi.fn().mockResolvedValue(
+      validationRun({ validation_run_uuid: 'v-1', archived: true, archived_at: '2026-01-04T00:00:00Z' })
+    )
+    renderTab(
+      baseContext({
+        savedRuns: [savedRun()],
+        annotationSets: [annotationSetSummary()],
+        validationRuns: [validationRun({ validation_run_uuid: 'v-1' })],
+        setValidationRunArchived,
+      })
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
+    await waitFor(() => expect(setValidationRunArchived).toHaveBeenCalledWith('v-1', true))
+  })
+
+  it('shows an "Archived" badge and offers unarchive for an already-archived run', () => {
+    renderTab(
+      baseContext({
+        savedRuns: [savedRun()],
+        annotationSets: [annotationSetSummary()],
+        includeArchivedValidationRuns: true,
+        validationRuns: [
+          validationRun({ validation_run_uuid: 'v-1', archived: true, archived_at: '2026-01-04T00:00:00Z' }),
+        ],
+      })
+    )
+
+    expect(screen.getByText('Archived')).toBeInTheDocument()
+    const unarchiveButton = screen.getByRole('button', { name: 'Unarchive' })
+    expect(unarchiveButton).toBeInTheDocument()
+  })
+
+  it('toggles the "show archived runs" list option', () => {
+    const setIncludeArchivedValidationRuns = vi.fn()
+    renderTab(
+      baseContext({
+        savedRuns: [savedRun()],
+        annotationSets: [annotationSetSummary()],
+        setIncludeArchivedValidationRuns,
+      })
+    )
+
+    fireEvent.click(screen.getByLabelText('Show archived runs'))
+    expect(setIncludeArchivedValidationRuns).toHaveBeenCalledWith(true)
   })
 })

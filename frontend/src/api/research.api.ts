@@ -557,10 +557,28 @@ export async function fetchResearchValidationRun(
 
 /** Lists validation runs for one session's evaluator runs, newest first. */
 export async function fetchValidationRunsForSession(
-  sessionId: number
+  sessionId: number,
+  includeArchived = false
 ): Promise<ValidationRunRecord[]> {
   const { data } = await api.get<ValidationRunRecord[]>(
-    `${BASE}/sessions/${sessionId}/validation-runs`
+    `${BASE}/sessions/${sessionId}/validation-runs`,
+    { params: includeArchived ? { include_archived: true } : undefined }
+  )
+  return data
+}
+
+/**
+ * Archives or unarchives one validation run -- a display-only flag that hides it from
+ * the default session list without touching its immutable recorded result, reversible
+ * at any time by calling this again with the opposite value.
+ */
+export async function setResearchValidationRunArchived(
+  validationRunUuid: string,
+  archived: boolean
+): Promise<ValidationRunRecord> {
+  const { data } = await api.post<ValidationRunRecord>(
+    `${BASE}/validation-runs/${encodeURIComponent(validationRunUuid)}/archive-state`,
+    { archived }
   )
   return data
 }

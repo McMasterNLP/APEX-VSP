@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from domain.entities.research_annotation import (
@@ -15,6 +16,7 @@ from domain.entities.research_annotation import (
     ResearchHumanAnnotationRevision,
     ResearchReviewDecisionRevision,
     ResearchValidationRun,
+    ResearchValidationRunArchiveState,
 )
 
 
@@ -236,14 +238,62 @@ class ResearchAnnotationRepository:
             .first()
         )
 
-    def list_validation_runs_for_session(self, session_id: int) -> list[ResearchValidationRun]:
+    def get_validation_run_with_archive_state(
+        self, validation_run_uuid: UUID
+    ) -> tuple[ResearchValidationRun, ResearchValidationRunArchiveState | None] | None:
         return (
-            self.db.query(ResearchValidationRun)
+            self.db.query(ResearchValidationRun, ResearchValidationRunArchiveState)
+            .outerjoin(
+                ResearchValidationRunArchiveState,
+                ResearchValidationRunArchiveState.validation_run_id == ResearchValidationRun.id,
+            )
+            .filter(ResearchValidationRun.id == validation_run_uuid)
+            .first()
+        )
+
+    def list_validation_runs_for_session(
+        self, session_id: int, *, include_archived: bool = False
+    ) -> list[tuple[ResearchValidationRun, ResearchValidationRunArchiveState | None]]:
+        query = (
+            self.db.query(ResearchValidationRun, ResearchValidationRunArchiveState)
             .join(
                 ResearchEvaluationRun,
                 ResearchValidationRun.evaluation_run_id == ResearchEvaluationRun.id,
             )
+            .outerjoin(
+                ResearchValidationRunArchiveState,
+                ResearchValidationRunArchiveState.validation_run_id == ResearchValidationRun.id,
+            )
             .filter(ResearchEvaluationRun.source_session_id == session_id)
-            .order_by(ResearchValidationRun.created_at.desc())
-            .all()
         )
+        if not include_archived:
+            query = query.filter(
+                sa.or_(
+                    ResearchValidationRunArchiveState.archived.is_(None),
+                    ResearchValidationRunArchiveState.archived.is_(False),
+                )
+            )
+        return query.order_by(ResearchValidationRun.created_at.desc()).all()
+
+    def get_validation_run_archive_state(
+        self, validation_run_uuid: UUID
+    ) -> ResearchValidationRunArchiveState | None:
+        return (
+            self.db.query(ResearchValidationRunArchiveState)
+            .filter(ResearchValidationRunArchiveState.validation_run_id == validation_run_uuid)
+            .first()
+        )
+
+    def set_validation_run_archived(
+        self, validation_run_uuid: UUID, *, archived: bool, user_id: int, now
+    ) -> ResearchValidationRunArchiveState:
+        state = self.get_validation_run_archive_state(validation_run_uuid)
+        if state is None:
+            state = ResearchValidationRunArchiveState(validation_run_id=validation_run_uuid)
+            self.db.add(state)
+        state.archived = archived
+        state.archived_at = now if archived else None
+        state.archived_by_user_id = user_id
+        state.updated_at = now
+        self.db.flush()
+        return state
