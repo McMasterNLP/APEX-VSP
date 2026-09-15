@@ -259,6 +259,12 @@ export const fetchAdminStats = async (): Promise<AdminStats> => {
   }
 }
 
+/** The four Sessions-list evaluation-status filter buckets, matching the Sessions-list
+ * status chip's own labels/precedence exactly (see `evaluationChipFor` in
+ * `AdminSessionsTable.tsx`).
+ */
+export type EvaluationStatusFilter = 'no_runs' | 'needs_review' | 'in_review' | 'locked'
+
 /** Optional filters for {@link fetchAdminSessions}, ANDed together server-side. */
 export interface AdminSessionListFilters {
   userId?: number
@@ -267,6 +273,11 @@ export interface AdminSessionListFilters {
   startDate?: string
   /** Inclusive upper bound on `started_at`, as an ISO-8601 string. */
   endDate?: string
+  state?: string
+  patientPlugin?: string
+  evaluatorPlugin?: string
+  evaluatorUserId?: number
+  evaluationStatus?: EvaluationStatusFilter
 }
 
 /**
@@ -279,7 +290,7 @@ export interface AdminSessionListFilters {
  *
  * @param skip - Pagination offset
  * @param limit - Page size
- * @param filters - Optional user/case/date-range filters, all ANDed together
+ * @param filters - Optional filters, all ANDed together
  * @returns Paginated session rows
  */
 export async function fetchAdminSessions(
@@ -295,8 +306,46 @@ export async function fetchAdminSessions(
       case_id: filters.caseId,
       start_date: filters.startDate,
       end_date: filters.endDate,
+      state: filters.state,
+      patient_plugin: filters.patientPlugin,
+      evaluator_plugin: filters.evaluatorPlugin,
+      evaluator_user_id: filters.evaluatorUserId,
+      evaluation_status: filters.evaluationStatus,
     },
   })
+  return data
+}
+
+/** One case, for the Sessions-list case filter dropdown. */
+export interface SessionFilterCaseOptionDTO {
+  id: number
+  title: string
+}
+
+/** One person who has evaluated at least one session, for the evaluator filter dropdown. */
+export interface SessionFilterEvaluatorOptionDTO {
+  id: number
+  label: string
+}
+
+/** Dropdown option lists for the Sessions-list filter bar, from one round trip. */
+export interface SessionFilterOptionsResponse {
+  cases: SessionFilterCaseOptionDTO[]
+  patient_plugins: string[]
+  evaluator_plugins: string[]
+  evaluators: SessionFilterEvaluatorOptionDTO[]
+}
+
+/**
+ * Fetches the option lists (cases, patient/evaluator plugins in use, evaluators) that
+ * populate the Sessions-list filter bar's dropdowns.
+ *
+ * @returns Dropdown option lists
+ */
+export async function fetchSessionFilterOptions(): Promise<SessionFilterOptionsResponse> {
+  const { data } = await api.get<SessionFilterOptionsResponse>(
+    `${BASE}/sessions/filter-options`
+  )
   return data
 }
 

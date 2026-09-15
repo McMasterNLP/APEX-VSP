@@ -20,6 +20,7 @@ from domain.models.admin import (
     AnalyticsDashboard,
 )
 from plugins.registry import PluginRegistry
+from domain.entities.case import Case as CaseEntity
 from domain.models.cases import CaseCreate, CaseResponse
 from domain.models.sessions import SessionDetailResponse
 from repositories.feedback_repo import FeedbackRepository
@@ -69,6 +70,35 @@ class AdminSessionListResponse(BaseModel):
     total: int
     skip: int
     limit: int
+
+
+#: Valid values for the `evaluation_status` sessions-list filter -- matches the
+#: Sessions-list status chip's own labels exactly (see `_evaluation_status_bucket`).
+EVALUATION_STATUS_FILTER_VALUES = ("no_runs", "needs_review", "in_review", "locked")
+
+
+class SessionFilterCaseOption(BaseModel):
+    """One case, for the Sessions-list case filter dropdown."""
+    id: int
+    title: str
+
+
+class SessionFilterEvaluatorOption(BaseModel):
+    """One person who has evaluated at least one session, for the evaluator filter
+    dropdown. Evaluators are admin/researcher accounts reviewing on their own behalf,
+    not trainees, so a real name/email here carries none of the trainee-identity
+    redaction concerns `_with_session_user_info` exists for.
+    """
+    id: int
+    label: str
+
+
+class SessionFilterOptionsResponse(BaseModel):
+    """Dropdown option lists for the Sessions-list filter bar, in one round trip."""
+    cases: list[SessionFilterCaseOption]
+    patient_plugins: list[str]
+    evaluator_plugins: list[str]
+    evaluators: list[SessionFilterEvaluatorOption]
 
 
 class MetricsTimeline(BaseModel):
@@ -160,6 +190,46 @@ async def db_health(
     return {"db_ok": True}
 
 
+@router.get("/sessions/filter-options", response_model=SessionFilterOptionsResponse)
+async def get_session_filter_options(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """Dropdown option lists for the Sessions-list filter bar (cases, patient/evaluator
+    plugins actually in use, and who has evaluated at least one session).
+
+    @remarks
+    Declared before `/sessions/{session_id}` so "filter-options" is never matched as a
+    session id.
+    """
+    from repositories.session_repo import SessionRepository
+
+    session_repo = SessionRepository(db)
+    cases = (
+        db.query(CaseEntity.id, CaseEntity.title).order_by(CaseEntity.title).all()
+    )
+    evaluator_ids = session_repo.distinct_evaluator_user_ids()
+    evaluators_by_id: dict[int, User] = {}
+    if evaluator_ids:
+        for u in db.query(User).filter(User.id.in_(evaluator_ids)).all():
+            evaluators_by_id[u.id] = u
+
+    return SessionFilterOptionsResponse(
+        cases=[SessionFilterCaseOption(id=cid, title=title) for cid, title in cases],
+        patient_plugins=session_repo.distinct_patient_plugins(),
+        evaluator_plugins=session_repo.distinct_evaluator_plugins(),
+        evaluators=[
+            SessionFilterEvaluatorOption(
+                id=uid,
+                label=(evaluators_by_id[uid].full_name if uid in evaluators_by_id else None)
+                or (evaluators_by_id[uid].email if uid in evaluators_by_id else None)
+                or f"User #{uid}",
+            )
+            for uid in evaluator_ids
+        ],
+    )
+
+
 @router.get("/sessions", response_model=AdminSessionListResponse)
 async def list_all_sessions(
     db: Annotated[Session, Depends(get_db)],
@@ -168,11 +238,26 @@ async def list_all_sessions(
     case_id: Optional[int] = Query(None),
     start_date: Optional[UTCDateTime] = Query(None),
     end_date: Optional[UTCDateTime] = Query(None),
+    state: Optional[str] = Query(None),
+    patient_plugin: Optional[str] = Query(None),
+    evaluator_plugin: Optional[str] = Query(None),
+    evaluator_user_id: Optional[int] = Query(None),
+    evaluation_status: Optional[str] = Query(
+        None, description=f"One of {EVALUATION_STATUS_FILTER_VALUES}."
+    ),
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=100),
 ):
-    """Filter sessions by any combination of user, case, and date range (admin only)."""
+    """Filter sessions by any combination of user, case, date range, session state,
+    patient/evaluator plugin, evaluation status, and evaluator (admin only).
+    """
     from repositories.session_repo import SessionRepository
+
+    if evaluation_status is not None and evaluation_status not in EVALUATION_STATUS_FILTER_VALUES:
+        raise HTTPException(
+            status_code=422,
+            detail=f"evaluation_status must be one of {EVALUATION_STATUS_FILTER_VALUES}.",
+        )
 
     session_repo = SessionRepository(db)
 
@@ -181,6 +266,11 @@ async def list_all_sessions(
         case_id=case_id,
         start_date=start_date,
         end_date=end_date,
+        state=state,
+        patient_plugin=patient_plugin,
+        evaluator_plugin=evaluator_plugin,
+        evaluator_user_id=evaluator_user_id,
+        evaluation_status=evaluation_status,
         skip=skip,
         limit=limit,
     )

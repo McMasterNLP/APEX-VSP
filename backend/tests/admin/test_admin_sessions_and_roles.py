@@ -12,6 +12,7 @@ Verification of:
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -452,3 +453,282 @@ async def test_researcher_sees_pseudonymous_identity_but_real_transcript(
     # identity-only, since the evaluation pipeline needs the real transcript.
     assert detail_session["id"] == session.id
     assert detail_session["case_id"] == session.case_id
+
+
+@pytest.fixture
+def evaluation_filter_fixture(db_session, admin_user):
+    """Sessions covering every value the new Sessions-list filters exercise: two
+    distinct (fixture-unique) patient/evaluator plugins, two states, and every
+    evaluation-status bucket (no runs, needs review, in review, locked) driven by real
+    `ResearchEvaluationRun`/`ResearchAnnotationSet` rows reviewed by two different
+    reviewers.
+
+    @remarks
+    Plugin names are uuid-suffixed and reviewers are fixture-unique users so filter
+    assertions on them are exact regardless of other sessions left behind by earlier
+    tests in this module's shared, non-rolled-back DB (see the module-level
+    `_engine`/`db_session` fixture above). `state` and bare `evaluation_status` values
+    are NOT fixture-unique (only a few valid values exist), so tests exercising those
+    combine them with this fixture's own `case_id` to stay exact.
+    """
+    from domain.entities.research_annotation import ResearchAnnotationSet, ResearchEvaluationRun
+
+    suffix = uuid.uuid4().hex[:8]
+    patient_plugin_a = f"alex_{suffix}"
+    patient_plugin_b = f"jordan_{suffix}"
+    evaluator_plugin_a = f"rubric_v1_{suffix}"
+    evaluator_plugin_b = f"rubric_v2_{suffix}"
+
+    reviewer_a = User(email=f"reviewer_a_{uuid.uuid4().hex[:10]}@test.com", role="researcher")
+    reviewer_b = User(
+        email=f"reviewer_b_{uuid.uuid4().hex[:10]}@test.com",
+        role="researcher",
+        full_name="Reviewer B",
+    )
+    db_session.add_all([reviewer_a, reviewer_b])
+    case = Case(title="Filter Fixture Case", script="Script", difficulty_level="intermediate")
+    db_session.add(case)
+    db_session.commit()
+    db_session.refresh(reviewer_a)
+    db_session.refresh(reviewer_b)
+    db_session.refresh(case)
+
+    def make_session(*, patient_plugin, evaluator_plugin, state):
+        s = SessionEntity(
+            user_id=admin_user.id,
+            case_id=case.id,
+            state=state,
+            duration_seconds=60,
+            patient_model_plugin=patient_plugin,
+            evaluator_plugin=evaluator_plugin,
+        )
+        db_session.add(s)
+        db_session.commit()
+        db_session.refresh(s)
+        return s
+
+    session_no_runs = make_session(
+        patient_plugin=patient_plugin_a, evaluator_plugin=evaluator_plugin_a, state="completed"
+    )
+    session_needs_review = make_session(
+        patient_plugin=patient_plugin_a, evaluator_plugin=evaluator_plugin_a, state="completed"
+    )
+    session_in_review = make_session(
+        patient_plugin=patient_plugin_b, evaluator_plugin=evaluator_plugin_b, state="active"
+    )
+    session_locked = make_session(
+        patient_plugin=patient_plugin_b, evaluator_plugin=evaluator_plugin_b, state="completed"
+    )
+
+    def make_run(session):
+        run = ResearchEvaluationRun(
+            source_session_id=session.id,
+            item1_run_id=f"run_{uuid.uuid4().hex[:8]}",
+            transcript_hash=uuid.uuid4().hex,
+            transcript_projection_version="1.0",
+            transcript_snapshot_json="[]",
+            turn_count=1,
+            envelope_schema_version="1.0",
+            envelope_json="{}",
+            evaluator_identifier="rubric",
+            evaluator_version="1.0",
+            framework_identifier="framework",
+            framework_version="1.0",
+            adapter_identifier="adapter",
+            adapter_version="1.0",
+            execution_mode="sync",
+            execution_timestamp=datetime.now(timezone.utc),
+            runtime_ms=10.0,
+            status="success",
+            created_by_user_id=admin_user.id,
+        )
+        db_session.add(run)
+        db_session.commit()
+        db_session.refresh(run)
+        return run
+
+    def make_annotation_set(run, *, reviewer, status):
+        aset = ResearchAnnotationSet(
+            evaluation_run_id=run.id,
+            transcript_hash=run.transcript_hash,
+            framework_identifier="framework",
+            framework_version="1.0",
+            annotation_policy_identifier="policy",
+            annotation_policy_version="1.0",
+            guideline_identifier="guideline",
+            guideline_version="1.0",
+            reviewer_user_id=reviewer.id,
+            status=status,
+            eligible_predictions_json="[]",
+        )
+        db_session.add(aset)
+        db_session.commit()
+        db_session.refresh(aset)
+        return aset
+
+    make_run(session_needs_review)  # saved run, no annotation set yet -> needs_review
+    run_in_review = make_run(session_in_review)
+    make_annotation_set(run_in_review, reviewer=reviewer_a, status="draft")
+    run_locked = make_run(session_locked)
+    make_annotation_set(run_locked, reviewer=reviewer_b, status="complete")
+
+    return {
+        "case": case,
+        "reviewer_a": reviewer_a,
+        "reviewer_b": reviewer_b,
+        "patient_plugin_a": patient_plugin_a,
+        "patient_plugin_b": patient_plugin_b,
+        "evaluator_plugin_a": evaluator_plugin_a,
+        "evaluator_plugin_b": evaluator_plugin_b,
+        "session_no_runs": session_no_runs,
+        "session_needs_review": session_needs_review,
+        "session_in_review": session_in_review,
+        "session_locked": session_locked,
+    }
+
+
+@pytest.mark.anyio
+async def test_admin_sessions_filters_by_patient_plugin(admin_user, evaluation_filter_fixture):
+    _override_user(admin_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            "/v1/admin/sessions",
+            params={"patient_plugin": evaluation_filter_fixture["patient_plugin_a"]},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 2
+    assert all(s["patient_model_plugin"] == evaluation_filter_fixture["patient_plugin_a"] for s in body["sessions"])
+
+
+@pytest.mark.anyio
+async def test_admin_sessions_filters_by_evaluator_plugin(admin_user, evaluation_filter_fixture):
+    _override_user(admin_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            "/v1/admin/sessions",
+            params={"evaluator_plugin": evaluation_filter_fixture["evaluator_plugin_b"]},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 2
+    assert all(s["evaluator_plugin"] == evaluation_filter_fixture["evaluator_plugin_b"] for s in body["sessions"])
+
+
+@pytest.mark.anyio
+async def test_admin_sessions_filters_by_state(admin_user, evaluation_filter_fixture):
+    """Combined with `case_id` since `state` values (active/completed) aren't
+    fixture-unique -- plenty of other tests' sessions share them.
+    """
+    _override_user(admin_user)
+    case_id = evaluation_filter_fixture["case"].id
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            "/v1/admin/sessions", params={"case_id": case_id, "state": "active"}
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["sessions"][0]["id"] == evaluation_filter_fixture["session_in_review"].id
+
+
+@pytest.mark.anyio
+async def test_admin_sessions_filters_by_evaluator_user_id(admin_user, evaluation_filter_fixture):
+    _override_user(admin_user)
+    reviewer_b = evaluation_filter_fixture["reviewer_b"]
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            "/v1/admin/sessions", params={"evaluator_user_id": reviewer_b.id}
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["sessions"][0]["id"] == evaluation_filter_fixture["session_locked"].id
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "bucket, expected_fixture_key",
+    [
+        ("no_runs", "session_no_runs"),
+        ("needs_review", "session_needs_review"),
+        ("in_review", "session_in_review"),
+        ("locked", "session_locked"),
+    ],
+)
+async def test_admin_sessions_filters_by_evaluation_status(
+    admin_user, evaluation_filter_fixture, bucket, expected_fixture_key
+):
+    """Combined with `case_id` since `no_runs` in particular is the default bucket for
+    every session anywhere that never got an evaluation run -- not fixture-unique.
+    """
+    _override_user(admin_user)
+    case_id = evaluation_filter_fixture["case"].id
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            "/v1/admin/sessions",
+            params={"case_id": case_id, "evaluation_status": bucket},
+        )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 1
+    assert body["sessions"][0]["id"] == evaluation_filter_fixture[expected_fixture_key].id
+
+
+@pytest.mark.anyio
+async def test_admin_sessions_rejects_invalid_evaluation_status(admin_user):
+    _override_user(admin_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get(
+            "/v1/admin/sessions", params={"evaluation_status": "not_a_real_bucket"}
+        )
+    assert response.status_code == 422
+
+
+@pytest.mark.anyio
+async def test_session_filter_options_includes_this_fixtures_cases_plugins_and_evaluators(
+    admin_user, evaluation_filter_fixture
+):
+    """Asserts containment, not exact list equality -- this module's shared DB means
+    other tests contribute their own cases/plugins/evaluators to the same response.
+    """
+    _override_user(admin_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/admin/sessions/filter-options")
+    assert response.status_code == 200
+    body = response.json()
+
+    case = evaluation_filter_fixture["case"]
+    assert {"id": case.id, "title": case.title} in body["cases"]
+    assert evaluation_filter_fixture["patient_plugin_a"] in body["patient_plugins"]
+    assert evaluation_filter_fixture["patient_plugin_b"] in body["patient_plugins"]
+    assert evaluation_filter_fixture["evaluator_plugin_a"] in body["evaluator_plugins"]
+    assert evaluation_filter_fixture["evaluator_plugin_b"] in body["evaluator_plugins"]
+
+    evaluator_ids = {row["id"] for row in body["evaluators"]}
+    assert evaluation_filter_fixture["reviewer_a"].id in evaluator_ids
+    reviewer_b_row = next(
+        row for row in body["evaluators"] if row["id"] == evaluation_filter_fixture["reviewer_b"].id
+    )
+    assert reviewer_b_row["label"] == "Reviewer B"
+
+
+@pytest.mark.anyio
+async def test_admin_sessions_researcher_can_also_use_filter_options(
+    researcher_user, evaluation_filter_fixture
+):
+    """The filter bar is shared with the researcher-facing Evaluate Sessions tab, so
+    filter-options must be readable by researchers too, not just admins.
+    """
+    _override_user(researcher_user)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        response = await ac.get("/v1/admin/sessions/filter-options")
+    assert response.status_code == 200
