@@ -207,6 +207,14 @@ class ResearchValidationService:
             )
         return self._record(entity)
 
+    def list_for_session(self, session_id: int) -> tuple[ValidationRunRecord, ...]:
+        """List validation runs for one session's evaluator runs, newest first."""
+
+        return tuple(
+            self._record(entity)
+            for entity in self.repository.list_validation_runs_for_session(session_id)
+        )
+
     @staticmethod
     def _record(entity: ResearchValidationRun) -> ValidationRunRecord:
         return ValidationRunRecord(

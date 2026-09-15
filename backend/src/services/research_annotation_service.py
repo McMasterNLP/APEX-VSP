@@ -27,6 +27,7 @@ from domain.models.research_annotation import (
     AnnotationSetCreateRequest,
     AnnotationSetRecord,
     AnnotationSetReopenRequest,
+    AnnotationSetSummary,
     AnnotationTransitionRecord,
     AuthoredRelationCreateRequest,
     AuthoredRelationRevisionRecord,
@@ -36,6 +37,7 @@ from domain.models.research_annotation import (
     CoverageDeclarationWriteRequest,
     DecisionRevisionRecord,
     DimensionRatingCorrection,
+    EvaluationRunRecord,
     HumanAnnotationCreateRequest,
     HumanAnnotationRevisionRecord,
     HumanAnnotationRevisionRequest,
@@ -213,6 +215,47 @@ class ResearchAnnotationService:
                 "annotation_set_not_found", "The requested annotation set was not found."
             )
         return self._record(entity)
+
+    def list_annotation_sets_for_session(self, session_id: int) -> tuple[AnnotationSetSummary, ...]:
+        """List every annotation set for a session, across all runs and reviewers.
+
+        @remarks
+        A lightweight listing row -- skips the resolved projection / eligibility
+        computation `_record` does, so it stays cheap to call for a session with
+        several saved runs. Backs Item 3B's "pick a completed annotation set to
+        validate against" picker, which needs every set's `status` regardless of
+        which evaluation run it was created from.
+        """
+
+        entities = self.repository.list_annotation_sets_for_session(session_id)
+        run_cache: dict[UUID, EvaluationRunRecord] = {}
+        summaries = []
+        for entity in entities:
+            run = run_cache.get(entity.evaluation_run_id)
+            if run is None:
+                run = self.run_service.get_run(entity.evaluation_run_id)
+                run_cache[entity.evaluation_run_id] = run
+            coverage_revisions = self.repository.list_coverage_revisions(entity.id)
+            coverage_level = coverage_revisions[-1].coverage if coverage_revisions else "not_assessed"
+            summaries.append(
+                AnnotationSetSummary(
+                    annotation_set_uuid=entity.id,
+                    evaluation_run_uuid=entity.evaluation_run_id,
+                    transcript_hash=entity.transcript_hash,
+                    transcript_matches_current=run.transcript_matches_current,
+                    guideline_identifier=entity.guideline_identifier,
+                    guideline_version=entity.guideline_version,
+                    reviewer_reference=pseudonymous_reviewer_reference(entity.reviewer_user_id),
+                    status=entity.status,
+                    locked=entity.status == "complete",
+                    coverage_level=coverage_level,
+                    revision=entity.revision,
+                    created_at=entity.created_at,
+                    updated_at=entity.updated_at,
+                    completed_at=entity.completed_at,
+                )
+            )
+        return tuple(summaries)
 
     def record_decision(
         self,

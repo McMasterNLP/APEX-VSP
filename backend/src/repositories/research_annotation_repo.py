@@ -114,6 +114,18 @@ class ResearchAnnotationRepository:
             result[session_id] = (len(run_ids) > 0, latest)
         return result
 
+    def list_annotation_sets_for_session(self, session_id: int) -> list[ResearchAnnotationSet]:
+        return (
+            self.db.query(ResearchAnnotationSet)
+            .join(
+                ResearchEvaluationRun,
+                ResearchAnnotationSet.evaluation_run_id == ResearchEvaluationRun.id,
+            )
+            .filter(ResearchEvaluationRun.source_session_id == session_id)
+            .order_by(ResearchAnnotationSet.updated_at.desc())
+            .all()
+        )
+
     def find_annotation_set(
         self,
         *,
@@ -222,4 +234,16 @@ class ResearchAnnotationRepository:
             self.db.query(ResearchValidationRun)
             .filter(ResearchValidationRun.id == validation_run_uuid)
             .first()
+        )
+
+    def list_validation_runs_for_session(self, session_id: int) -> list[ResearchValidationRun]:
+        return (
+            self.db.query(ResearchValidationRun)
+            .join(
+                ResearchEvaluationRun,
+                ResearchValidationRun.evaluation_run_id == ResearchEvaluationRun.id,
+            )
+            .filter(ResearchEvaluationRun.source_session_id == session_id)
+            .order_by(ResearchValidationRun.created_at.desc())
+            .all()
         )

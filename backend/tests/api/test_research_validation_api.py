@@ -388,3 +388,77 @@ async def test_validation_run_not_found_and_unknown_policy(admin, db_session):
         )
         assert unknown_policy.status_code == 422
         assert unknown_policy.json()["message"]["category"] == "unknown_matching_policy"
+
+
+@pytest.mark.anyio
+async def test_list_annotation_sets_for_session_reports_every_set_regardless_of_status(
+    admin, db_session
+):
+    """Backs the Item 3B reference picker: every set for the session, not just complete ones."""
+
+    _as_admin(admin)
+    session = _make_completed_session(db_session, admin)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, created = await _save_and_create(client, session.id)
+        draft_uuid = created.json()["annotation_set_uuid"]
+
+        listing = await client.get(f"/v1/research/sessions/{session.id}/annotation-sets")
+        assert listing.status_code == 200, listing.text
+        summaries = listing.json()
+        assert len(summaries) == 1
+        assert summaries[0]["annotation_set_uuid"] == draft_uuid
+        assert summaries[0]["status"] == "draft"
+        assert summaries[0]["locked"] is False
+        assert summaries[0]["coverage_level"] == "not_assessed"
+
+        completed = await _confirm_all_and_complete(client, created.json())
+
+        listing_after_complete = await client.get(
+            f"/v1/research/sessions/{session.id}/annotation-sets"
+        )
+        assert listing_after_complete.status_code == 200
+        [summary] = listing_after_complete.json()
+        assert summary["annotation_set_uuid"] == completed["annotation_set_uuid"]
+        assert summary["status"] == "complete"
+        assert summary["locked"] is True
+        assert summary["coverage_level"] == "exhaustive"
+
+
+@pytest.mark.anyio
+async def test_list_validation_runs_for_session_is_newest_first(admin, db_session):
+    _as_admin(admin)
+    session = _make_completed_session(db_session, admin)
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        run, created = await _save_and_create(client, session.id)
+        completed = await _confirm_all_and_complete(client, created.json())
+
+        empty_listing = await client.get(f"/v1/research/sessions/{session.id}/validation-runs")
+        assert empty_listing.status_code == 200
+        assert empty_listing.json() == []
+
+        first = await client.post(
+            "/v1/research/validation-runs",
+            json={
+                "evaluation_run_uuid": run.json()["run_uuid"],
+                "annotation_set_uuid": completed["annotation_set_uuid"],
+            },
+        )
+        assert first.status_code == 200, first.text
+        second = await client.post(
+            "/v1/research/validation-runs",
+            json={
+                "evaluation_run_uuid": run.json()["run_uuid"],
+                "annotation_set_uuid": completed["annotation_set_uuid"],
+            },
+        )
+        assert second.status_code == 200, second.text
+
+        listing = await client.get(f"/v1/research/sessions/{session.id}/validation-runs")
+        assert listing.status_code == 200
+        results = listing.json()
+        assert [item["validation_run_uuid"] for item in results] == [
+            second.json()["validation_run_uuid"],
+            first.json()["validation_run_uuid"],
+        ]

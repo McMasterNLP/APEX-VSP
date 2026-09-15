@@ -467,6 +467,31 @@ class EvaluationRunSummary(StrictAnnotationModel):
     transcript_matches_current: bool
 
 
+class AnnotationSetSummary(StrictAnnotationModel):
+    """Lightweight listing row -- no eligible predictions or resolved projection.
+
+    @remarks
+    Backs a session-wide "pick a completed annotation set" picker (Item 3B), which
+    needs `status`/`coverage_level` across every annotation set for a session, not
+    just the single set tied to one particular evaluation run and reviewer.
+    """
+
+    annotation_set_uuid: UUID
+    evaluation_run_uuid: UUID
+    transcript_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    transcript_matches_current: bool
+    guideline_identifier: str
+    guideline_version: str
+    reviewer_reference: str
+    status: AnnotationSetStatus
+    locked: bool
+    coverage_level: CoverageLevel
+    revision: int = Field(ge=0)
+    created_at: UTCDateTime
+    updated_at: UTCDateTime
+    completed_at: UTCDateTime | None = None
+
+
 class DecisionRevisionRecord(StrictAnnotationModel):
     decision_uuid: UUID
     prediction_id: str

@@ -19,6 +19,7 @@ from domain.models.research_annotation import (
     AnnotationSetCreateRequest,
     AnnotationSetRecord,
     AnnotationSetReopenRequest,
+    AnnotationSetSummary,
     AuthoredRelationCreateRequest,
     AuthoredRelationRevisionRequest,
     CoverageDeclarationWriteRequest,
@@ -284,6 +285,41 @@ async def get_saved_research_evaluation(
         return ResearchEvaluationRunService(db).get_run(run_uuid)
     except ResearchEvaluationRunServiceError as error:
         _raise_evaluation_run_http_error(error)
+
+
+@router.get(
+    "/sessions/{session_id}/annotation-sets",
+    response_model=tuple[AnnotationSetSummary, ...],
+)
+async def list_research_annotation_sets(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """List every annotation set for a session, across all runs and reviewers.
+
+    @remarks
+    Backs Item 3B's "pick a completed annotation set" reference picker: a
+    validation run's `annotation_set_uuid` need not come from the same
+    evaluation run being validated, so the picker must offer every set for the
+    session, not just the one tied to a single chosen evaluator run.
+    """
+
+    return ResearchAnnotationService(db).list_annotation_sets_for_session(session_id)
+
+
+@router.get(
+    "/sessions/{session_id}/validation-runs",
+    response_model=tuple[ValidationRunRecord, ...],
+)
+async def list_research_validation_runs(
+    session_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """List validation runs for one session's evaluator runs, newest first."""
+
+    return ResearchValidationService(db).list_for_session(session_id)
 
 
 @router.post(
