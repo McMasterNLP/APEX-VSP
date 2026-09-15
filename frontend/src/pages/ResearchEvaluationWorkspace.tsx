@@ -49,6 +49,7 @@ const WORKSPACE_TABS = [
   { path: 'run', label: 'Run & Compare' },
   { path: 'runs', label: 'Saved Runs' },
   { path: 'review', label: 'Review & Annotate' },
+  { path: 'validate', label: 'Validate' },
   { path: 'export', label: 'Export' },
 ] as const
 

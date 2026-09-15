@@ -9,6 +9,7 @@ import type {
   AnnotationSetCreateRequest,
   AnnotationSetRecord,
   AnnotationSetStatus,
+  AnnotationSetSummary,
   CanonicalSpanSelection,
   CoverageLevel,
   EvaluationRunRecord,
@@ -22,6 +23,9 @@ import type {
   ResearchExportProfile,
   ReviewDecisionWriteRequest,
   SpanAttributeValue,
+  ValidationExportProfile,
+  ValidationRunCreateRequest,
+  ValidationRunRecord,
 } from '@/types/researchEvaluation'
 
 const BASE = '/v1/research'
@@ -415,6 +419,16 @@ export async function fetchResearchAnnotationSet(
   return data
 }
 
+/** Lists every annotation set for a session, across all evaluation runs and reviewers. */
+export async function fetchAnnotationSetsForSession(
+  sessionId: number
+): Promise<AnnotationSetSummary[]> {
+  const { data } = await api.get<AnnotationSetSummary[]>(
+    `${BASE}/sessions/${sessionId}/annotation-sets`
+  )
+  return data
+}
+
 /** Saves one append-only decision revision using optimistic concurrency. */
 export async function saveResearchReviewDecision(
   annotationSetUuid: string,
@@ -521,6 +535,47 @@ export async function downloadResearchAnnotationExport(
     { responseType: 'blob' }
   )
   triggerBlobDownload(data, `apex_research_annotation_${profile}.json`)
+}
+
+/** Scores one saved evaluator run's predictions against a completed reference annotation set. */
+export async function createResearchValidationRun(
+  request: ValidationRunCreateRequest
+): Promise<ValidationRunRecord> {
+  const { data } = await api.post<ValidationRunRecord>(`${BASE}/validation-runs`, request)
+  return data
+}
+
+/** Fetches one immutable validation run by uuid. */
+export async function fetchResearchValidationRun(
+  validationRunUuid: string
+): Promise<ValidationRunRecord> {
+  const { data } = await api.get<ValidationRunRecord>(
+    `${BASE}/validation-runs/${encodeURIComponent(validationRunUuid)}`
+  )
+  return data
+}
+
+/** Lists validation runs for one session's evaluator runs, newest first. */
+export async function fetchValidationRunsForSession(
+  sessionId: number
+): Promise<ValidationRunRecord[]> {
+  const { data } = await api.get<ValidationRunRecord[]>(
+    `${BASE}/sessions/${sessionId}/validation-runs`
+  )
+  return data
+}
+
+/** Downloads one sanitized validation export; transcript text is never requested by this UI. */
+export async function downloadResearchValidationExport(
+  validationRunUuid: string,
+  profile: ValidationExportProfile
+): Promise<void> {
+  const { data } = await api.post<Blob>(
+    `${BASE}/validation-runs/${encodeURIComponent(validationRunUuid)}/exports`,
+    { profile, include_transcript_content: false },
+    { responseType: 'blob' }
+  )
+  triggerBlobDownload(data, `apex_research_validation_${profile}.json`)
 }
 
 /** Extracts the backend's bounded research message from an unknown API failure. */

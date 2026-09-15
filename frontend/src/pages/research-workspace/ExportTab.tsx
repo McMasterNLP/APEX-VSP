@@ -14,6 +14,8 @@ import { Link, useOutletContext } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { AnnotationExportButtons } from '@/components/admin/research/AnnotationExportButtons'
+import { ValidationExportButtons } from '@/components/admin/research/ValidationExportButtons'
+import { formatDateTimeInUserTimeZone } from '@/lib/dateTime'
 import type { ResearchExportProfile } from '@/types/researchEvaluation'
 import type { EvaluationSessionContext } from './useEvaluationSession'
 
@@ -25,13 +27,14 @@ const PREVIEW_EXPORT_PROFILES: Array<[ResearchExportProfile, string]> = [
 ]
 
 export function ExportTab() {
-  const { result, exporting, downloadPreviewExport, annotationSet } =
+  const { result, exporting, downloadPreviewExport, annotationSet, validationRuns } =
     useOutletContext<EvaluationSessionContext>()
 
   const hasPreview = result !== null
   const hasAnnotationSet = annotationSet !== null
+  const hasValidationRuns = validationRuns.length > 0
 
-  if (!hasPreview && !hasAnnotationSet) {
+  if (!hasPreview && !hasAnnotationSet && !hasValidationRuns) {
     return (
       <Card>
         <CardContent className="space-y-2 py-8 text-center text-gray-600">
@@ -91,6 +94,29 @@ export function ExportTab() {
               annotationSetUuid={annotationSet.annotation_set_uuid}
               showDescriptions
             />
+          </CardContent>
+        </Card>
+      )}
+
+      {hasValidationRuns && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Validation exports</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {validationRuns.map((run) => (
+              <div key={run.validation_run_uuid} className="rounded-md border border-gray-200 p-3">
+                <p className="mb-2 text-sm text-gray-700">
+                  <span className="font-medium">
+                    {run.evaluator_identifier} v{run.evaluator_version}
+                  </span>{' '}
+                  · {run.matching_policy_identifier} · coverage:{' '}
+                  {run.coverage_level.replaceAll('_', ' ')} ·{' '}
+                  {formatDateTimeInUserTimeZone(run.created_at)}
+                </p>
+                <ValidationExportButtons validationRunUuid={run.validation_run_uuid} showDescriptions />
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}
