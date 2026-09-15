@@ -502,7 +502,7 @@ type ScoreTrendGranularity = 'hourly' | 'daily' | 'weekly'
 /** Tab definitions for the Research page: id, label, and icon for the sub-navigation. */
 const RESEARCH_TABS = [
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'evaluate', label: 'Sessions', icon: ClipboardCheck },
+  { id: 'evaluate', label: 'Evaluate Sessions', icon: ClipboardCheck },
 ] as const
 
 type ResearchTabId = (typeof RESEARCH_TABS)[number]['id']

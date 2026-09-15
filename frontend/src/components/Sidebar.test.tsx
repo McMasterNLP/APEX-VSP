@@ -16,7 +16,7 @@ describe('Sidebar admin nav group', () => {
     })
   })
 
-  it('shows Research sub-links (Analytics, Sessions) and the Admin link for an admin', () => {
+  it('shows Research sub-links (Analytics, Evaluate Sessions) and the Admin link for an admin', () => {
     useAuthStore.setState({ user: { id: 1, email: 'a@a.com', role: 'admin' } })
     render(
       <MemoryRouter>

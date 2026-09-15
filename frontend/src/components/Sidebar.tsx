@@ -62,7 +62,7 @@ export const Sidebar = () => {
         loc.pathname === '/research' && loc.search !== '?tab=evaluate',
     },
     {
-      name: 'Sessions',
+      name: 'Evaluate Sessions',
       href: '/research?tab=evaluate',
       icon: ClipboardCheck,
       isActive: (loc: Location) => loc.pathname === '/research' && loc.search === '?tab=evaluate',

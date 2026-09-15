@@ -34,6 +34,10 @@ _engine = create_engine(
 _TestingSessionLocal = sessionmaker(bind=_engine, autocommit=False, autoflush=False)
 create_all_for_test_engine(_engine)
 
+import itertools
+
+_multi_session_fixture_counter = itertools.count()
+
 
 def _get_test_db():
     db = _TestingSessionLocal()
@@ -210,8 +214,20 @@ async def test_role_update_404_for_unknown_user(admin_user):
 def multi_session_fixture(db_session, admin_user):
     """Two cases, two users, sessions spread across two days -- enough to exercise
     every admin sessions filter (user, case, date range) plus real pagination.
+
+    @remarks
+    `day1`/`day2` are offset by a counter that advances on every call, spaced far
+    enough apart (1000 days) that no two invocations' date windows can ever overlap.
+    This fixture is function-scoped and re-invoked once per test that uses it, and
+    this module's DB is shared across the whole run with no per-test rollback (see
+    the module-level `_engine`/`db_session` fixture above) -- a fixed absolute date
+    would let different tests' sessions collide under the same date-range filter.
     """
     from datetime import datetime, timedelta, timezone
+
+    offset = next(_multi_session_fixture_counter) * 1000
+    day1 = datetime(2026, 1, 1, tzinfo=timezone.utc) + timedelta(days=offset)
+    day2 = day1 + timedelta(days=4)
 
     other_user = User(email=f"other_{uuid.uuid4().hex[:12]}@test.com", role="trainee")
     db_session.add(other_user)
@@ -222,9 +238,6 @@ def multi_session_fixture(db_session, admin_user):
     db_session.refresh(other_user)
     db_session.refresh(case_a)
     db_session.refresh(case_b)
-
-    day1 = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    day2 = datetime(2026, 1, 5, tzinfo=timezone.utc)
     sessions = [
         SessionEntity(
             user_id=admin_user.id, case_id=case_a.id, state="completed",
