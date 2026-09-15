@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Info } from 'lucide-react'
 import type {
   AnnotationPolicyDescriptor,
   DecisionRevisionRecord,
@@ -138,9 +139,14 @@ export function ReviewControls({
         deliberate scope boundary, so call it out explicitly instead of leaving it blank.
       */}
       {!supportsCorrect && !supportsInsufficientEvidence && (
-        <p className="text-xs text-gray-500">
-          This prediction type doesn&apos;t support correction — confirm or reject only.
-        </p>
+        <span
+          data-testid="correction-not-available"
+          title="Only span, turn-label, and dimension-rating predictions support correction."
+          className="inline-flex w-fit items-center gap-1 rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800"
+        >
+          <Info className="h-3 w-3" aria-hidden="true" />
+          N/A &middot; Correction not supported for this prediction type
+        </span>
       )}
 
       {correcting && supportsLabelCorrection && (
