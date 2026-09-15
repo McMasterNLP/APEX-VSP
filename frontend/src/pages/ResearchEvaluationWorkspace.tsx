@@ -75,11 +75,11 @@ export function ResearchEvaluationWorkspace() {
         <main className="flex-1 overflow-y-auto md:ml-64">
           <div className="sticky top-0 z-10 border-b border-gray-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
             <nav className="mb-3 text-sm text-gray-500">
-              <Link to="/research" className="hover:underline">
+              <Link to="/research?tab=analytics" className="hover:underline">
                 Research
               </Link>
               {' / '}
-              <Link to="/research" className="hover:underline">
+              <Link to="/research?tab=evaluate" className="hover:underline">
                 Sessions
               </Link>
               {' / '}

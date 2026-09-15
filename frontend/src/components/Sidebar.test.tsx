@@ -16,36 +16,42 @@ describe('Sidebar admin nav group', () => {
     })
   })
 
-  it('shows both Research and Admin links for an admin', () => {
+  it('shows Research sub-links (Analytics, Sessions) and the Admin link for an admin', () => {
     useAuthStore.setState({ user: { id: 1, email: 'a@a.com', role: 'admin' } })
     render(
       <MemoryRouter>
         <Sidebar />
       </MemoryRouter>
     )
-    expect(screen.getByRole('link', { name: /Research/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Admin/i })).toBeInTheDocument()
+    const hrefs = screen.getAllByRole('link').map((el) => el.getAttribute('href'))
+    expect(hrefs).toContain('/research?tab=analytics')
+    expect(hrefs).toContain('/research?tab=evaluate')
+    expect(screen.getByRole('link', { name: /^Admin$/i })).toBeInTheDocument()
   })
 
-  it('shows only the Research link for a researcher', () => {
+  it('shows Research sub-links but no Admin link for a researcher', () => {
     useAuthStore.setState({ user: { id: 2, email: 'r@r.com', role: 'researcher' } })
     render(
       <MemoryRouter>
         <Sidebar />
       </MemoryRouter>
     )
-    expect(screen.getByRole('link', { name: /Research/i })).toBeInTheDocument()
+    const hrefs = screen.getAllByRole('link').map((el) => el.getAttribute('href'))
+    expect(hrefs).toContain('/research?tab=analytics')
+    expect(hrefs).toContain('/research?tab=evaluate')
     expect(screen.queryByRole('link', { name: /^Admin$/i })).not.toBeInTheDocument()
   })
 
-  it('shows neither Research nor Admin links for a trainee', () => {
+  it('shows neither the Research sub-links nor the Admin link for a trainee', () => {
     useAuthStore.setState({ user: { id: 3, email: 't@t.com', role: 'trainee' } })
     render(
       <MemoryRouter>
         <Sidebar />
       </MemoryRouter>
     )
-    expect(screen.queryByRole('link', { name: /Research/i })).not.toBeInTheDocument()
+    const hrefs = screen.getAllByRole('link').map((el) => el.getAttribute('href'))
+    expect(hrefs).not.toContain('/research?tab=analytics')
+    expect(hrefs).not.toContain('/research?tab=evaluate')
     expect(screen.queryByRole('link', { name: /^Admin$/i })).not.toBeInTheDocument()
   })
 })

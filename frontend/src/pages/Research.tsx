@@ -4,7 +4,7 @@
  */
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   downloadMetricsCSV,
   downloadTranscriptsCSV,
@@ -516,7 +516,22 @@ type ResearchTabId = (typeof RESEARCH_TABS)[number]['id']
 export const Research = () => {
   const { user } = useAuthStore()
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<ResearchTabId>('analytics')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tabParam = searchParams.get('tab')
+  const activeTab: ResearchTabId = tabParam === 'evaluate' ? 'evaluate' : 'analytics'
+
+  /**
+   * Switches tabs and reflects the choice in the URL (`?tab=analytics|evaluate`) so the
+   * sidebar's Research sub-links can deep-link directly into either tab, and so the tab
+   * survives a refresh or a shared link.
+   */
+  const setActiveTab = (tab: ResearchTabId) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', tab)
+      return next
+    })
+  }
   const [data, setData] = useState<ResearchData | null>(null)
   const [scoreTrendGranularity, setScoreTrendGranularity] =
     useState<ScoreTrendGranularity>('daily')

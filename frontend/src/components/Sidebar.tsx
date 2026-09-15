@@ -3,7 +3,7 @@
  */
 import { Link, useLocation, type Location } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList } from 'lucide-react'
+import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList, ClipboardCheck } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -53,14 +53,23 @@ export const Sidebar = () => {
     },
   ].filter((item) => item.roles.includes(user?.role || 'trainee'))
 
-  const adminNavigation = [
+  const researchSubNavigation = [
     {
-      name: 'Research',
-      href: '/research',
+      name: 'Analytics',
+      href: '/research?tab=analytics',
       icon: BarChart3,
-      roles: ['admin', 'researcher'],
-      isActive: (loc: Location) => loc.pathname === '/research' || loc.pathname.startsWith('/research/'),
+      isActive: (loc: Location) =>
+        loc.pathname === '/research' && loc.search !== '?tab=evaluate',
     },
+    {
+      name: 'Sessions',
+      href: '/research?tab=evaluate',
+      icon: ClipboardCheck,
+      isActive: (loc: Location) => loc.pathname === '/research' && loc.search === '?tab=evaluate',
+    },
+  ]
+
+  const adminNavigation = [
     {
       name: 'Admin',
       href: '/admin',
@@ -69,6 +78,8 @@ export const Sidebar = () => {
       isActive: (loc: Location) => loc.pathname === '/admin' || loc.pathname.startsWith('/admin/'),
     },
   ].filter((item) => item.roles.includes(user?.role || 'trainee'))
+
+  const showResearch = ['admin', 'researcher'].includes(user?.role || 'trainee')
 
   return (
     <div
@@ -117,20 +128,25 @@ export const Sidebar = () => {
             )
           })}
 
-          {adminNavigation.length > 0 && (
+          {showResearch && (
             <div className="pt-4">
+              {/*
+                Research's Analytics and Sessions views are exposed directly as sub-links here
+                (rather than only as in-page tabs after landing on /research) so both are one
+                click away from anywhere in the app.
+              */}
               <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-400">
-                {user?.role === 'admin' ? 'Admin' : 'Research'}
+                Research
               </div>
               <div className="space-y-1">
-                {adminNavigation.map((item) => {
+                {researchSubNavigation.map((item) => {
                   const isActive = item.isActive(location)
                   return (
                     <Link
                       key={item.name}
                       to={item.href}
                       className={cn(
-                        'group flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                        'group flex items-center space-x-3 rounded-lg py-2 pl-6 pr-3 text-sm font-medium transition-colors',
                         isActive
                           ? 'bg-emerald-100 text-emerald-900'
                           : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-900'
@@ -138,7 +154,7 @@ export const Sidebar = () => {
                     >
                       <item.icon
                         className={cn(
-                          'h-5 w-5 shrink-0',
+                          'h-4 w-4 shrink-0',
                           isActive
                             ? 'text-emerald-900'
                             : 'text-gray-600 group-hover:text-emerald-900'
@@ -149,6 +165,36 @@ export const Sidebar = () => {
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {adminNavigation.length > 0 && (
+            <div className={cn(showResearch ? 'pt-3' : 'pt-4', 'space-y-1')}>
+              {adminNavigation.map((item) => {
+                const isActive = item.isActive(location)
+                return (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className={cn(
+                      'group flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                      isActive
+                        ? 'bg-emerald-100 text-emerald-900'
+                        : 'text-gray-700 hover:bg-emerald-50 hover:text-emerald-900'
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        'h-5 w-5 shrink-0',
+                        isActive
+                          ? 'text-emerald-900'
+                          : 'text-gray-600 group-hover:text-emerald-900'
+                      )}
+                    />
+                    <span>{item.name}</span>
+                  </Link>
+                )
+              })}
             </div>
           )}
         </nav>
