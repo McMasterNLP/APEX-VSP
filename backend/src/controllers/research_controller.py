@@ -44,6 +44,12 @@ from domain.models.research_validation import (
     ValidationRunExportRequest,
     ValidationRunRecord,
 )
+from domain.models.plugin_registration import (
+    PluginKind,
+    PluginRegistrationListResponse,
+    PluginStage,
+)
+from services.plugin_registry_service import RegistryService
 from services.research_evaluation_service import (
     ResearchEvaluationService,
     ResearchEvaluationServiceError,
@@ -156,6 +162,24 @@ async def get_research_evaluators(
     """Return capability manifests for explicitly registered research evaluators."""
 
     return ResearchEvaluationService(db).descriptors()
+
+
+@router.get("/plugin-registrations", response_model=PluginRegistrationListResponse)
+async def list_plugin_registrations(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+    plugin_kind: PluginKind | None = Query(default=None),
+    stage: PluginStage | None = Query(default=None),
+):
+    """Return the unified plugin registry (plugin-registry-refactor phase 1).
+
+    Evaluator only for now -- PatientModel and MetricsPlugin registrations
+    arrive in phase 2. Unfiltered, this returns every stage (draft through
+    retired), not just what is trainee-facing; the promoted-only view for
+    case authoring is a phase 4 concern once the promotion workflow exists.
+    """
+
+    return RegistryService(db).list(plugin_kind=plugin_kind, stage=stage)
 
 
 @router.post(

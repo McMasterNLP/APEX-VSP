@@ -38,6 +38,7 @@ from services.research_adapters.registry import (
     ResearchAdapterRegistration,
     ResearchAdapterRegistry,
 )
+from services.plugin_registry_service import RegistryService
 from services.transcript_identity import canonicalize_transcript, hash_transcript
 
 logger = get_logger(__name__)
@@ -116,6 +117,14 @@ class ResearchEvaluationService:
 
     def descriptors(self) -> ResearchEvaluatorDescriptorsResponse:
         descriptors: list[ResearchEvaluatorDescriptor] = []
+        # Cross-reference the unified plugin registry for lifecycle stage.
+        # Any evaluator not yet found there (should only happen before the
+        # phase-1 migration/seed runs) is treated as "promoted" -- i.e. it
+        # behaves exactly as it did before the registry existed.
+        stage_by_identifier = {
+            reg.identifier: reg.stage
+            for reg in RegistryService(self.db).list(plugin_kind="evaluator").registrations
+        }
         for registration in self.registry.list():
             if not registration.requires_live_execution:
                 availability = "available"
@@ -138,6 +147,9 @@ class ResearchEvaluationService:
                     default_selected=registration.default_selected,
                     availability=availability,
                     warnings=registration.warnings,
+                    stage=stage_by_identifier.get(
+                        registration.evaluator_identifier, "promoted"
+                    ),
                 )
             )
         return ResearchEvaluatorDescriptorsResponse(evaluators=tuple(descriptors))
