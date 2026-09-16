@@ -1,6 +1,6 @@
 # Multi-stage: build Vite SPA, serve static assets with nginx.
 
-FROM node:20-alpine AS build
+FROM node:20-bookworm-slim AS build
 
 WORKDIR /app
 
