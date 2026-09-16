@@ -5,12 +5,14 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-# npm ci strictly installs what's locked, including platform-specific optional
-# native binaries (e.g. rollup's @rollup/rollup-linux-*). Since package-lock.json
-# is generated on macOS dev machines, that resolution doesn't carry over cleanly
-# to this Linux build image (a known npm bug: https://github.com/npm/cli/issues/4828).
-# npm install re-resolves optional deps for the actual build platform.
-RUN npm install
+# package-lock.json is generated on macOS dev machines, so its resolved
+# optionalDependencies entries only cover macOS's native rollup binary.
+# Both `npm ci` and `npm install` respect an existing lockfile's already-resolved
+# optional deps and won't add a missing Linux entry on their own (a known npm
+# bug: https://github.com/npm/cli/issues/4828). Deleting the lockfile here (this
+# only affects this build layer, not the committed file) forces npm to resolve
+# everything fresh for the actual Linux build platform.
+RUN rm -f package-lock.json && npm install
 
 COPY . .
 
