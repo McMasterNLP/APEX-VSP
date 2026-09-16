@@ -70,6 +70,34 @@ function RegistryStageNote({ registration }: { registration: PluginRegistration 
   )
 }
 
+/**
+ * Mirrors the "linked to" treatment on the Plugin Registry tab (Research page) so a
+ * trainee Evaluator and its Research Evaluator adapter counterpart read as visibly
+ * connected here too, even though they live in two separate card lists rather than
+ * adjacent table rows. `side` picks which chain glyph and label to show -- the
+ * trainee card points forward to its research adapter, the adapter card points back.
+ */
+function LinkedToNote({
+  partner,
+  side,
+}: {
+  partner: PluginRegistration | undefined
+  side: 'trainee' | 'research-adapter'
+}) {
+  if (!partner) return null
+  return (
+    <div className="mt-1.5 flex items-center gap-1 text-xs text-indigo-700">
+      <span className="text-indigo-400" aria-hidden="true">
+        {side === 'trainee' ? '⛓' : '⤷'}
+      </span>
+      <span>
+        linked to {side === 'trainee' ? 'research adapter' : 'trainee evaluator'}:{' '}
+        <span className="font-mono">{partner.identifier}</span>
+      </span>
+    </div>
+  )
+}
+
 // ---- Session detail panel ----
 
 /**
@@ -311,6 +339,14 @@ export const Admin = () => {
   const [researchAdapterRegistrations, setResearchAdapterRegistrations] = useState<
     PluginRegistration[]
   >([])
+  // Full id -> registration lookup (evaluators, patient models, metrics, and research
+  // adapters alike) so both the Evaluators and Research Evaluator Adapters sections can
+  // resolve linked_registration_id to the actual paired registration -- same mechanism
+  // the Plugin Registry tab uses to show linked pairs, just applied across two separate
+  // card lists instead of one table.
+  const [registrationsById, setRegistrationsById] = useState<Map<number, PluginRegistration>>(
+    new Map()
+  )
 
   const [userOverviewData, setUserOverviewData] = useState<AdminUserOverviewResponseDTO | null>(null)
   const [userOverviewLoading, setUserOverviewLoading] = useState(false)
@@ -392,6 +428,7 @@ export const Admin = () => {
               .map((r) => [r.module_path, r])
           )
         )
+        setRegistrationsById(new Map(registrations.map((r) => [r.id, r])))
         setResearchAdapterRegistrations(
           registrations.filter((r) => {
             const meta = r.metadata as Record<string, unknown> | null
@@ -1104,18 +1141,36 @@ export const Admin = () => {
                   </p>
                   {installedPlugins?.evaluators?.length ? (
                     <div className="mt-2 space-y-2">
-                      {installedPlugins.evaluators.map((p) => (
-                        <div key={p.name} className="border rounded-lg p-4 bg-white shadow-sm">
-                          <div className="font-medium text-gray-900" title={p.name}>
-                            {formatPluginName(p.name)}
+                      {installedPlugins.evaluators.map((p) => {
+                        const reg = registryByModulePath.get(p.name)
+                        const partner = reg?.linked_registration_id
+                          ? registrationsById.get(reg.linked_registration_id)
+                          : undefined
+                        return (
+                          <div
+                            key={p.name}
+                            className={cn(
+                              'border rounded-lg p-4 shadow-sm',
+                              partner ? 'bg-indigo-50/50 border-indigo-100' : 'bg-white'
+                            )}
+                          >
+                            <div className="font-medium text-gray-900" title={p.name}>
+                              {formatPluginName(p.name)}
+                              {partner && (
+                                <span className="ml-1.5 rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium normal-case text-indigo-700">
+                                  trainee
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500">Version {p.version}</div>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {pluginDescription('evaluator', p.name)}
+                            </p>
+                            <RegistryStageNote registration={reg} />
+                            <LinkedToNote partner={partner} side="trainee" />
                           </div>
-                          <div className="text-sm text-gray-500">Version {p.version}</div>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {pluginDescription('evaluator', p.name)}
-                          </p>
-                          <RegistryStageNote registration={registryByModulePath.get(p.name)} />
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm mt-2">No evaluator plugins registered.</p>
@@ -1158,20 +1213,27 @@ export const Admin = () => {
                   {researchAdapterRegistrations.length ? (
                     <div className="mt-2 space-y-2">
                       {researchAdapterRegistrations.map((r) => {
-                        const meta = r.metadata as Record<string, unknown> | null
-                        const counterpart =
-                          meta && typeof meta === 'object' ? meta.counterpart_identifier : null
+                        const partner = r.linked_registration_id
+                          ? registrationsById.get(r.linked_registration_id)
+                          : undefined
                         return (
-                          <div key={r.id} className="border rounded-lg p-4 bg-white shadow-sm">
+                          <div
+                            key={r.id}
+                            className={cn(
+                              'border rounded-lg p-4 shadow-sm',
+                              partner ? 'bg-indigo-50/50 border-indigo-100' : 'bg-white'
+                            )}
+                          >
                             <div className="font-medium text-gray-900" title={r.identifier}>
                               {formatPluginName(r.identifier)}
+                              {partner && (
+                                <span className="ml-1.5 rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-medium normal-case text-indigo-700">
+                                  research adapter
+                                </span>
+                              )}
                             </div>
-                            {typeof counterpart === 'string' ? (
-                              <div className="text-sm text-gray-500">
-                                Linked to trainee evaluator: {formatPluginName(counterpart)}
-                              </div>
-                            ) : null}
                             <RegistryStageNote registration={r} />
+                            <LinkedToNote partner={partner} side="research-adapter" />
                           </div>
                         )
                       })}
