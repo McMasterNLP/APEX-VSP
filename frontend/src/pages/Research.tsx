@@ -25,6 +25,8 @@ import { Button } from '@/components/ui/button'
 import { parseUtcDateTime } from '@/lib/dateTime'
 import { cn } from '@/lib/utils'
 import { AlertTriangle, Download, Shield, BarChart3, TrendingUp, ClipboardCheck, Home, BookOpen, Sparkles, Crosshair, Lock, Puzzle, CheckCircle2 } from 'lucide-react'
+import { PluginRegistryTab } from '@/components/research/PluginRegistryTab'
+import { ImportSessionsComingSoon } from '@/components/research/ImportSessionsComingSoon'
 import {
   LineChart,
   Line,
@@ -508,6 +510,8 @@ const RESEARCH_TABS = [
   { id: 'overview', label: 'Overview', icon: Home },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'evaluate', label: 'Evaluate Sessions', icon: ClipboardCheck },
+  { id: 'registry', label: 'Plugin Registry', icon: Puzzle },
+  { id: 'import', label: 'Import Sessions', icon: Sparkles },
 ] as const
 
 type ResearchTabId = (typeof RESEARCH_TABS)[number]['id']
@@ -524,7 +528,15 @@ export const Research = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const tabParam = searchParams.get('tab')
   const activeTab: ResearchTabId =
-    tabParam === 'analytics' ? 'analytics' : tabParam === 'evaluate' ? 'evaluate' : 'overview'
+    tabParam === 'analytics'
+      ? 'analytics'
+      : tabParam === 'evaluate'
+        ? 'evaluate'
+        : tabParam === 'registry'
+          ? 'registry'
+          : tabParam === 'import'
+            ? 'import'
+            : 'overview'
 
   /**
    * Switches tabs and reflects the choice in the URL (`?tab=analytics|evaluate`) so the
@@ -1358,7 +1370,11 @@ export const Research = () => {
                 ? renderAnalyticsTab()
                 : activeTab === 'evaluate'
                   ? renderEvaluateSessionsTab()
-                  : renderOverviewTab()}
+                  : activeTab === 'registry'
+                    ? <PluginRegistryTab />
+                    : activeTab === 'import'
+                      ? <ImportSessionsComingSoon />
+                      : renderOverviewTab()}
             </div>
           </div>
         </main>
