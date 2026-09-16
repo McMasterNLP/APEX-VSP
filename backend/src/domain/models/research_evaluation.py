@@ -671,6 +671,17 @@ class ResearchEvaluatorDescriptor(StrictModel):
     default_selected: bool = False
     availability: Literal["available", "server_live_disabled", "experimental_disabled"]
     warnings: tuple[str, ...] = ()
+    # Lifecycle stage from the unified plugin registry (plugin-registry-refactor
+    # phase 1). Defaults to "promoted" so descriptors built without a registry
+    # cross-reference (e.g. existing tests/fixtures) keep validating as-is.
+    stage: Literal[
+        "draft",
+        "experimental",
+        "under_review",
+        "promoted",
+        "deprecated",
+        "retired",
+    ] = "promoted"
 
     @model_validator(mode="after")
     def validate_live_descriptor(self) -> Self:
