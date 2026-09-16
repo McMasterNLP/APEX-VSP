@@ -12,6 +12,15 @@ scoring path and the adapter/framework execution machinery in
 service adds is a single source of truth for *identity + lifecycle stage*
 that both of those can be cross-referenced against, and that Phase 2
 (PatientModel, MetricsPlugin) and Phase 4 (promotion workflow) build on.
+
+Note on trainee vs. research evaluators specifically: these remain two
+separate systems by design (different protocols, different identity
+guarantees -- see the Plugin Developer Guide's "Why this is kept separate"
+callout). ``link()`` below is a later addition that lets two same-kind
+registrations be marked, symmetrically, as the same underlying model shown
+on two surfaces (e.g. a trainee Evaluator wrapper and its Research Evaluator
+adapter). It is purely informational and never changes which code path a
+session or a research run actually executes.
 """
 
 from __future__ import annotations
@@ -124,6 +133,66 @@ class RegistryService:
         updated = self.repo.update(entity)
         return self._to_response(updated)
 
+    def link(
+        self, registration_id: int, linked_registration_id: int | None
+    ) -> PluginRegistrationResponse:
+        """Set or clear the symmetric, informational link on a registration.
+
+        Used to mark two registrations (e.g. a trainee-facing Evaluator
+        wrapper and its Research Evaluator adapter counterpart) as the same
+        underlying model shown on two surfaces. This never changes stage,
+        promotion history, or which code path executes -- it is display-only
+        metadata for the registry UI.
+        """
+
+        entity = self.repo.get_by_id(registration_id)
+        if entity is None:
+            raise NotFoundError(f"Plugin registration {registration_id} not found.")
+
+        # Clearing: unset this row's link, and the old partner's back-link if
+        # it still points here.
+        if linked_registration_id is None:
+            old_partner = (
+                self.repo.get_by_id(entity.linked_registration_id)
+                if entity.linked_registration_id
+                else None
+            )
+            entity.linked_registration_id = None
+            if old_partner is not None and old_partner.linked_registration_id == entity.id:
+                old_partner.linked_registration_id = None
+            self.db.commit()
+            self.db.refresh(entity)
+            return self._to_response(entity)
+
+        if linked_registration_id == registration_id:
+            raise ValueError("A registration cannot be linked to itself.")
+
+        target = self.repo.get_by_id(linked_registration_id)
+        if target is None:
+            raise NotFoundError(f"Plugin registration {linked_registration_id} not found.")
+        if target.plugin_kind != entity.plugin_kind:
+            raise ValueError(
+                "Linked registrations must share the same plugin_kind "
+                f"(got {entity.plugin_kind!r} and {target.plugin_kind!r})."
+            )
+
+        # Break any stale prior links on either side before forming the new
+        # pair, so a registration is never linked to more than one partner.
+        if entity.linked_registration_id and entity.linked_registration_id != target.id:
+            old_partner = self.repo.get_by_id(entity.linked_registration_id)
+            if old_partner is not None and old_partner.linked_registration_id == entity.id:
+                old_partner.linked_registration_id = None
+        if target.linked_registration_id and target.linked_registration_id != entity.id:
+            old_partner = self.repo.get_by_id(target.linked_registration_id)
+            if old_partner is not None and old_partner.linked_registration_id == target.id:
+                old_partner.linked_registration_id = None
+
+        entity.linked_registration_id = target.id
+        target.linked_registration_id = entity.id
+        self.db.commit()
+        self.db.refresh(entity)
+        return self._to_response(entity)
+
     @staticmethod
     def _to_response(entity: PluginRegistration) -> PluginRegistrationResponse:
         return PluginRegistrationResponse(
@@ -137,6 +206,7 @@ class RegistryService:
             module_path=entity.module_path,
             config=json.loads(entity.config_json) if entity.config_json else None,
             metadata=json.loads(entity.metadata_json) if entity.metadata_json else None,
+            linked_registration_id=entity.linked_registration_id,
             created_at=serialize_utc_datetime(entity.created_at),
             updated_at=serialize_utc_datetime(entity.updated_at),
             promoted_at=(

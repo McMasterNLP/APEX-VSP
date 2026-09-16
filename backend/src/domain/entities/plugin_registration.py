@@ -64,6 +64,19 @@ class PluginRegistration(Base):
     # Session.user/User.sessions) since nothing needs "all registrations a
     # user created" today.
     created_by_user_id = Column(Integer, ForeignKey("core.users.id"), nullable=True)
+
+    # Optional pointer to another registration of the same plugin_kind that
+    # represents the same underlying model on a different surface (e.g. a
+    # trainee-facing Evaluator wrapper and its Research Evaluator adapter
+    # counterpart). Purely informational -- set/cleared symmetrically by
+    # RegistryService.link(); never affects stage, promotion, or which code
+    # path actually executes.
+    linked_registration_id = Column(
+        Integer,
+        ForeignKey("core.plugin_registrations.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     created_at = Column(UTCDateTimeType(), default=utc_now, nullable=False)
     updated_at = Column(UTCDateTimeType(), default=utc_now, onupdate=utc_now, nullable=False)
     promoted_at = Column(UTCDateTimeType(), nullable=True)

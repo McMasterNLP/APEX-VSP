@@ -47,6 +47,7 @@ class PluginRegistrationResponse(StrictModel):
     module_path: str | None = None
     config: JsonValue | None = None
     metadata: JsonValue | None = None
+    linked_registration_id: int | None = None
     created_at: str
     updated_at: str
     promoted_at: str | None = None
@@ -55,3 +56,14 @@ class PluginRegistrationResponse(StrictModel):
 
 class PluginRegistrationListResponse(StrictModel):
     registrations: tuple[PluginRegistrationResponse, ...]
+
+
+class PluginRegistrationLinkRequest(StrictModel):
+    """Set or clear the informational link to another same-kind registration.
+
+    Pass ``linked_registration_id=None`` to unlink. Linking is symmetric --
+    the other registration's ``linked_registration_id`` is updated to point
+    back at this one in the same operation.
+    """
+
+    linked_registration_id: int | None = None

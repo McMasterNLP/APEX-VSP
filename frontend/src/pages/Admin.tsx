@@ -16,6 +16,8 @@ import {
   type AssignableRole,
 } from '@/api/admin.api'
 import type { PluginsResponse } from '@/types/plugins'
+import { fetchPluginRegistrations } from '@/api/pluginRegistry.api'
+import { isNotYetPromoted, type PluginRegistration } from '@/types/pluginRegistry'
 import { MetricCard } from '@/components/MetricCard'
 import { Navbar } from '@/components/Navbar'
 import { Sidebar } from '@/components/Sidebar'
@@ -26,6 +28,47 @@ import { formatDateInUserTimeZone, formatDateTimeInUserTimeZone } from '@/lib/da
 import { formatPluginName, formatMetricsPluginsDisplay } from '@/lib/formatPluginName'
 import { cn } from '@/lib/utils'
 import { AdminSessionsTable } from '@/components/sessions/AdminSessionsTable'
+
+// ---- Plugin registry stage badge (Installed Plugins tab) ----
+
+const REGISTRY_STAGE_BADGE_CLASSES: Record<string, string> = {
+  draft: 'bg-gray-100 text-gray-700',
+  experimental: 'bg-sky-100 text-sky-800',
+  under_review: 'bg-amber-100 text-amber-800',
+  promoted: 'bg-emerald-100 text-emerald-800',
+  deprecated: 'bg-orange-100 text-orange-800',
+  retired: 'bg-gray-200 text-gray-500',
+}
+
+/**
+ * Shows this installed plugin's DB-registry lifecycle stage, if a matching
+ * registration exists (matched on module_path -- see plugin_registry_service.py).
+ * Purely descriptive: the stage doesn't affect whether the plugin is actually
+ * selectable here or in case config today, hence the "not yet promoted" note.
+ */
+function RegistryStageNote({ registration }: { registration: PluginRegistration | undefined }) {
+  if (!registration) return null
+  return (
+    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+      <span
+        className={cn(
+          'inline-block rounded px-2 py-0.5 text-xs font-medium uppercase tracking-wide',
+          REGISTRY_STAGE_BADGE_CLASSES[registration.stage] ?? 'bg-gray-100 text-gray-700'
+        )}
+      >
+        {registration.stage.replaceAll('_', ' ')}
+      </span>
+      {isNotYetPromoted(registration.stage) && (
+        <span
+          title="This plugin's registry stage means it hasn't been reviewed/approved yet. It may still be fully wired up and usable -- the registry stage doesn't block that."
+          className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+        >
+          not yet promoted
+        </span>
+      )}
+    </div>
+  )
+}
 
 // ---- Session detail panel ----
 
@@ -252,6 +295,22 @@ export const Admin = () => {
   const [installedPlugins, setInstalledPlugins] = useState<PluginsResponse | null>(null)
   const [pluginsLoading, setPluginsLoading] = useState(false)
   const [pluginsError, setPluginsError] = useState<string | null>(null)
+  // Cross-referenced against the DB-backed plugin registry (module_path is the
+  // shared key -- see plugin_registry_service.py) so this tab can show each
+  // installed plugin's lifecycle stage alongside its name/version, without
+  // duplicating anything the Plugin Registry tab (Research page) owns.
+  const [registryByModulePath, setRegistryByModulePath] = useState<Map<string, PluginRegistration>>(
+    new Map()
+  )
+  // Research Evaluator adapters (services/research_adapters/*) are a separate,
+  // researcher-facing protocol from the trainee-facing Evaluator plugins above --
+  // they never appear in fetchAdminPluginRegistry() because they're not part of
+  // that in-memory PluginRegistry at all. They live in plugin_registrations
+  // (plugin_kind="evaluator") tagged metadata.research_adapter === true, so we
+  // surface them here as their own section rather than silently omitting them.
+  const [researchAdapterRegistrations, setResearchAdapterRegistrations] = useState<
+    PluginRegistration[]
+  >([])
 
   const [userOverviewData, setUserOverviewData] = useState<AdminUserOverviewResponseDTO | null>(null)
   const [userOverviewLoading, setUserOverviewLoading] = useState(false)
@@ -323,6 +382,25 @@ export const Admin = () => {
     try {
       const data = await fetchAdminPluginRegistry()
       setInstalledPlugins(data)
+      // Best-effort: if this fails, the tab still works, just without stage badges.
+      try {
+        const { registrations } = await fetchPluginRegistrations()
+        setRegistryByModulePath(
+          new Map(
+            registrations
+              .filter((r): r is PluginRegistration & { module_path: string } => Boolean(r.module_path))
+              .map((r) => [r.module_path, r])
+          )
+        )
+        setResearchAdapterRegistrations(
+          registrations.filter((r) => {
+            const meta = r.metadata as Record<string, unknown> | null
+            return Boolean(meta && typeof meta === 'object' && meta.research_adapter === true)
+          })
+        )
+      } catch (registryErr) {
+        console.error('Failed to load plugin registry stages:', registryErr)
+      }
     } catch (e) {
       console.error('Failed to fetch plugins:', e)
       setPluginsError('Failed to load plugins')
@@ -974,8 +1052,19 @@ export const Admin = () => {
                     Plugin guide
                   </a>
                 </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <a href="/research?tab=registry" className="flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Plugin Registry (stages &amp; promotions)
+                  </a>
+                </Button>
               </div>
             </div>
+            <p className="text-xs text-gray-500 -mt-4">
+              Stage badges below reflect the DB-backed plugin registry and are descriptive only
+              -- they don&apos;t affect whether a plugin is actually installed or selectable
+              here. Manage stage changes on the Plugin Registry page linked above.
+            </p>
 
             {pluginsLoading ? (
               <p className="text-gray-500 py-8">Loading plugins…</p>
@@ -999,6 +1088,7 @@ export const Admin = () => {
                           <p className="text-sm text-gray-600 mt-1">
                             {pluginDescription('patient_model', p.name)}
                           </p>
+                          <RegistryStageNote registration={registryByModulePath.get(p.name)} />
                         </div>
                       ))}
                     </div>
@@ -1023,6 +1113,7 @@ export const Admin = () => {
                           <p className="text-sm text-gray-600 mt-1">
                             {pluginDescription('evaluator', p.name)}
                           </p>
+                          <RegistryStageNote registration={registryByModulePath.get(p.name)} />
                         </div>
                       ))}
                     </div>
@@ -1047,11 +1138,48 @@ export const Admin = () => {
                           <p className="text-sm text-gray-600 mt-1">
                             {pluginDescription('metrics', p.name)}
                           </p>
+                          <RegistryStageNote registration={registryByModulePath.get(p.name)} />
                         </div>
                       ))}
                     </div>
                   ) : (
                     <p className="text-gray-500 text-sm mt-2">No metrics plugins registered.</p>
+                  )}
+                </div>
+
+                <div>
+                  <h3 className="font-semibold">Research Evaluator Adapters</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Researcher-facing evaluators (a separate protocol from the trainee-facing
+                    Evaluators above) used only for research scoring and analysis -- they never
+                    see session/DB context the way trainee evaluators do. Managed alongside their
+                    trainee counterparts on the Plugin Registry page.
+                  </p>
+                  {researchAdapterRegistrations.length ? (
+                    <div className="mt-2 space-y-2">
+                      {researchAdapterRegistrations.map((r) => {
+                        const meta = r.metadata as Record<string, unknown> | null
+                        const counterpart =
+                          meta && typeof meta === 'object' ? meta.counterpart_identifier : null
+                        return (
+                          <div key={r.id} className="border rounded-lg p-4 bg-white shadow-sm">
+                            <div className="font-medium text-gray-900" title={r.identifier}>
+                              {formatPluginName(r.identifier)}
+                            </div>
+                            {typeof counterpart === 'string' ? (
+                              <div className="text-sm text-gray-500">
+                                Linked to trainee evaluator: {formatPluginName(counterpart)}
+                              </div>
+                            ) : null}
+                            <RegistryStageNote registration={r} />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm mt-2">
+                      No research evaluator adapters registered.
+                    </p>
                   )}
                 </div>
               </div>

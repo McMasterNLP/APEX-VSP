@@ -64,6 +64,12 @@ const DOC_NAV = [
     label: 'Best Practices',
     keywords: 'best practices stateless repository scoring service dialogue validation',
   },
+  {
+    id: 'plugin-registry-workflow',
+    label: 'Plugin Registry & Promotions',
+    keywords:
+      'plugin registry lifecycle stage draft experimental under_review promoted deprecated retired promotion request review approve reject withdraw registryservice plugin_registrations',
+  },
 ] as const
 
 function docSectionVisible(keywords: string, query: string): boolean {
@@ -425,6 +431,46 @@ class MyCustomEvaluator:
                     session close.
                   </p>
 
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 mb-4">
+                    <h4 className="font-semibold text-gray-900 mb-2">
+                      Why this is kept separate from the trainee Evaluator (by design, not an oversight)
+                    </h4>
+                    <ul className="list-disc pl-5 text-sm text-gray-700 space-y-2">
+                      <li>
+                        <span className="font-semibold">Identity boundary.</span> A research evaluator
+                        structurally cannot receive a <span className="font-mono">session_id</span> or a
+                        DB handle — only an identity-stripped{' '}
+                        <span className="font-mono">ResearchAdapterContext</span>. That is what makes the
+                        &quot;researchers see transcripts, never real trainee identity&quot; guarantee an
+                        enforced property of the protocol, not just a convention. Merging the two
+                        interfaces would mean either the research side gains a path back to identity, or
+                        the trainee side loses access to session state it needs (history lookups, timeline
+                        events, direct writes) — a bad trade either way.
+                      </li>
+                      <li>
+                        <span className="font-semibold">Different stability contracts.</span> Research
+                        evaluators are meant to stay fixed and citable once registered (see the roadmap
+                        note below); the trainee evaluator has no such constraint and should be free to
+                        iterate quickly. Combining them would force one side&apos;s stability requirement
+                        onto the other.
+                      </li>
+                      <li>
+                        <span className="font-semibold">Different blast radius.</span> A trainee-evaluator
+                        bug affects a live trainee, immediately. A research-evaluator bug affects one
+                        offline comparison run. Keeping the code paths separate keeps a change made for one
+                        context from carrying operational risk for the other.
+                      </li>
+                      <li>
+                        <span className="font-semibold">If you want one underlying model for both:</span>{' '}
+                        share the core scoring/rubric logic as a plain function or module, and write two
+                        thin wrappers on top of it — one implementing <span className="font-mono">Evaluator</span>,
+                        one implementing <span className="font-mono">ResearchResultAdapter</span>. That avoids
+                        duplicating the actual scoring logic without merging the two protocols or their
+                        registration paths.
+                      </li>
+                    </ul>
+                  </div>
+
                   <h3 className="text-lg font-medium mt-6 mb-2">Explicit static registry, not dynamic discovery</h3>
                   <p className="text-gray-700 mb-3">
                     Unlike <span className="font-mono">PatientModel</span> / <span className="font-mono">Evaluator</span>{' '}
@@ -658,6 +704,13 @@ class MyMetricsPlugin:
                     or on <span className="font-mono">PYTHONPATH</span>), and the class must implement the
                     corresponding interface.
                   </p>
+                  <p className="text-gray-700 mt-3">
+                    This code-time registration is separate from &mdash; and unaffected by &mdash; the
+                    DB-backed lifecycle registry described in{' '}
+                    <span className="font-mono">Plugin Registry &amp; Promotions</span> below. That registry
+                    tracks the same plugins as rows for maturity/audit purposes; it never changes which
+                    plugin a session actually runs.
+                  </p>
                 </section>
 
                 {/* 6. Testing Plugins */}
@@ -727,6 +780,124 @@ class MyMetricsPlugin:
                       caught quickly.
                     </li>
                   </ul>
+                </section>
+
+                {/* 8. Plugin Registry & Promotions */}
+                <section
+                  className={cn('mb-6', !docSectionVisible(DOC_NAV[10].keywords, docSearch) && 'hidden')}
+                  id="plugin-registry-workflow"
+                >
+                  <h2 className="text-xl font-semibold mt-8 mb-3">Plugin Registry &amp; Promotions</h2>
+                  <p className="text-gray-700 mb-3">
+                    Alongside the code-time registration above, APEX keeps a{' '}
+                    <span className="font-mono">plugin_registrations</span> table &mdash; one row per plugin
+                    (evaluator, patient model, or metrics) &mdash; that tracks maturity and provides an audit
+                    trail. This is additive: it does not replace{' '}
+                    <span className="font-mono">PluginRegistry</span> /{' '}
+                    <span className="font-mono">PLUGIN_MODULES</span>, and it never changes which plugin a
+                    session actually runs. Think of it as a catalog and governance layer on top of the
+                    plugins that already exist in code.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Plugin kinds</h3>
+                  <p className="text-gray-700 mb-3">
+                    Every registration has a <span className="font-mono">plugin_kind</span> of{' '}
+                    <span className="font-mono">evaluator</span>, <span className="font-mono">patient_model</span>,
+                    or <span className="font-mono">metrics</span> &mdash; the same three plugin types described
+                    earlier in this guide. (This is the plugin registry&apos;s three <em>kinds</em>; it&apos;s
+                    a different count from however many individual evaluator plugins happen to be registered.)
+                  </p>
+                  <p className="text-gray-700 mb-3">
+                    <span className="font-semibold">Note on <span className="font-mono">evaluator</span> rows
+                    specifically:</span> both the trainee-facing{' '}
+                    <Link to="/docs/plugin-developer-guide#evaluator" className="text-apex-700 hover:underline">
+                      Evaluator plugin
+                    </Link>{' '}
+                    and the{' '}
+                    <Link to="/docs/plugin-developer-guide#research-evaluator" className="text-apex-700 hover:underline">
+                      Research Evaluator plugin
+                    </Link>{' '}
+                    get tracked as <span className="font-mono">plugin_kind=&quot;evaluator&quot;</span> rows
+                    here &mdash; that&apos;s what &quot;unified&quot; means in this registry. It is{' '}
+                    <span className="font-semibold">only</span> a shared identity/lifecycle tracking layer:
+                    the two remain separate systems with separate protocols, separate registration paths, and
+                    (intentionally) separate access to trainee identity. See &quot;Why this is kept
+                    separate&quot; in the Research Evaluator Plugins section above for the reasoning.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Lifecycle stages</h3>
+                  <p className="text-gray-700 mb-3">
+                    Each registration moves through six stages, in order:
+                  </p>
+                  <ol className="list-decimal pl-6 text-gray-700 space-y-1 mb-3">
+                    <li><span className="font-mono">draft</span> &mdash; newly registered, not yet reviewed.</li>
+                    <li><span className="font-mono">experimental</span> &mdash; usable for exploration, not yet vetted.</li>
+                    <li><span className="font-mono">under_review</span> &mdash; a promotion request is pending review.</li>
+                    <li><span className="font-mono">promoted</span> &mdash; reviewed and approved for broader use.</li>
+                    <li><span className="font-mono">deprecated</span> &mdash; still usable, but on its way out.</li>
+                    <li><span className="font-mono">retired</span> &mdash; no longer intended for use.</li>
+                  </ol>
+                  <p className="text-gray-700 mb-3">
+                    Registrations seeded directly by a migration (for example the built-in{' '}
+                    <span className="font-mono">DefaultLLMPatientModel</span> and{' '}
+                    <span className="font-mono">ApexMetrics</span>) start life already at{' '}
+                    <span className="font-mono">promoted</span>, since they&apos;re the existing defaults, not
+                    new candidates.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Promotion request/review workflow</h3>
+                  <p className="text-gray-700 mb-3">
+                    Moving a registration forward a stage is a request-then-decision flow, not a direct
+                    field edit, so there&apos;s always an audit trail of who asked for what and who approved
+                    it:
+                  </p>
+                  <ol className="list-decimal pl-6 text-gray-700 space-y-1 mb-3">
+                    <li>
+                      A researcher or admin opens a promotion request on a registration, naming the{' '}
+                      <span className="font-mono">requested_stage</span> and optional notes.
+                    </li>
+                    <li>
+                      Only one <span className="font-mono">pending</span> request can exist per registration
+                      at a time &mdash; enforced with a partial unique DB index, not just app-level checks.
+                    </li>
+                    <li>
+                      An admin approves (moving the registration to the requested stage) or rejects the
+                      request, each with optional review notes.
+                    </li>
+                    <li>
+                      The original requester can withdraw their own pending request instead of waiting on a
+                      decision.
+                    </li>
+                  </ol>
+                  <p className="text-gray-700 mb-3">
+                    Approving a request that targets <span className="font-mono">promoted</span> or{' '}
+                    <span className="font-mono">deprecated</span> routes through the same{' '}
+                    <span className="font-mono">RegistryService.promote()</span> /{' '}
+                    <span className="font-mono">.deprecate()</span> methods used elsewhere, so those two
+                    transitions stay consistent everywhere they happen.
+                  </p>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">API endpoints</h3>
+                  <pre className="bg-gray-900 text-gray-100 p-4 rounded-md text-sm overflow-x-auto mb-3">
+                    <code>{`GET  /v1/research/plugin-registrations
+GET  /v1/research/plugin-registrations/{id}
+
+POST /v1/research/plugin-registrations/{id}/promotion-requests
+GET  /v1/research/plugin-registrations/{id}/promotion-requests
+GET  /v1/research/promotion-requests
+GET  /v1/research/promotion-requests/{id}
+POST /v1/research/promotion-requests/{id}/approve   (admin only)
+POST /v1/research/promotion-requests/{id}/reject    (admin only)
+POST /v1/research/promotion-requests/{id}/withdraw  (admin or the original requester)`}</code>
+                  </pre>
+
+                  <h3 className="text-lg font-medium mt-6 mb-2">Where to see this in the UI</h3>
+                  <p className="text-gray-700">
+                    The <span className="font-semibold">Plugin Registry</span> tab on the Research page lists
+                    every registration with its kind and stage, lets a researcher or admin file a promotion
+                    request, and shows the promotion-request queue with admin approve/reject actions and
+                    requester withdraw &mdash; no direct API calls needed for day-to-day use.
+                  </p>
                 </section>
               </article>
             </div>

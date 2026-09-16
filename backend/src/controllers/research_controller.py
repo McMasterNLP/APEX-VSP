@@ -46,7 +46,9 @@ from domain.models.research_validation import (
 )
 from domain.models.plugin_registration import (
     PluginKind,
+    PluginRegistrationLinkRequest,
     PluginRegistrationListResponse,
+    PluginRegistrationResponse,
     PluginStage,
 )
 from domain.models.plugin_promotion_request import (
@@ -190,6 +192,27 @@ async def list_plugin_registrations(
     """
 
     return RegistryService(db).list(plugin_kind=plugin_kind, stage=stage)
+
+
+@router.patch(
+    "/plugin-registrations/{registration_id}/link",
+    response_model=PluginRegistrationResponse,
+)
+async def link_plugin_registration(
+    registration_id: int,
+    payload: PluginRegistrationLinkRequest,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    """Mark (or clear) that this registration is the same underlying model as
+    another same-kind registration on a different surface -- e.g. linking a
+    trainee-facing Evaluator wrapper to its Research Evaluator adapter
+    counterpart. Symmetric and purely informational: does not touch stage,
+    promotion history, or which code path actually executes. Admin-only
+    since it's a curation action on the registry's display metadata.
+    """
+
+    return RegistryService(db).link(registration_id, payload.linked_registration_id)
 
 
 @router.post(

@@ -3,7 +3,7 @@
  */
 import { Link, useLocation, type Location } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList, ClipboardCheck, FlaskConical } from 'lucide-react'
+import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList, ClipboardCheck, FlaskConical, Puzzle, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -54,7 +54,8 @@ export const Sidebar = () => {
   ].filter((item) => item.roles.includes(user?.role || 'trainee'))
 
   const researchOverviewIsActive = (loc: Location) =>
-    loc.pathname === '/research' && loc.search !== '?tab=analytics' && loc.search !== '?tab=evaluate'
+    loc.pathname === '/research' &&
+    !['?tab=analytics', '?tab=evaluate', '?tab=registry', '?tab=import'].includes(loc.search)
 
   const researchSubNavigation = [
     {
@@ -69,6 +70,18 @@ export const Sidebar = () => {
       href: '/research?tab=evaluate',
       icon: ClipboardCheck,
       isActive: (loc: Location) => loc.pathname === '/research' && loc.search === '?tab=evaluate',
+    },
+    {
+      name: 'Plugin Registry',
+      href: '/research?tab=registry',
+      icon: Puzzle,
+      isActive: (loc: Location) => loc.pathname === '/research' && loc.search === '?tab=registry',
+    },
+    {
+      name: 'Import Sessions',
+      href: '/research?tab=import',
+      icon: Sparkles,
+      isActive: (loc: Location) => loc.pathname === '/research' && loc.search === '?tab=import',
     },
   ]
 
