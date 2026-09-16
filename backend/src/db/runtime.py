@@ -31,6 +31,7 @@ def init_db() -> None:
     from domain.entities import (  # noqa: F401
         case,
         feedback,
+        plugin_promotion_request,
         plugin_registration,
         research_annotation,
         session,

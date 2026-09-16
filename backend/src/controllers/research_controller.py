@@ -49,7 +49,15 @@ from domain.models.plugin_registration import (
     PluginRegistrationListResponse,
     PluginStage,
 )
+from domain.models.plugin_promotion_request import (
+    PromotionRequestCreate,
+    PromotionRequestDecision,
+    PromotionRequestListResponse,
+    PromotionRequestResponse,
+    PromotionRequestStatus,
+)
 from services.plugin_registry_service import RegistryService
+from services.plugin_promotion_service import PromotionWorkflowService
 from services.research_evaluation_service import (
     ResearchEvaluationService,
     ResearchEvaluationServiceError,
@@ -171,15 +179,132 @@ async def list_plugin_registrations(
     plugin_kind: PluginKind | None = Query(default=None),
     stage: PluginStage | None = Query(default=None),
 ):
-    """Return the unified plugin registry (plugin-registry-refactor phase 1).
+    """Return the unified plugin registry (plugin-registry-refactor phases 1-2).
 
-    Evaluator only for now -- PatientModel and MetricsPlugin registrations
-    arrive in phase 2. Unfiltered, this returns every stage (draft through
-    retired), not just what is trainee-facing; the promoted-only view for
-    case authoring is a phase 4 concern once the promotion workflow exists.
+    Covers all three plugin kinds -- evaluator (phase 1), plus patient_model
+    and metrics (phase 2). Unfiltered, this returns every stage (draft
+    through retired), not just what is trainee-facing; the promoted-only
+    view for case authoring is a phase 4 concern once the promotion
+    workflow exists. No registration/promotion UI yet -- read-only endpoint,
+    per the phase 2 scoping discussion (backend registry data only).
     """
 
     return RegistryService(db).list(plugin_kind=plugin_kind, stage=stage)
+
+
+@router.post(
+    "/plugin-registrations/{registration_id}/promotion-requests",
+    response_model=PromotionRequestResponse,
+)
+async def create_promotion_request(
+    registration_id: int,
+    payload: PromotionRequestCreate,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """Request that a plugin registration move to a new lifecycle stage.
+
+    Phase 4. Records the ask; does not itself change the registration's
+    stage -- that only happens once an admin approves it via the endpoint
+    below. Fails if the registration already has a pending request.
+    """
+
+    return PromotionWorkflowService(db).request_promotion(
+        registration_id,
+        payload.requested_stage,
+        requested_by_user_id=current_user.id,
+        notes=payload.notes,
+    )
+
+
+@router.get(
+    "/plugin-registrations/{registration_id}/promotion-requests",
+    response_model=PromotionRequestListResponse,
+)
+async def list_promotion_requests_for_registration(
+    registration_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+    status: PromotionRequestStatus | None = Query(default=None),
+):
+    """List promotion requests for one plugin registration, newest first."""
+
+    return PromotionWorkflowService(db).list(registration_id=registration_id, status=status)
+
+
+@router.get("/promotion-requests", response_model=PromotionRequestListResponse)
+async def list_promotion_requests(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+    status: PromotionRequestStatus | None = Query(default=None),
+):
+    """List all promotion requests, newest first -- the review queue when
+    filtered to status=pending."""
+
+    return PromotionWorkflowService(db).list(status=status)
+
+
+@router.get("/promotion-requests/{request_id}", response_model=PromotionRequestResponse)
+async def get_promotion_request(
+    request_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    return PromotionWorkflowService(db).get(request_id)
+
+
+@router.post(
+    "/promotion-requests/{request_id}/approve",
+    response_model=PromotionRequestResponse,
+)
+async def approve_promotion_request(
+    request_id: int,
+    payload: PromotionRequestDecision,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    """Approve a pending promotion request, applying the requested stage.
+
+    Admin-only: reviewing/approving a promotion is a site-administration
+    action, distinct from the admin_or_researcher access every other
+    research route uses.
+    """
+
+    return PromotionWorkflowService(db).approve(
+        request_id, reviewed_by_user_id=current_user.id, notes=payload.notes
+    )
+
+
+@router.post(
+    "/promotion-requests/{request_id}/reject",
+    response_model=PromotionRequestResponse,
+)
+async def reject_promotion_request(
+    request_id: int,
+    payload: PromotionRequestDecision,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+):
+    """Reject a pending promotion request. Admin-only, see approve() above."""
+
+    return PromotionWorkflowService(db).reject(
+        request_id, reviewed_by_user_id=current_user.id, notes=payload.notes
+    )
+
+
+@router.post(
+    "/promotion-requests/{request_id}/withdraw",
+    response_model=PromotionRequestResponse,
+)
+async def withdraw_promotion_request(
+    request_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin_or_researcher)],
+):
+    """Withdraw a pending promotion request. Only the original requester may
+    withdraw their own request."""
+
+    return PromotionWorkflowService(db).withdraw(request_id, requesting_user_id=current_user.id)
 
 
 @router.post(
