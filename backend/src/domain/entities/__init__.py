@@ -14,6 +14,7 @@ from domain.entities.research_annotation import (
 )
 from domain.entities.session import Session
 from domain.entities.turn import Turn
+from domain.entities.usage_event import UsageEvent
 from domain.entities.user import User
 
 __all__ = [
@@ -30,4 +31,5 @@ __all__ = [
     "ResearchCoverageDeclarationRevision",
     "ResearchHumanAnnotationRevision",
     "ResearchValidationRun",
+    "UsageEvent",
 ]

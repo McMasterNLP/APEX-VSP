@@ -19,6 +19,7 @@ from domain.models.admin import (
     AdminUserRoleUpdateRequest,
     AnalyticsDashboard,
 )
+from domain.models.usage import CategoryUsageResponse, UsageAdminResponse, UsageTrendDay
 from plugins.registry import PluginRegistry
 from domain.entities.case import Case as CaseEntity
 from domain.models.cases import CaseCreate, CaseResponse
@@ -29,6 +30,7 @@ from services.analytics_service import AnalyticsService
 from services.case_service import CaseService
 from services.research_service import pseudonymous_participant_reference
 from services.session_service import SessionService
+from services.usage_service import UsageService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -443,6 +445,37 @@ async def get_aggregates(
     """Get cohort/case aggregates (admin only)."""
     analytics_service = AnalyticsService(db)
     return await analytics_service.get_dashboard_analytics()
+
+
+@router.get("/usage", response_model=UsageAdminResponse)
+async def get_usage_dashboard(
+    db: Annotated[Session, Depends(get_db)],
+    current_user: Annotated[User, Depends(require_admin)],
+    days: int = Query(default=14, ge=1, le=90),
+):
+    """Today's global usage against the daily caps, plus a recent daily trend (admin only)."""
+    from controllers.usage_controller import _resets_at_iso
+
+    usage_service = UsageService(db)
+    summary = usage_service.get_admin_summary()
+    trend = usage_service.get_admin_trends(days=days)
+    return UsageAdminResponse(
+        categories=[
+            CategoryUsageResponse(
+                category=item.category,
+                label=item.label,
+                user_count=item.user_count,
+                user_limit=item.user_limit,
+                user_remaining=item.user_remaining,
+                global_count=item.global_count,
+                global_limit=item.global_limit,
+                global_remaining=item.global_remaining,
+            )
+            for item in summary
+        ],
+        trend=[UsageTrendDay(**day) for day in trend],
+        resets_at=_resets_at_iso(),
+    )
 
 
 @router.post("/cases", response_model=CaseResponse, status_code=201)

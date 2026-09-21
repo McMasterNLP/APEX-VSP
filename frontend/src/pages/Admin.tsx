@@ -22,12 +22,13 @@ import { MetricCard } from '@/components/MetricCard'
 import { Navbar } from '@/components/Navbar'
 import { Sidebar } from '@/components/Sidebar'
 import { Button } from '@/components/ui/button'
-import { Users, FileText, Activity, TrendingUp, Download, Plus, BarChart3, MessageSquare, Puzzle, ExternalLink, Clock, UserCheck } from 'lucide-react'
+import { Users, FileText, Activity, TrendingUp, Download, Plus, BarChart3, MessageSquare, Puzzle, ExternalLink, Clock, UserCheck, Gauge } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateInUserTimeZone, formatDateTimeInUserTimeZone } from '@/lib/dateTime'
 import { formatPluginName, formatMetricsPluginsDisplay } from '@/lib/formatPluginName'
 import { cn } from '@/lib/utils'
 import { AdminSessionsTable } from '@/components/sessions/AdminSessionsTable'
+import { AdminUsagePanel } from '@/components/admin/AdminUsagePanel'
 
 // ---- Plugin registry stage badge (Installed Plugins tab) ----
 
@@ -304,7 +305,7 @@ export const Admin = () => {
   const [overviewRecentSessions, setOverviewRecentSessions] = useState<SessionDetailDTO[]>([])
   const [overviewSessionsLoading, setOverviewSessionsLoading] = useState(true)
   const [overviewSessionsError, setOverviewSessionsError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'sessions' | 'analytics' | 'cases' | 'plugins'>('overview')
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'sessions' | 'analytics' | 'usage' | 'cases' | 'plugins'>('overview')
 
   // ---- NEW: cases state ----
   const [caseItems, setCaseItems] = useState<Case[]>([])
@@ -568,6 +569,7 @@ export const Admin = () => {
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'sessions', label: 'Session Logs', icon: MessageSquare },
     { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+    { id: 'usage', label: 'Usage', icon: Gauge },
     { id: 'cases', label: 'Case Management', icon: FileText },
     { id: 'plugins', label: 'Plugins', icon: Puzzle },
   ] as const
@@ -1248,6 +1250,9 @@ export const Admin = () => {
             )}
           </div>
         )
+
+      case 'usage':
+        return <AdminUsagePanel />
 
       default:
         return null

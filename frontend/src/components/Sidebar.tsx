@@ -3,7 +3,7 @@
  */
 import { Link, useLocation, type Location } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
-import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList, ClipboardCheck, FlaskConical, Puzzle, Sparkles } from 'lucide-react'
+import { LayoutDashboard, FileText, Shield, BarChart3, Menu, LineChart, ClipboardList, ClipboardCheck, FlaskConical, Puzzle, Sparkles, Gauge } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -50,6 +50,13 @@ export const Sidebar = () => {
       href: '/analytics',
       icon: LineChart,
       roles: ['trainee', 'admin', 'researcher'],
+    },
+    {
+      name: 'Usage',
+      href: '/usage',
+      icon: Gauge,
+      roles: ['trainee', 'admin', 'researcher'],
+      isActive: (loc: Location) => loc.pathname === '/usage',
     },
   ].filter((item) => item.roles.includes(user?.role || 'trainee'))
 

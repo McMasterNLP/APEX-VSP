@@ -36,6 +36,7 @@ from domain.models.sessions import (
 from services.dialogue_service import DialogueService
 from services.scoring_service import ScoringService
 from services.session_service import SessionService
+from services.usage_service import UsageService
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 logger = get_logger(__name__)
@@ -175,6 +176,7 @@ async def submit_turn(
     if not sess:
         raise NotFoundError(f"Session with ID {session_id} not found")
     verify_session_access(sess, current_user)
+    UsageService(db).check_and_record("chat_turn", current_user.id)
 
     # Initialize services
     llm_adapter = OpenAIAdapter()
@@ -219,6 +221,8 @@ async def submit_audio_turn(
 ):
     """Upload audio file and process it as a normal conversation turn."""
     _validate_session_write_access(session_id, db, current_user)
+    usage_service = UsageService(db)
+    usage_service.check_and_record("audio", current_user.id)
     transcript, audio_tone = await _transcribe_and_analyze_audio(audio_file)
 
     # Process as turn
@@ -227,6 +231,8 @@ async def submit_audio_turn(
         voice_tone=audio_tone,
         enable_tts=enable_tts,
     )
+
+    usage_service.check_and_record("chat_turn", current_user.id)
 
     # Initialize dialogue service
     llm_adapter = OpenAIAdapter()
@@ -271,6 +277,7 @@ async def transcribe_audio_turn(
 ):
     """Upload audio file and return only the transcript."""
     _validate_session_write_access(session_id, db, current_user)
+    UsageService(db).check_and_record("audio", current_user.id)
     transcribed_text, audio_tone = await _transcribe_and_analyze_audio(audio_file)
 
     return AudioTranscriptionResponse(

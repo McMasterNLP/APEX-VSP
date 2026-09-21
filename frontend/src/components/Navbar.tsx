@@ -42,22 +42,36 @@ export const Navbar = () => {
 
           <div className="hidden md:block">
             <div className="ml-4 flex items-center space-x-6">
-              {user?.role === 'admin' && (
-                <div className="flex items-center gap-4">
-                  <Link
-                    to="/docs/developer-onboarding"
-                    className="text-sm font-medium text-gray-700 hover:text-apex-700"
-                  >
-                    Onboarding
-                  </Link>
-                  <Link
-                    to="/docs/plugin-developer-guide"
-                    className="text-sm font-medium text-gray-700 hover:text-apex-700"
-                  >
-                    Plugin guide
-                  </Link>
-                </div>
-              )}
+              <div className="flex items-center gap-4">
+                <Link
+                  to="/docs/user-guide"
+                  className="text-sm font-medium text-gray-700 hover:text-apex-700"
+                >
+                  User guide
+                </Link>
+                {user?.role === 'admin' && (
+                  <>
+                    <Link
+                      to="/docs/admin-guide"
+                      className="text-sm font-medium text-gray-700 hover:text-apex-700"
+                    >
+                      Admin guide
+                    </Link>
+                    <Link
+                      to="/docs/developer-onboarding"
+                      className="text-sm font-medium text-gray-700 hover:text-apex-700"
+                    >
+                      Onboarding
+                    </Link>
+                    <Link
+                      to="/docs/plugin-developer-guide"
+                      className="text-sm font-medium text-gray-700 hover:text-apex-700"
+                    >
+                      Plugin guide
+                    </Link>
+                  </>
+                )}
+              </div>
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-700">
                   {user?.full_name || user?.email}
@@ -90,8 +104,22 @@ export const Navbar = () => {
               <div className="px-3 py-2 text-sm text-gray-700">
                 {user?.full_name || user?.email}
               </div>
+              <Link
+                to="/docs/user-guide"
+                className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                User guide
+              </Link>
               {user?.role === 'admin' && (
                 <>
+                  <Link
+                    to="/docs/admin-guide"
+                    className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Admin guide
+                  </Link>
                   <Link
                     to="/docs/developer-onboarding"
                     className="block px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md"

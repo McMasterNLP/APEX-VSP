@@ -15,6 +15,7 @@ import { Feedback } from './pages/Feedback'
 import { Sessions } from './pages/Sessions'
 import { SessionDetailPage } from './pages/SessionDetailPage'
 import { Analytics } from './pages/Analytics'
+import { Usage } from './pages/Usage'
 import { Admin } from './pages/Admin'
 import { Research } from './pages/Research'
 import { ResearchSessions } from './pages/ResearchSessions'
@@ -28,6 +29,8 @@ import { ExportTab } from './pages/research-workspace/ExportTab'
 import { AdminResearchSessionPage } from './pages/AdminResearchSessionPage'
 import { PluginDeveloperGuide } from './pages/PluginDeveloperGuide'
 import { ResearchWorkflowGuide } from './pages/ResearchWorkflowGuide'
+import { UserGuide } from './pages/UserGuide'
+import { AdminGuide } from './pages/AdminGuide'
 import { DeveloperOnboarding } from './pages/DeveloperOnboarding'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuthGate } from './hooks/useAuthGate'
@@ -42,6 +45,9 @@ const ROUTE_TITLES: Array<{ path: string; screenName: string }> = [
   { path: '/case/:caseId', screenName: 'Case Details' },
   { path: '/feedback/:sessionId', screenName: 'Feedback' },
   { path: '/sessions', screenName: 'My Sessions' },
+  { path: '/usage', screenName: 'Usage' },
+  { path: '/docs/user-guide', screenName: 'User Guide' },
+  { path: '/docs/admin-guide', screenName: 'Admin Guide' },
   { path: '/sessions/:sessionId', screenName: 'Session Details' },
   { path: '/admin', screenName: 'Admin Dashboard' },
   { path: '/research', screenName: 'Research' },
@@ -176,6 +182,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/usage"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'trainee', 'researcher']}>
+              <Usage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Admin routes */}
         <Route
@@ -245,6 +259,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'researcher']}>
               <ResearchWorkflowGuide />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docs/user-guide"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'trainee', 'researcher']}>
+              <UserGuide />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/docs/admin-guide"
+          element={
+            <ProtectedRoute allowedRoles={['admin']}>
+              <AdminGuide />
             </ProtectedRoute>
           }
         />
