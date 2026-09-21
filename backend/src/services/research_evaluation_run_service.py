@@ -33,6 +33,7 @@ from services.research_evaluation_service import (
     ResearchEvaluationService,
     ResearchEvaluationServiceError,
 )
+from services.usage_service import UsageService
 
 _TRANSCRIPT_SNAPSHOT_ADAPTER = TypeAdapter(tuple[ResearchTranscriptTurn, ...])
 
@@ -84,6 +85,9 @@ class ResearchEvaluationRunService:
         creator: User,
     ) -> EvaluationRunRecord:
         """Rerun one evaluator and persist its validated result transactionally."""
+
+        if request.allow_live:
+            UsageService(self.db).check_and_record("live_evaluation", creator.id)
 
         try:
             response = await self.evaluation_service.evaluate(

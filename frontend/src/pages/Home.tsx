@@ -5,7 +5,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuthGate } from '@/hooks/useAuthGate'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { MessageSquare, BarChart3, Puzzle, ArrowRight, Microscope } from 'lucide-react'
+import { MessageSquare, BarChart3, Puzzle, ArrowRight, Microscope, ShieldCheck } from 'lucide-react'
 
 /** Static hero visual: conversation + structured evaluation output. No live data. */
 function HeroConversationMock() {
@@ -190,7 +190,7 @@ export const Home = () => {
         {/* ── Feature cards ─────────────────────────────────────────── */}
         <section className="mb-24" aria-labelledby="features-heading">
           <h2 id="features-heading" className="sr-only">Platform capabilities</h2>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <Card className="border-gray-200 bg-white shadow-sm">
               <CardHeader>
                 <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-100">
@@ -215,6 +215,21 @@ export const Home = () => {
                 </CardTitle>
                 <CardDescription className="text-sm leading-relaxed text-gray-600">
                   Score communication using validated frameworks such as SPIKES and AFCE.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+
+            <Card className="border-gray-200 bg-white shadow-sm">
+              <CardHeader>
+                <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-lg bg-amber-100">
+                  <ShieldCheck className="h-5 w-5 text-amber-700" />
+                </div>
+                <CardTitle className="text-base font-semibold text-gray-950">
+                  Human-validated evaluators
+                </CardTitle>
+                <CardDescription className="text-sm leading-relaxed text-gray-600">
+                  Reviewers confirm, correct, and annotate every evaluator prediction, then
+                  validate the evaluator against that human judgment -- not a black box.
                 </CardDescription>
               </CardHeader>
             </Card>

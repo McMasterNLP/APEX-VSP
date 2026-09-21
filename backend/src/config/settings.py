@@ -91,6 +91,18 @@ class Settings(BaseSettings):
     # Research export anonymization (deterministic session IDs)
     research_anon_salt: str = Field(default="research-anon-salt-change-in-production")
 
+    # Usage guardrails -- daily caps on metered, cost-incurring actions
+    # (chat turns, audio ASR/TTS, live research evaluations). Per-user caps
+    # bound any single account; global caps bound total spend across everyone
+    # sharing a credential, which matters once that credential is published
+    # in a paper submission. See services/usage_service.py.
+    usage_daily_chat_turn_limit_per_user: int = Field(default=100)
+    usage_daily_audio_limit_per_user: int = Field(default=20)
+    usage_daily_live_evaluation_limit_per_user: int = Field(default=20)
+    usage_daily_chat_turn_limit_global: int = Field(default=1000)
+    usage_daily_audio_limit_global: int = Field(default=300)
+    usage_daily_live_evaluation_limit_global: int = Field(default=150)
+
     # Plugin configuration
     patient_model_plugin: str = Field(
         default="plugins.patient_models.default_llm_patient:DefaultLLMPatientModel"

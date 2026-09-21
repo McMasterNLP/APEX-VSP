@@ -63,6 +63,19 @@ class ExternalServiceError(AppError):
         super().__init__(message, status.HTTP_503_SERVICE_UNAVAILABLE, details)
 
 
+class UsageLimitExceededError(AppError):
+    """Raised when a metered action would exceed a per-user or global daily cap.
+
+    Deliberately a plain AppError subclass (not a research-specific error like
+    ResearchEvaluationRunServiceError) so every enforcement point -- chat
+    turns, audio, and live evaluations alike -- surfaces the same error shape
+    to the frontend.
+    """
+
+    def __init__(self, message: str = "Daily usage limit reached", details: Optional[dict[str, Any]] = None):
+        super().__init__(message, status.HTTP_429_TOO_MANY_REQUESTS, details)
+
+
 # Error handlers
 async def app_error_handler(request: Request, exc: AppError) -> JSONResponse:
     """Handle application errors."""
