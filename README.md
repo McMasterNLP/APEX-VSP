@@ -16,6 +16,7 @@ The system combines a React + TypeScript frontend with a FastAPI backend and a p
 Role-based access currently supports:
 
 - **Trainee**: practice conversations, view feedback.
+- **Researcher**: trainee-level access plus the research portal, evaluation workspace, and anonymized exports.
 - **Admin**: manage cases, configure plugins, access analytics and research exports.
 
 ---
@@ -24,18 +25,17 @@ Role-based access currently supports:
 
 The application is fully deployed and accessible at:
 
-**[https://apexsimulator.org/](https://apexsimulator.org/)**
+**[https://apex-vsp-ja6y.onrender.com/](https://apex-vsp-ja6y.onrender.com/)**
 
-No local setup is required to evaluate the system. Use the TA review accounts below to access all features.
+No local setup is required to evaluate the system. Use the review account below to access all features.
 
-### TA Review Credentials
+### Review Credentials
 
-| Role    | Email                      | Password         |
-| ------- | -------------------------- | ---------------- |
-| Trainee | `trainee.review@apex.com`  | `ApexReview123!` |
-| Admin   | `admin.review@apex.com`    | `ApexReview123!` |
+| Role  | Email                                           | Password         |
+| ----- | ------------------------------------------------ | ---------------- |
+| Admin | `christiancanlas700+apexreviewer@gmail.com`     | `ApexReview123!` |
 
-> The admin account has full access to all trainee features plus the admin dashboard, research analytics, and CSV export.
+> This account has full admin privileges, so it can exercise every trainee, admin, and research workflow described below.
 
 ---
 
@@ -43,10 +43,10 @@ No local setup is required to evaluate the system. Use the TA review accounts be
 
 Follow these steps to experience the trainee workflow end-to-end:
 
-1. Navigate to **[https://apexsimulator.org/](https://apexsimulator.org/)**.
+1. Navigate to **[https://apex-vsp-ja6y.onrender.com/](https://apex-vsp-ja6y.onrender.com/)**.
 2. Click **"Start a simulated session"** on the landing page.
-3. On the sign-in screen, enter the trainee credentials:
-   - Email: `trainee.review@apex.com`
+3. On the sign-in screen, enter the review credentials:
+   - Email: `christiancanlas700+apexreviewer@gmail.com`
    - Password: `ApexReview123!`
 4. After signing in you will land on the **Dashboard** (`/dashboard`).
    - The dashboard lists all available virtual patient cases.
@@ -67,8 +67,8 @@ Follow these steps to experience the trainee workflow end-to-end:
 
 The admin account provides access to all trainee features plus additional oversight and research capabilities:
 
-1. Navigate to **[https://apexsimulator.org/](https://apexsimulator.org/)** and sign in with the admin credentials:
-   - Email: `admin.review@apex.com`
+1. Navigate to **[https://apex-vsp-ja6y.onrender.com/](https://apex-vsp-ja6y.onrender.com/)** and sign in with the review credentials:
+   - Email: `christiancanlas700+apexreviewer@gmail.com`
    - Password: `ApexReview123!`
 2. After signing in you will land on the **Dashboard**.
    - As an admin, the sidebar exposes additional navigation links.
@@ -95,10 +95,15 @@ project-root/
 │   │   ├── app.py
 │   │   ├── core/
 │   │   ├── domain/
+│   │   ├── schemas/
 │   │   ├── services/
 │   │   ├── repositories/
 │   │   ├── controllers/
+│   │   ├── adapters/       # LLM, ASR, TTS, NLU, storage adapters
+│   │   ├── interfaces/     # plugin protocols (PatientModel, Evaluator, MetricsPlugin)
+│   │   ├── plugins/        # registered plugin implementations
 │   │   └── scripts/
+│   ├── tests/
 │   └── README.md
 │
 ├── frontend/        # React + Vite + TypeScript client
@@ -118,12 +123,15 @@ project-root/
 
 ## Core Features
 
-- **Simulated patient interactions** – Trainees engage with virtual patients via a structured chat interface.
+- **Simulated patient interactions** – Trainees engage with virtual patients via a structured chat interface, with optional voice input/output (Whisper speech-to-text and TTS playback).
 - **Structured empathy evaluation (SPIKES / AFCE)** – Automated metrics for stage coverage, question style, and empathic opportunity handling.
 - **Session lifecycle management** – Create, resume, and close sessions with full transcript history.
 - **Feedback and scoring engine** – Session summary, empathy scores, SPIKES completion, AFCE-style breakdowns, and conversation timelines.
 - **Admin dashboard and research analytics** – Case management, session metrics, fairness-oriented analytics, and anonymized data export for research.
+- **Usage guardrails** – Per-user and platform-wide daily limits on chat turns, audio requests, and live evaluator runs, with a trainee-facing Usage page and an admin Usage dashboard.
+- **In-app guides** – A trainee-facing User Guide and an admin-facing Admin Guide, linked from the navigation bar.
 - **Research evaluation workspace** – Admin-only, non-persisting comparison of reviewed evaluators through a versioned native-plus-projection contract, capability-driven views, and sanitized exports. See [the Item 1 research evaluation documentation](docs/research/evaluation_platform/README.md).
+- **Evaluator validation workflow** – A human reviewer confirms, rejects, or corrects an evaluator's predictions (down to the span level), declares review coverage, and a validation engine reports per-label precision, recall, and F1 against the resolved reference.
 - **Bias & fairness views** – Visualizations to inspect score consistency across anonymized cohorts (where data is available).
 - **Security & role-based access** – Supabase Auth with email verification, JWT-based API authorization, trainee/admin roles, and separation between training and research views.
 
@@ -185,7 +193,7 @@ Plugins are **registered in code** (on import) and **selected** via configuratio
 
 **Frontend**
 
-- React 18 + Vite
+- React 19 + Vite
 - TypeScript
 - TailwindCSS
 - Zustand for global state
@@ -196,7 +204,7 @@ Plugins are **registered in code** (on import) and **selected** via configuratio
 
 ## Running Locally (Optional)
 
-> The hosted version at **[https://apexsimulator.org/](https://apexsimulator.org/)** is already fully deployed with all services configured. The steps below are only needed if you want to run APEX on your own machine.
+> The hosted version at **[https://apex-vsp-ja6y.onrender.com/](https://apex-vsp-ja6y.onrender.com/)** is already fully deployed with all services configured. The steps below are only needed if you want to run APEX on your own machine.
 >
 > **You will need your own OpenAI and/or Gemini API keys** for the LLM-powered patient dialogue. All other configuration (Supabase, database) can be copied from the `.env.example` files in this repository.
 
@@ -215,8 +223,8 @@ To run the FastAPI backend and the Vite-built frontend in containers (with **Sup
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/AsherHaroon/capstone.git
-cd capstone
+git clone https://github.com/McMasterNLP/APEX-VSP.git
+cd APEX-VSP
 ```
 
 ### 2. Backend Setup
@@ -309,10 +317,11 @@ UPDATE core.users SET role = 'admin' WHERE email = 'admin@example.com';
 
 ## Roles and Permissions
 
-| Role        | Access                                                                  |
-| ----------- | ----------------------------------------------------------------------- |
-| **Trainee** | Access to virtual cases, simulated patient chat, and feedback views     |
-| **Admin**   | Full CRUD on cases, user/session oversight, analytics, and research API |
+| Role           | Access                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| **Trainee**    | Access to virtual cases, simulated patient chat, and feedback views                                |
+| **Researcher** | Trainee-level access plus the research portal (analytics, evaluation workspace, exports); no admin-only case/user management |
+| **Admin**      | Full CRUD on cases, user/session oversight, analytics, and research API                            |
 
 ---
 
@@ -334,3 +343,16 @@ Developed by
 as part of the McMaster University 4ZP6A Capstone Project.
 
 Tasks and work have been split and documented using the Jira platform accessed via https://medllmcapstone.atlassian.net/jira/software/projects/SCRUM/summary
+
+---
+
+## License
+
+The application source code in this repository is released for
+non-commercial research and educational use under the
+[PolyForm Noncommercial License 1.0.0](LICENSE), which permits use,
+modification, and redistribution for research, teaching, and other
+non-commercial purposes.
+
+Case scripts and documentation are released separately under
+[CC BY-NC 4.0](LICENSE-CONTENT.md).

@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Medical case simulation backend with AI-powered dialogue"
 authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
+license = "PolyForm-Noncommercial-1.0.0"
 packages = [{include = "src"}]
 
 [tool.poetry.dependencies]
