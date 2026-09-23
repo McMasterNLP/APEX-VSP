@@ -9,19 +9,23 @@ backend/
 ├── src/
 │   ├── app.py                    # FastAPI instance & router mounting
 │   ├── config/                   # Settings & logging
-│   ├── core/                     # Security, errors, deps, events
+│   ├── core/                     # Security, errors, deps, events, plugin manager
 │   ├── db/                       # Database setup & migrations
-│   ├── domain/                   # Entities (models) & schemas
+│   ├── domain/                   # Entities (models)
+│   ├── schemas/                  # Pydantic request/response schemas
 │   ├── repositories/             # Data access layer
 │   ├── adapters/                 # External service adapters
 │   │   ├── llm/                  # LLM adapters (OpenAI, Gemini)
 │   │   ├── asr/                  # Speech-to-text (Whisper)
 │   │   ├── tts/                  # Text-to-speech
 │   │   ├── nlu/                  # Natural language understanding
-│   │   └── storage/              # File storage (S3)
+│   │   └── storage/              # File storage (Supabase)
+│   ├── interfaces/               # Plugin protocols (PatientModel, Evaluator, MetricsPlugin)
+│   ├── plugins/                  # Registered plugin implementations + PluginRegistry
 │   ├── services/                 # Business logic
 │   ├── controllers/              # API routes/controllers
-│   └── tests/                    # Test suite
+│   └── scripts/                  # Seed data, one-off maintenance scripts
+├── tests/                        # Test suite (mirrors src/ layout)
 ├── pyproject.toml                # Dependencies
 └── README.md
 
@@ -256,5 +260,5 @@ gunicorn src.app:app -w 4 -k uvicorn.workers.UvicornWorker
 
 ## License
 
-[Your License Here]
+This backend is released for non-commercial research and educational use under the [PolyForm Noncommercial License 1.0.0](../LICENSE). See the repository root README for full licensing details, including the separate license covering case scripts and documentation.
 
