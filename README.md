@@ -327,10 +327,12 @@ APEX is designed to support research in clinical communication training and LLM-
 ## Team
 
 Developed by
-**Tung Ho**, **Asher Haroon**, **Michael Fedotov**, **Hammad Ur Rehman**, **Christian Canlas**, **Aaryan Kandwal**, and **Samir Matani**
-as part of the McMaster University 4ZP6A Capstone Project.
+**Christian Canlas**\*, **Aaryan Kandwal**\*, **Daniel Hu**, **Abdelaziz Serour**, and **Allison Lahnala**
+— McMaster University, Department of Computing and Software.
 
-Tasks and work have been split and documented using the Jira platform accessed via https://medllmcapstone.atlassian.net/jira/software/projects/SCRUM/summary
+\*Authors contributed equally. Correspondence: lahnalaa@mcmaster.ca
+
+We also acknowledge the development support of Asher Haroon, Michael Fedotov, Hammad Ur Rehman, Tung Ho, and Samir Matani, and funding support of the Natural Sciences and Engineering Research Council of Canada (NSERC) under reference number RGPIN-2026-06684.
 
 ---
 
