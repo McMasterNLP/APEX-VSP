@@ -77,7 +77,7 @@ describe('useEvaluationSession', () => {
   it('fetches annotation sets and validation runs on mount regardless of which tab will render', async () => {
     renderHook(() => useEvaluationSession(42))
     await waitFor(() => expect(mockedAnnotationSets).toHaveBeenCalledWith(42))
-    expect(mockedValidationRuns).toHaveBeenCalledWith(42)
+    expect(mockedValidationRuns).toHaveBeenCalledWith(42, false)
   })
 
   it('does not fetch saved runs for an incomplete session', async () => {

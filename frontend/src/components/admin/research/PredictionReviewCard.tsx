@@ -13,7 +13,22 @@ import { ReviewControls } from './ReviewControls'
 
 const humanize = (value: string) => value.replaceAll('_', ' ')
 
-function predictionSummary(prediction: ReviewablePrediction): string {
+const MAX_RELATION_SPAN_TEXT_LENGTH = 40
+
+function truncate(text: string, maxLength: number): string {
+  return text.length > maxLength ? `${text.slice(0, maxLength).trimEnd()}…` : text
+}
+
+function describeRelationEndpoint(
+  annotationId: string,
+  spanById: Map<string, SpanAnnotation>
+): string {
+  const span = spanById.get(annotationId)
+  if (!span) return annotationId
+  return `Turn ${span.turn_number}: ${span.label} — “${truncate(span.quoted_text, MAX_RELATION_SPAN_TEXT_LENGTH)}”`
+}
+
+function predictionSummary(prediction: ReviewablePrediction, spanById: Map<string, SpanAnnotation>): string {
   const original = prediction.original_prediction
   switch (original.projection_type) {
     case 'span_annotation': {
@@ -26,7 +41,7 @@ function predictionSummary(prediction: ReviewablePrediction): string {
     }
     case 'relation': {
       const relation = original as ProjectedRelation
-      return `${relation.relation_type}: ${relation.source_annotation_id} → ${relation.target_annotation_id}`
+      return `${relation.relation_type}: ${describeRelationEndpoint(relation.source_annotation_id, spanById)} → ${describeRelationEndpoint(relation.target_annotation_id, spanById)}`
     }
     case 'dimension_rating': {
       const rating = original as DimensionRating
@@ -46,6 +61,7 @@ export function PredictionReviewCard({
   currentDecision,
   disabled,
   onSave,
+  spanById,
 }: {
   prediction: ReviewablePrediction
   policy: AnnotationPolicyDescriptor
@@ -57,6 +73,7 @@ export function PredictionReviewCard({
     correction: TypedCorrection | null,
     reviewerNote: string
   ) => Promise<void>
+  spanById: Map<string, SpanAnnotation>
 }) {
   const state = currentDecision?.decision ?? 'unreviewed'
   const stateStyles = {
@@ -81,7 +98,7 @@ export function PredictionReviewCard({
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-gray-600">Model prediction · {humanize(prediction.projection_type)}</p>
           <h6 id={`prediction-${prediction.prediction_id}`} className="mt-1 font-semibold text-gray-950">
-            {predictionSummary(prediction)}
+            {predictionSummary(prediction, spanById)}
           </h6>
         </div>
         <span aria-label={`Human decision: ${humanize(state)}`} className={`rounded-full border px-2 py-1 text-xs font-semibold capitalize ${stateStyles}`}>
