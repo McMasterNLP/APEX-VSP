@@ -94,12 +94,13 @@ export function AnnotationSetWorkspace({
   const spanPolicy = annotationSet.annotation_policy.label_policies.find((item) => item.projection_type === 'span_annotation')
   const activeHuman = annotationSet.active_human_annotations ?? []
   const resolvedSpans = annotationSet.reference_projection?.projection.spans ?? annotationSet.resolved_projection.spans
-  const displayedSpans = useMemo(() => {
+  const displayedSpansById = useMemo(() => {
     const byId = new Map(run.envelope.projection.spans.map((item) => [item.prediction_id, item]))
     for (const item of resolvedSpans) byId.set(item.prediction_id, item)
     for (const decision of annotationSet.effective_decisions) if (decision.decision === 'rejected') byId.delete(decision.prediction_id)
-    return [...byId.values()]
+    return byId
   }, [annotationSet.effective_decisions, resolvedSpans, run.envelope.projection.spans])
+  const displayedSpans = useMemo(() => [...displayedSpansById.values()], [displayedSpansById])
 
   const cancelSelection = () => {
     setPendingSelection(null)
@@ -419,6 +420,7 @@ export function AnnotationSetWorkspace({
               currentDecision={currentDecision}
               disabled={saving || annotationSet.locked}
               onSave={save}
+              spanById={displayedSpansById}
             />
           </section>
         </div>

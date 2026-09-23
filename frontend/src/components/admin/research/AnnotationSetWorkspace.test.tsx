@@ -431,7 +431,7 @@ describe('AnnotationSetWorkspace', () => {
     queue.focus()
     fireEvent.keyDown(queue, { key: 'ArrowRight' })
     expect(screen.getByText('Item 2 of 2')).toBeInTheDocument()
-    expect(screen.getByText(/responds_to: span-1 → span-2/i)).toBeInTheDocument()
+    expect(screen.getByText(/responds_to: Turn 1: empathic_opportunity — .That sounds .* → span-2/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Confirm prediction' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reject prediction' })).toBeInTheDocument()
     expect(screen.queryByText(/typed label correction|typed rating correction/i)).not.toBeInTheDocument()
