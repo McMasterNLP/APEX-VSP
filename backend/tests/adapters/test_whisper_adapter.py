@@ -57,3 +57,35 @@ async def test_whisper_maps_api_errors_to_external_service_error():
 
     with pytest.raises(ExternalServiceError, match="Audio transcription failed"):
         await adapter.transcribe_audio(b"data", "mp3")
+
+
+def _mock_transcribe(adapter: WhisperAdapter) -> AsyncMock:
+    create = AsyncMock(return_value=SimpleNamespace(text="ok"))
+    adapter.client = MagicMock()
+    adapter.client.audio.transcriptions.create = create
+    return create
+
+
+@pytest.mark.asyncio
+async def test_default_asr_model_is_gpt_transcribe_without_temperature():
+    adapter = WhisperAdapter()
+    create = _mock_transcribe(adapter)
+
+    await adapter.transcribe_audio(b"\x00\x01", "wav")
+
+    kwargs = create.await_args.kwargs
+    assert kwargs["model"] == "gpt-transcribe"
+    assert "temperature" not in kwargs
+
+
+@pytest.mark.asyncio
+async def test_whisper_1_rollback_keeps_temperature_zero():
+    adapter = WhisperAdapter()
+    adapter.model_id = "whisper-1"
+    create = _mock_transcribe(adapter)
+
+    await adapter.transcribe_audio(b"\x00\x01", "wav")
+
+    kwargs = create.await_args.kwargs
+    assert kwargs["model"] == "whisper-1"
+    assert kwargs["temperature"] == 0

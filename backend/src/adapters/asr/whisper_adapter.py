@@ -18,6 +18,7 @@ class WhisperAdapter:
     def __init__(self):
         settings = get_settings()
         self.api_key = settings.openai_api_key
+        self.model_id = settings.openai_asr_model_id
         self.client = AsyncOpenAI(api_key=self.api_key)
     
     async def transcribe_audio(
@@ -40,11 +41,14 @@ class WhisperAdapter:
             
             try:
                 # Transcribe using Whisper
+                # temperature=0 is only sent to whisper-1, where it was
+                # always used; newer transcribe models get their defaults.
+                extra: dict = {"temperature": 0} if self.model_id == "whisper-1" else {}
                 with open(temp_path, "rb") as audio_file:
                     transcript = await self.client.audio.transcriptions.create(
-                        model="whisper-1",
+                        model=self.model_id,
                         file=audio_file,
-                        temperature=0,
+                        **extra,
                     )
 
                 transcript_text = (transcript.text or "").strip()

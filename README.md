@@ -111,7 +111,7 @@ project-root/
 
 ## Core Features
 
-- **Simulated patient interactions** – Trainees engage with virtual patients via a structured chat interface, with optional voice input/output (Whisper speech-to-text and TTS playback).
+- **Simulated patient interactions** – Trainees engage with virtual patients via a structured chat interface, with optional voice input/output (OpenAI speech-to-text and TTS playback).
 - **Structured empathy evaluation (SPIKES / AFCE)** – Automated metrics for stage coverage, question style, and empathic opportunity handling.
 - **Session lifecycle management** – Create, resume, and close sessions with full transcript history.
 - **Feedback and scoring engine** – Session summary, empathy scores, SPIKES completion, AFCE-style breakdowns, and conversation timelines.

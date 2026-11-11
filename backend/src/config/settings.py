@@ -55,11 +55,16 @@ class Settings(BaseSettings):
     
     # OpenAI
     openai_api_key: str = Field(...)
-    openai_model_id: str = Field(default="gpt-4")
+    openai_model_id: str = Field(default="gpt-6-luna")
+    # Reasoning effort for reasoning-capable chat models (gpt-5*, gpt-6*).
+    # "none" keeps temperature control; any other value drops temperature.
+    # Note: max_completion_tokens includes reasoning tokens, so higher effort
+    # leaves fewer tokens for the visible reply.
+    openai_reasoning_effort: str = Field(default="none")
     
     # Google Gemini
     gemini_api_key: str = Field(...)
-    gemini_model_id: str = Field(default="gemini-pro")
+    gemini_model_id: str = Field(default="gemini-3.8-flash")
     
     # Storage
     supabase_url: str = Field(default="")
@@ -81,6 +86,8 @@ class Settings(BaseSettings):
     tts_provider: str = Field(default="openai")
     asr_provider: str = Field(default="whisper")
     openai_tts_model_id: str = Field(default="gpt-4o-mini-tts")
+    # whisper-1 is shut down on 2027-02-26; gpt-transcribe is its replacement.
+    openai_asr_model_id: str = Field(default="gpt-transcribe")
     openai_tts_voice: str = Field(default="coral")
     openai_tts_response_format: str = Field(default="mp3")
     openai_tts_instructions: str = Field(

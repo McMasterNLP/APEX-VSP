@@ -41,7 +41,33 @@ class OpenAIAdapter:
         settings = get_settings()
         self.api_key = settings.openai_api_key
         self.model_id = model_identifier or settings.openai_model_id
+        self.reasoning_effort = settings.openai_reasoning_effort
         self.client = AsyncOpenAI(api_key=self.api_key)
+
+    def _completion_params(self, max_tokens: int, temperature: float) -> dict[str, Any]:
+        """Build model-appropriate token/sampling kwargs for chat.completions.create.
+
+        - Legacy chat models (gpt-3.5*, gpt-4*, incl. gpt-4o / gpt-4.1):
+          max_tokens + temperature (they reject reasoning_effort).
+        - o-series (o1, o3, o4-mini, ...): max_completion_tokens only.
+        - Everything else (gpt-5*, gpt-6*, future): max_completion_tokens +
+          reasoning_effort, plus temperature only when effort is "none".
+
+        max_completion_tokens includes reasoning tokens, so a non-"none" effort
+        consumes part of the budget before any visible text is produced.
+        """
+        model = self.model_id.lower()
+        if model.startswith(("gpt-3.5", "gpt-4")):
+            return {"max_tokens": max_tokens, "temperature": temperature}
+        if re.match(r"o\d", model):
+            return {"max_completion_tokens": max_tokens}
+        params: dict[str, Any] = {
+            "max_completion_tokens": max_tokens,
+            "reasoning_effort": self.reasoning_effort,
+        }
+        if self.reasoning_effort == "none":
+            params["temperature"] = temperature
+        return params
 
     def _is_role_switch_attempt(self, text: str) -> bool:
         """Detect attempts to force the patient into the doctor role."""
@@ -74,8 +100,7 @@ class OpenAIAdapter:
             response = await self.client.chat.completions.create(
                 model=self.model_id,
                 messages=messages,
-                max_tokens=max_tokens,
-                temperature=temperature,
+                **self._completion_params(max_tokens, temperature),
             )
             patient_text = response.choices[0].message.content.strip()
 
@@ -142,8 +167,7 @@ Remember: You are receiving care, not providing it. Respond only as the patient 
             response = await self.client.chat.completions.create(
                 model=self.model_id,
                 messages=messages,
-                max_tokens=300,
-                temperature=0.4,
+                **self._completion_params(300, 0.4),
             )
             patient_text = response.choices[0].message.content.strip()
 
@@ -177,8 +201,7 @@ Respond in JSON format with keys: empathy_score, question_type, jargon_level, cl
             response = await self.client.chat.completions.create(
                 model=self.model_id,
                 messages=[{"role": "user", "content": analysis_prompt}],
-                max_tokens=200,
-                temperature=0.3,
+                **self._completion_params(200, 0.3),
             )
 
             import json
